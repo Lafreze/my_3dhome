@@ -15,7 +15,7 @@ export const objects = {
   plant: { name: '窗边绿植', kind: 'BOTANICAL', action: '浇水' },
   rug: { name: '羊毛编织毯', kind: 'TEXTILE', action: '更换配色' },
   record: { name: '黑胶唱片机', kind: 'LISTENING', action: '播放 / 暂停' },
-  window: { name: '山景窗', kind: 'ATMOSPHERE', action: '时间与天气' },
+  window: { name: '书房北窗', kind: 'N · 林地', action: '时间与天气' },
   stool: { name: '工作椅', kind: 'FURNITURE', action: '拉出 / 归位' },
   drawer: { name: '收藏抽屉', kind: 'DETAIL', action: '打开 / 收起' },
   camera: { name: '胶片相机', kind: 'PHOTOGRAPHY', action: '打开相册' },

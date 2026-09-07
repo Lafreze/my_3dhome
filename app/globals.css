@@ -1469,3 +1469,26 @@ a {
     max-height: max(65px, calc(100% - 210px));
   }
 }
+
+.environment-mode { display: flex; padding: 3px; border-radius: 10px; background: #e7e9df; margin: 6px 0 14px; }
+.environment-mode button { flex: 1; font-size: 11px; padding: 8px 4px; border-radius: 7px; color: #697765; }
+.environment-mode button[aria-pressed='true'] { background: #faf8ef; color: #354b37; box-shadow: 0 1px 4px #18271812; }
+.weather-reading { display: flex; align-items: baseline; justify-content: space-between; padding: 3px 2px 7px; font-variant-numeric: tabular-nums; }
+.weather-reading strong { font-size: 31px; font-weight: 400; letter-spacing: -1px; }
+.weather-reading span { font-size: 25px; font-weight: 300; }
+.weather-place { font-size: 12px; overflow-wrap: anywhere; }
+.weather-summary { display: block; font-size: 11px; color: #79806f; line-height: 1.6; margin: 6px 0 13px; }
+.weather-location-actions { display: flex; gap: 6px; }
+.weather-location-actions button { display: flex; gap: 7px; align-items: center; justify-content: center; border-radius: 8px; background: #435844; color: #fff7e6; padding: 10px; font-size: 11px; }
+.weather-location-actions button:first-child { flex: 1; }
+.weather-location-actions button:disabled, .weather-city button:disabled { opacity: .45; cursor: wait; }
+.weather-city form { display: flex; margin-top: 8px; border: 1px solid #d8ddce; border-radius: 8px; }
+.weather-city input { width: 100%; min-width: 0; padding: 9px; font-size: 12px; background: transparent; }
+.weather-city form button { padding: 8px 10px; }
+.weather-city ul { padding: 0; list-style: none; margin: 7px 0; }
+.weather-city li button { text-align: left; width: 100%; padding: 9px 7px; border-bottom: 1px solid #d8ddce; font-size: 11px; }
+.weather-city li button:hover { background: #e8eadd; }
+.weather-city output { display: block; font-size: 11px; color: #91664f; margin-top: 7px; }
+.weather-source { display: flex; justify-content: space-between; gap: 6px; font-size: 9px; color: #89907e; margin-top: 14px; }
+.weather-source a { text-decoration: underline; text-underline-offset: 3px; }
+.environment-picker button:focus-visible, .weather-city input:focus-visible { outline: 2px solid #879b75; outline-offset: 2px; }

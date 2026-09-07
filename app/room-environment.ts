@@ -1,6 +1,8 @@
 import * as T from 'three';
 
-import type { Environment } from './environment-data';
+import { sunFor, type Environment } from './environment-data';
+import type { RoomId } from './house-data';
+import type { HouseLandscape } from './house-landscape';
 
 const palettes = {
   morning: {
@@ -61,22 +63,44 @@ const palettes = {
   },
 } as const;
 export function environmentLight(value: Environment) {
-  const p = palettes[value.time],
-    wet = value.weather !== 'clear',
-    night = value.time === 'night';
+  const solar = sunFor(value),
+    altitude = T.MathUtils.degToRad(solar.altitude),
+    azimuth = T.MathUtils.degToRad(solar.azimuth);
+  const cloud =
+    value.cloudCover ??
+    (value.weather === 'clear' ? 10 : value.weather === 'cloudy' ? 80 : 98);
+  const daylight = T.MathUtils.smoothstep(solar.altitude, -8, 18);
+  const warmth = 1 - T.MathUtils.smoothstep(solar.altitude, 0, 25);
+  const sun = new T.Color('#fff1d9').lerp(new T.Color('#ffb775'), warmth);
+  sun.lerp(new T.Color('#cad9e0'), cloud / 140);
+  const hemi = new T.Color('#829dbb')
+    .lerp(new T.Color('#e5eff0'), daylight)
+    .lerp(new T.Color('#edc4a2'), warmth * daylight * 0.22);
   return {
-    sun: new T.Color(wet ? (night ? '#839bc0' : '#cad9e0') : p.sun),
-    hemi: new T.Color(wet ? (night ? '#8299bb' : '#c4d3de') : p.hemi),
-    ground: new T.Color(p.ground),
-    position: new T.Vector3(...p.position),
-    power: p.power * (value.weather === 'rain' ? 0.12 : wet ? 0.28 : 1),
-    ambient: p.ambient * (value.weather === 'rain' ? 0.66 : wet ? 0.83 : 1),
-    fill: p.fill * (wet ? 0.8 : 1),
+    sun,
+    hemi,
+    ground: new T.Color('#575b66').lerp(new T.Color('#9f9277'), daylight),
+    position: new T.Vector3(
+      Math.sin(azimuth) * Math.cos(altitude),
+      Math.sin(altitude),
+      -Math.cos(azimuth) * Math.cos(altitude),
+    ).multiplyScalar(12),
+    power:
+      4.8 *
+      Math.pow(Math.max(0, Math.sin(altitude)), 0.5) *
+      (1 - (cloud / 100) * 0.94) *
+      (value.weather === 'fog' ? 0.2 : 1),
+    ambient: 0.46 + 2.0 * daylight * (1 - (cloud / 100) * 0.25),
+    fill: 0.3 + 0.9 * daylight,
   };
 }
 
 // All scenery is generated locally. The sky and rain stay inside the glazed aperture.
-export function createWindowEnvironment(parent: T.Group) {
+export function createWindowEnvironment(
+  parent: T.Group,
+  room: RoomId,
+  landscape: HouseLandscape,
+) {
   const width = 3.22,
     height = 2.12;
   const canvas = document.createElement('canvas');
@@ -90,6 +114,17 @@ export function createWindowEnvironment(parent: T.Group) {
   const sky = new T.Mesh(geometry, material);
   sky.position.z = -0.14;
   parent.add(sky);
+  const exteriorMaterial = new T.MeshBasicMaterial({
+    map: landscape.register(room, parent),
+    transparent: true,
+    toneMapped: false,
+    depthWrite: false,
+  });
+  const exterior = new T.Mesh(geometry, exteriorMaterial);
+  exterior.position.z = -0.13;
+  parent.add(exterior);
+  let camera: T.Camera | undefined;
+  const viewSeed = { study: 11, living: 37, bedroom: 63, gallery: 89 }[room];
   let state: Environment = { time: 'afternoon', weather: 'clear' };
   let previous = -Infinity;
   let dirty = true;
@@ -125,6 +160,35 @@ export function createWindowEnvironment(parent: T.Group) {
   drops.frustumCulled = false;
   drops.position.z = -0.035;
   parent.add(drops);
+  const snowGeometry = new T.BufferGeometry();
+  const snowPositions = new Float32Array(180 * 3);
+  snowGeometry.setAttribute(
+    'position',
+    new T.BufferAttribute(snowPositions, 3).setUsage(T.DynamicDrawUsage),
+  );
+  const flakeCanvas = document.createElement('canvas');
+  flakeCanvas.width = flakeCanvas.height = 32;
+  const fc = flakeCanvas.getContext('2d')!;
+  const fg = fc.createRadialGradient(16, 16, 0, 16, 16, 15);
+  fg.addColorStop(0, '#ffffff');
+  fg.addColorStop(0.4, '#ffffffe0');
+  fg.addColorStop(1, '#ffffff00');
+  fc.fillStyle = fg;
+  fc.fillRect(0, 0, 32, 32);
+  const flakeTexture = new T.CanvasTexture(flakeCanvas);
+  const snowMaterial = new T.PointsMaterial({
+    color: '#e5eff0',
+    size: 0.034,
+    map: flakeTexture,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0,
+  });
+  const snow = new T.Points(snowGeometry, snowMaterial);
+  snow.position.z = -0.06;
+  snow.frustumCulled = false;
+  parent.add(snow);
+  let snowAmount = 0;
   const dummy = new T.Object3D();
   const fraction = (v: number) => v - Math.floor(v);
   const seed = (i: number) =>
@@ -138,57 +202,69 @@ export function createWindowEnvironment(parent: T.Group) {
     gradient.addColorStop(1, css(current[1]));
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, w, h);
-    const p = palettes[state.time],
-      night = state.time === 'night';
+    const night = state.time === 'night';
+    parent.updateWorldMatrix(true, false);
+    const quaternion = parent.getWorldQuaternion(new T.Quaternion()).invert();
+    const eye = camera
+      ? parent.worldToLocal(camera.getWorldPosition(new T.Vector3()))
+      : new T.Vector3(0, 0, 3);
+    if (eye.z < 0.15) eye.set(0, 0, 3);
+    function project(az: number, alt: number) {
+      const a = (az * Math.PI) / 180,
+        e = (alt * Math.PI) / 180;
+      const dir = new T.Vector3(
+        Math.sin(a) * Math.cos(e),
+        Math.sin(e),
+        -Math.cos(a) * Math.cos(e),
+      ).applyQuaternion(quaternion);
+      if (dir.z >= -0.01) return null;
+      const distance = (eye.z + 0.14) / -dir.z;
+      return [
+        ((eye.x + dir.x * distance) / width) * w + w / 2,
+        h / 2 - ((eye.y + dir.y * distance) / height) * h,
+      ];
+    }
     if (state.weather === 'clear') {
       if (night) {
         ctx.fillStyle = '#f3ecd9';
-        for (let i = 0; i < 65; i++) {
-          ctx.globalAlpha = 0.28 + seed(i + 200) * 0.55;
+        for (let i = 0; i < 360; i++) {
+          const p = project(seed(i) * 360, 10 + seed(i + 99) * 75);
+          if (!p) continue;
+          ctx.globalAlpha = 0.2 + seed(i + 200) * 0.45;
           ctx.beginPath();
-          ctx.arc(
-            seed(i) * w,
-            seed(i + 99) * h * 0.65,
-            0.5 + seed(i + 33),
-            0,
-            Math.PI * 2,
-          );
+          ctx.arc(p[0], p[1], 0.5 + seed(i + 33), 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.globalAlpha = 1;
       }
-      const x = p.orb[0] * w,
-        y = p.orb[1] * h,
-        r = night ? 22 : 29;
-      const glow = ctx.createRadialGradient(x, y, r * 0.3, x, y, r * 4);
-      glow.addColorStop(0, night ? '#e4edfd40' : '#fff4d680');
-      glow.addColorStop(1, '#fff4d600');
-      ctx.fillStyle = glow;
-      ctx.fillRect(x - r * 4, y - r * 4, r * 8, r * 8);
-      ctx.fillStyle = night ? '#ebeddf' : '#fff0c5';
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-      if (night) {
-        ctx.fillStyle = '#b4c4ca40';
-        for (let i = 0; i < 8; i++) {
-          ctx.beginPath();
-          ctx.arc(
-            x + (seed(i + 500) - 0.5) * 28,
-            y + (seed(i + 540) - 0.5) * 28,
-            2 + seed(i + 550) * 4,
-            0,
-            Math.PI * 2,
-          );
-          ctx.fill();
-        }
+      const sun = sunFor(state),
+        p = project(sun.azimuth, sun.altitude);
+      // One geographic sun; it appears only in an aperture that actually faces it.
+      if (sun.altitude > -0.8 && p) {
+        const [x, y] = p,
+          r = 9;
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 7);
+        glow.addColorStop(0, '#fff4d699');
+        glow.addColorStop(1, '#fff4d600');
+        ctx.fillStyle = glow;
+        ctx.fillRect(x - r * 7, y - r * 7, r * 14, r * 14);
+        ctx.fillStyle = '#fff2cc';
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
     // Broad, softly layered clouds drift slowly above distant ridgelines.
     const cloudCount = state.weather === 'clear' ? 4 : 14;
     for (let i = 0; i < cloudCount; i++) {
       const x =
-        fraction(seed(i + 300) + t * 0.003 * (1 + seed(i))) * 1.6 * w - 0.3 * w;
+        fraction(
+          seed(i + 300 + viewSeed) +
+            t * 0.001 * (1 + (state.windSpeed ?? 6) / 10) * (1 + seed(i)),
+        ) *
+          1.6 *
+          w -
+        0.3 * w;
       const y = (0.05 + seed(i + 400) * 0.45) * h;
       ctx.save();
       ctx.translate(x, y);
@@ -209,45 +285,7 @@ export function createWindowEnvironment(parent: T.Group) {
       ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
       ctx.restore();
     }
-    for (let layer = 0; layer < 4; layer++) {
-      const base = 0.62 + layer * 0.105;
-      const color = current[2].clone().lerp(current[3], layer / 3);
-      const mountain = ctx.createLinearGradient(0, h * 0.45, 0, h);
-      mountain.addColorStop(0, css(color));
-      mountain.addColorStop(1, css(color.clone().lerp(current[1], 0.12)));
-      ctx.fillStyle = mountain;
-      ctx.beginPath();
-      ctx.moveTo(0, h);
-      for (let x = 0; x <= w + 4; x += 4) {
-        const y =
-          base +
-          Math.sin(x * 0.008 + layer * 2) * 0.075 +
-          Math.sin(x * 0.017 + layer * 4) * 0.028 +
-          Math.sin(x * 0.037) * 0.006;
-        ctx.lineTo(x, y * h);
-      }
-      ctx.lineTo(w, h);
-      ctx.closePath();
-      ctx.fill();
-      if (layer >= 2) {
-        for (let i = 0; i < 70; i++) {
-          const x = (i * w) / 69,
-            y =
-              (base +
-                Math.sin(x * 0.008 + layer * 2) * 0.075 +
-                Math.sin(x * 0.017 + layer * 4) * 0.028) *
-              h;
-          const size =
-            (5 + seed(i + layer * 77) * 16) * (layer === 3 ? 1.5 : 1);
-          ctx.beginPath();
-          ctx.moveTo(x, y - size);
-          ctx.lineTo(x - size * 0.26, y + 3);
-          ctx.lineTo(x + size * 0.26, y + 3);
-          ctx.fill();
-        }
-      }
-    }
-    if (state.weather === 'rain') {
+    if (['rain', 'storm', 'fog', 'snow'].includes(state.weather)) {
       const mist = ctx.createLinearGradient(0, h * 0.4, 0, h);
       mist.addColorStop(0, '#bccbd000');
       mist.addColorStop(0.6, night ? '#8396ac26' : '#d4dddd50');
@@ -273,15 +311,50 @@ export function createWindowEnvironment(parent: T.Group) {
       previous = -Infinity;
       dirty = true;
     },
-    update(t: number, dt: number, reduced: boolean) {
+    update(t: number, dt: number, reduced: boolean, viewer?: T.Camera) {
+      camera = viewer;
       const a = 1 - Math.exp(-dt * 3);
       current.forEach((c, i) => c.lerp(targets[i], a));
       rainAmount = T.MathUtils.lerp(
         rainAmount,
-        state.weather === 'rain' ? 1 : 0,
+        state.weather === 'rain' || state.weather === 'storm'
+          ? Math.max(0.2, Math.min(1, (state.precipitation ?? 0.7) * 0.8))
+          : 0,
         a,
       );
-      // Cloud texture uploads are capped at 10 Hz; rain moves on the render clock.
+      snowAmount = T.MathUtils.lerp(
+        snowAmount,
+        state.weather === 'snow' ? 1 : 0,
+        a,
+      );
+      snow.visible = snowAmount > 0.005;
+      snowMaterial.opacity = snowAmount * 0.9;
+      const snowClock = reduced ? 2 : t;
+      if (snow.visible) {
+        for (let i = 0; i < 180; i++) {
+          snowPositions.set(
+            [
+              (fraction(
+                seed(i + viewSeed) +
+                  Math.sin(snowClock * 0.5 + i) * 0.018 +
+                  snowClock * 0.012,
+              ) -
+                0.5) *
+                width,
+              (0.5 -
+                fraction(
+                  seed(i + 399 + viewSeed) +
+                    snowClock * (0.065 + seed(i) * 0.055),
+                )) *
+                height,
+              0,
+            ],
+            i * 3,
+          );
+        }
+        snowGeometry.attributes.position.needsUpdate = true;
+      }
+      // Sky texture uploads are capped at 4 Hz; precipitation moves on the render clock.
       const transitioning = current.some(
         (c, i) =>
           Math.abs(c.r - targets[i].r) +
@@ -289,7 +362,7 @@ export function createWindowEnvironment(parent: T.Group) {
             Math.abs(c.b - targets[i].b) >
           0.001,
       );
-      if (t - previous >= 0.1 && (!reduced || transitioning || dirty)) {
+      if (t - previous >= 0.25 && (!reduced || transitioning || dirty)) {
         draw(reduced ? 0 : t);
         previous = t;
         dirty = false;
@@ -299,14 +372,26 @@ export function createWindowEnvironment(parent: T.Group) {
       dropMaterial.opacity = rainAmount * 0.3;
       if (!rain.visible) return;
       const clock = reduced ? 2 : t;
+      const wind = ((state.windDirection ?? 320) * Math.PI) / 180;
+      const windWorld = new T.Vector3(-Math.sin(wind), 0, Math.cos(wind));
+      const windLocal = windWorld.applyQuaternion(
+        parent.getWorldQuaternion(new T.Quaternion()).invert(),
+      );
+      const drift = windLocal.x * Math.min(0.65, (state.windSpeed ?? 8) / 35);
       for (let i = 0; i < 150; i++) {
         const speed = 0.6 + seed(i) * 0.55;
         const x =
-          (fraction(seed(i + 1200) - (clock * speed * height * 0.22) / width) -
+          (fraction(
+            seed(i + 1200 + viewSeed) +
+              (clock * speed * height * drift) / width,
+          ) -
             0.5) *
           width;
         const y =
-          (1 - fraction(seed(i + 1300) + clock * (0.6 + seed(i) * 0.55))) *
+          (1 -
+            fraction(
+              seed(i + 1300 + viewSeed) + clock * (0.6 + seed(i) * 0.55),
+            )) *
             height -
           height / 2;
         const length = 0.055 + seed(i + 1400) * 0.12;
@@ -315,7 +400,7 @@ export function createWindowEnvironment(parent: T.Group) {
             x,
             y,
             0,
-            Math.min(width / 2, x + length * 0.22),
+            Math.min(width / 2, Math.max(-width / 2, x - length * drift)),
             Math.min(height / 2, y + length),
             0,
           ],
@@ -326,8 +411,11 @@ export function createWindowEnvironment(parent: T.Group) {
       for (let i = 0; i < 55; i++) {
         const moving = i % 3 === 0;
         dummy.position.set(
-          (seed(i + 2000) - 0.5) * (width - 0.06),
-          (1 - fraction(seed(i + 2100) + (moving ? clock * 0.035 : 0))) *
+          (seed(i + 2000 + viewSeed) - 0.5) * (width - 0.06),
+          (1 -
+            fraction(
+              seed(i + 2100 + viewSeed) + (moving ? clock * 0.035 : 0),
+            )) *
             (height - 0.06) -
             (height - 0.06) / 2,
           0,
@@ -340,7 +428,11 @@ export function createWindowEnvironment(parent: T.Group) {
       drops.instanceMatrix.needsUpdate = true;
     },
     dispose() {
-      parent.remove(sky, rain, drops);
+      parent.remove(sky, exterior, rain, drops, snow);
+      exteriorMaterial.dispose();
+      snowGeometry.dispose();
+      snowMaterial.dispose();
+      flakeTexture.dispose();
       geometry.dispose();
       material.dispose();
       texture.dispose();

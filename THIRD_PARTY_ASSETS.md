@@ -14,3 +14,9 @@ License statement: https://polyhaven.com/license
 All four sets were obtained as 1K JPG maps on 2026-09-07. `public/materials/manifest.json` records the original download URL, byte count and SHA-256 hash for every stored file. Albedo maps that are not applied to the current solid-color textile/plaster finish remain in the corresponding source sets for later use.
 
 No Poly Haven preview renders, website text, trademarks or user-submitted renders are used in the scene.
+
+## Weather data and design references
+
+Current weather and city search use Open-Meteo (https://open-meteo.com/), with attribution in the weather panel. Data license: https://open-meteo.com/en/terms (CC BY 4.0 attribution). Solar-position calculations implement the equations published by NOAA: https://gml.noaa.gov/grad/solcalc/solareqns.PDF.
+
+Garden window proportions and joinery were visually studied using architectural reference photographs from a+u / Jutakutokushu, “Eaves & Windows” (https://au-magazine.com/shop/jutakutokushu/jt-201911/) and Sansoh (https://juutaku.co.jp/works/works_36.html). These photographs are references only: no photographs, building models or copyrighted texture files from them are included. The exterior site, plants, houses and hardware are original procedural geometry.

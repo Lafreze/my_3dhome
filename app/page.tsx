@@ -48,7 +48,8 @@ import {
   type RoomId,
 } from './house-data';
 import EnvironmentPicker from './environment-picker';
-import { times, weathers, type Environment } from './environment-data';
+import { times, weathers } from './environment-data';
+import { useLiveEnvironment } from './use-live-environment';
 import { useVisibleViewport } from './use-visible-viewport';
 type Modal =
   | 'tv'
@@ -103,10 +104,8 @@ function validProfile(value: unknown): value is Profile {
 export default function Home() {
   useVisibleViewport();
   const [view, setView] = useState<HouseView>('study');
-  const [environment, setEnvironment] = useState<Environment>({
-    time: 'afternoon',
-    weather: 'clear',
-  });
+  const live = useLiveEnvironment();
+  const { environment, setEnvironment } = live;
   const [environmentOpen, setEnvironmentOpen] = useState(false);
   const night = environment.time === 'night';
   const host = useRef<HTMLDivElement>(null),
@@ -432,11 +431,13 @@ export default function Home() {
           </button>
           <div className="top-actions">
             <span className="day-caption">
-              {times.find((t) => t.id === environment.time)?.label} ·{' '}
-              {weathers.find((w) => w.id === environment.weather)?.label}
+              {live.mode === 'live'
+                ? `${live.clock} · ${live.weather ? (live.stale ? '天气待更新' : weathers.find((w) => w.id === environment.weather)?.label) : '天气待定位'}`
+                : `${times.find((t) => t.id === environment.time)?.label} · 预览`}
             </span>
             <EnvironmentPicker
               value={environment}
+              live={live}
               onChange={setEnvironment}
               open={environmentOpen}
               onOpenChange={setEnvironmentOpen}

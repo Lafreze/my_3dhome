@@ -1,3 +1,5 @@
+import { createHouseLandscape, windowViews } from './house-landscape';
+import { addWindowCraft } from './window-craft';
 import { buildHouse } from './house-rooms';
 import { rooms, roomForObject, type HouseView } from './house-data';
 import type { Environment } from './environment-data';
@@ -488,7 +490,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   box(wall, 0.24, 0.09, 6.88, -3.91, 3.68, 0, white);
   box(wall, 8, 0.09, 0.23, 0, 3.68, -3.31, darkGreen);
   const win = group('window', 1.12, 1.98, -3.28);
-  const windowEnvironment = createWindowEnvironment(win);
+  const landscape = createHouseLandscape(renderer);
+  const windowEnvironment = createWindowEnvironment(win, 'study', landscape);
+  addWindowCraft(win, paleWood, brass, materials);
   for (const x of [-1.67, 1.67]) box(win, 0.14, 2.35, 0.23, x, 0, 0.04, edge);
   for (const y of [-1.13, 1.13]) box(win, 3.5, 0.14, 0.25, 0, y, 0.04, edge);
   box(win, 0.075, 2.2, 0.1, 0, 0, 0.1, white);
@@ -1651,6 +1655,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     patch.castShadow = false;
   }
   const house = buildHouse({
+    landscape,
     scene,
     study: root,
     groups,
@@ -1868,6 +1873,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   let last = performance.now();
   function animate(now: number) {
     frameId = requestAnimationFrame(animate);
+    if (document.hidden) {
+      last = now;
+      return;
+    }
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     const t = (now - start) / 1000;
@@ -1902,8 +1911,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       environment.weather === 'clear' ? 0.12 : 0.025,
       a,
     );
-    windowEnvironment.update(t, dt, reduced);
-    house.update(t, dt, reduced, night, camera.position.x);
+    windowEnvironment.update(t, dt, reduced, camera);
+    house.update(t, dt, reduced, night, camera.position.x, camera);
     lampLight.intensity = T.MathUtils.lerp(
       lampLight.intensity,
       lit ? (night ? 12 : 5) : 0,
@@ -1958,6 +1967,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     steamMat.opacity = now < steamUntil ? 0.3 : 0;
     steam.position.y = Math.sin(t * 2) * 0.03;
     controls.update();
+    landscape.update(camera, t);
     renderer.render(scene, camera);
   }
   const api: RoomApi = {
@@ -2014,6 +2024,21 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         this.reset();
         return;
       }
+      if (id === 'window' || id.endsWith('Window')) {
+        const aperture = windowViews[room],
+          bearing = T.MathUtils.degToRad(aperture.bearing);
+        const center = new T.Vector3(...aperture.position);
+        const inside = new T.Vector3(-Math.sin(bearing), 0, Math.cos(bearing));
+        const right = new T.Vector3(Math.cos(bearing), 0, Math.sin(bearing));
+        const eye = center
+          .clone()
+          .addScaledVector(inside, 4.5)
+          .addScaledVector(right, 0.65);
+        eye.y = 2.65;
+        moveTo(eye, center.clone().add(new T.Vector3(0, 0.08, 0)));
+        selectedRing.visible = false;
+        return;
+      }
       const bounds = new T.Box3().setFromObject(g);
       const center = bounds.getCenter(new T.Vector3());
       const dir = (
@@ -2046,6 +2071,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       night = value.time === 'night';
       lightTarget = environmentLight(value);
       windowEnvironment.set(value);
+      landscape.set(value);
       house.setEnvironment(value);
     },
     setLamp(value) {
@@ -2119,6 +2145,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       renderer.domElement.removeEventListener('pointercancel', pointerCancel);
       windowEnvironment.dispose();
       house.dispose();
+      landscape.dispose();
       const geometries = new Set<T.BufferGeometry>();
       scene.traverse((o) => {
         if (o instanceof T.Mesh) geometries.add(o.geometry);

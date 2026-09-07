@@ -1,3 +1,5 @@
+import type { HouseLandscape } from './house-landscape';
+import { addWindowCraft } from './window-craft';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -13,6 +15,7 @@ import type { ObjectId } from './room-data';
 import type { Environment } from './environment-data';
 
 type Kit = {
+  landscape: HouseLandscape;
   scene: T.Scene;
   study: T.Group;
   groups: Map<ObjectId, T.Group>;
@@ -376,7 +379,8 @@ export function buildHouse(k: Kit) {
     b(g, span, 0.1, 0.2, 0, 3.67, 0, white);
     b(g, span, 0.13, 0.2, 0, 0.15, 0.07, paleWood);
     const w = child(g, 0, 1.98, 0.03);
-    windows.push(createWindowEnvironment(w));
+    windows.push(createWindowEnvironment(w, room, k.landscape));
+    addWindowCraft(w, paleWood, brass, materials);
     for (const x of [-1.67, 1.67]) b(w, 0.14, 2.35, 0.23, x, 0, 0.04, oak);
     for (const y of [-1.13, 1.13]) b(w, 3.49, 0.14, 0.23, 0, y, 0.04, oak);
     b(w, 0.065, 2.18, 0.08, 0, 0, 0.12, white);
@@ -1129,6 +1133,36 @@ export function buildHouse(k: Kit) {
     sprite.userData.room = id;
     planLabels.add(sprite);
   }
+  const compassCanvas = document.createElement('canvas');
+  compassCanvas.width = compassCanvas.height = 128;
+  const cc = compassCanvas.getContext('2d')!;
+  cc.fillStyle = '#52624c';
+  cc.font = '26px sans-serif';
+  cc.textAlign = 'center';
+  cc.fillText('N', 64, 28);
+  cc.beginPath();
+  cc.moveTo(64, 38);
+  cc.lineTo(47, 94);
+  cc.lineTo(64, 82);
+  cc.lineTo(81, 94);
+  cc.closePath();
+  cc.fill();
+  const compassTexture = new T.CanvasTexture(compassCanvas);
+  compassTexture.colorSpace = T.SRGBColorSpace;
+  textures.push(compassTexture);
+  const compassMaterial = new T.MeshBasicMaterial({
+    map: compassTexture,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  materials.push(compassMaterial);
+  const compass = new T.Mesh(new T.PlaneGeometry(1.1, 1.1), compassMaterial);
+  compass.rotation.x = -Math.PI / 2;
+  compass.position.set(4, 0.6, -4.18);
+  compass.renderOrder = 30;
+  planLabels.add(compass);
   planLabels.visible = false;
 
   // Merge static siblings by material, preserving all interactive and animated groups.
@@ -1265,6 +1299,7 @@ export function buildHouse(k: Kit) {
       reduced: boolean,
       night: boolean,
       cameraX: number,
+      viewer: T.Camera,
     ) {
       livingWindow.visible =
         (currentView === 'living' ||
@@ -1277,7 +1312,7 @@ export function buildHouse(k: Kit) {
           currentView === 'plan') &&
         cameraX < 11.8;
       const a = 1 - Math.exp(-dt * 5);
-      windows.forEach((w) => w.update(t, dt, reduced));
+      windows.forEach((w) => w.update(t, dt, reduced, viewer));
       mediaDrawer.position.z = T.MathUtils.lerp(
         mediaDrawer.position.z,
         pulled ? 0.45 : 0,
