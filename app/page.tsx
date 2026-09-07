@@ -1,101 +1,1149 @@
 'use client';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronRight, CircleHelp, Compass, Focus, Headphones, House, Leaf, Lightbulb, Maximize2, Minus, Moon, Mouse, Move, Plus, RotateCcw, Sun, Volume2, X } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { objects, type ObjectId, type RoomApi } from './room-data';
-import Landscape from './landscape';
-import Link from 'next/link';
-
-export default function Home(){
-  const host=useRef<HTMLDivElement>(null);const api=useRef<RoomApi|null>(null);
-  const [ready,setReady]=useState(false);const [error,setError]=useState(false);
-  const [night,setNight]=useState(false);const [lamp,setLamp]=useState(true);const [music,setMusic]=useState(false);
-  const [selected,setSelected]=useState<ObjectId|null>(null);const [hover,setHover]=useState<{id:ObjectId,x:number,y:number}|null>(null);
-  const [modal,setModal]=useState<'computer'|'frame'|'book'|'help'|'explore'|null>(null);
-  const [toast,setToast]=useState('');const toastTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
-  const [note,setNote]=useState('今天的灵感：\n给生活留一点空白。');const [noteLoaded,setNoteLoaded]=useState(false);
-  const [photo,setPhoto]=useState(0);const [bookPage,setBookPage]=useState(0);
-  const audio=useRef<{ctx:AudioContext;gain:GainNode;timer:ReturnType<typeof setInterval>}|null>(null);
-  const notify=useCallback((message:string)=>{setToast(message);if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),3200);},[]);
-  useEffect(()=>{let disposed=false;import('./room-scene').then(({createRoom})=>{if(disposed||!host.current)return;try{api.current=createRoom(host.current,{onSelect:setSelected,onHover:(id,x,y)=>setHover(id?{id,x,y}:null),onReady:()=>setReady(true)});}catch(e){console.error(e);setError(true);}}).catch(()=>setError(true));return()=>{disposed=true;api.current?.dispose();api.current=null;if(toastTimer.current)clearTimeout(toastTimer.current);};},[]);
-  useEffect(()=>{api.current?.setNight(night);},[night,ready]);
-  useEffect(()=>{api.current?.setLamp(lamp);},[lamp,ready]);
-  useEffect(()=>{api.current?.setMusic(music);},[music,ready]);
-  useEffect(()=>{let active=true;void Promise.resolve().then(()=>{if(!active)return;try{const saved=localStorage.getItem('komori-note');if(saved!==null)setNote(saved);}catch{}setNoteLoaded(true);});return()=>{active=false;};},[]);
-  useEffect(()=>{if(noteLoaded)try{localStorage.setItem('komori-note',note);}catch{}},[note,noteLoaded]);
-  useEffect(()=>()=>{if(audio.current){clearInterval(audio.current.timer);void audio.current.ctx.close();}},[]);
-  const toggleMusic=async()=>{
-    if(music){if(audio.current){clearInterval(audio.current.timer);void audio.current.ctx.close();audio.current=null;}setMusic(false);return;}
-    try{
-      const ctx=new AudioContext();await ctx.resume();const gain=ctx.createGain();gain.gain.value=.09;gain.connect(ctx.destination);
-      const notes=[261.63,329.63,392,493.88,440,392,329.63,293.66];let step=0;
-      const play=()=>{const t=ctx.currentTime;const osc=ctx.createOscillator();const env=ctx.createGain();osc.type='sine';osc.frequency.value=notes[step++%notes.length];env.gain.setValueAtTime(0,t);env.gain.linearRampToValueAtTime(.4,t+.08);env.gain.exponentialRampToValueAtTime(.001,t+2.5);osc.connect(env);env.connect(gain);osc.start(t);osc.stop(t+2.6);osc.onended=()=>{osc.disconnect();env.disconnect();};};
-      play();audio.current={ctx,gain,timer:setInterval(play,780)};setMusic(true);
-    }catch{notify('浏览器暂时无法播放声音，请再试一次。');}
+/* Local data-URL previews are already resized on upload; no image optimization server is used. */
+/* oxlint-disable next/no-img-element */
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  CircleHelp,
+  Expand,
+  Grid2X2,
+  House,
+  LampDesk,
+  LoaderCircle,
+  Minus,
+  Music2,
+  Plus,
+  RotateCcw,
+  Settings2,
+  Upload,
+  UserRound,
+  X,
+  Download,
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  objects,
+  defaultProfile,
+  type ObjectId,
+  type RoomApi,
+  type Profile,
+} from './room-data';
+import StudioArt from './studio-art';
+import Television from './television';
+import {
+  rooms,
+  roomForObject,
+  type HouseView,
+  type RoomId,
+} from './house-data';
+import EnvironmentPicker from './environment-picker';
+import { times, weathers, type Environment } from './environment-data';
+import { useVisibleViewport } from './use-visible-viewport';
+type Modal =
+  | 'tv'
+  | 'works'
+  | 'about'
+  | 'photos'
+  | 'book'
+  | 'settings'
+  | 'help'
+  | 'objects'
+  | null;
+const storageKey = 'satori-studio-v1';
+const safeUrl = (s: string) => {
+  try {
+    const u = new URL(s);
+    return ['https:', 'http:'].includes(u.protocol) ? u.href : '';
+  } catch {
+    return '';
+  }
+};
+function validProfile(value: unknown): value is Profile {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Profile;
+  return (
+    typeof v.name === 'string' &&
+    v.name.length <= 50 &&
+    typeof v.subtitle === 'string' &&
+    v.subtitle.length <= 80 &&
+    typeof v.about === 'string' &&
+    v.about.length <= 3000 &&
+    Array.isArray(v.projects) &&
+    v.projects.length >= 1 &&
+    v.projects.length <= 12 &&
+    v.projects.every(
+      (p) =>
+        p &&
+        ['title', 'category', 'description', 'url', 'image'].every(
+          (k) => typeof p[k as keyof typeof p] === 'string',
+        ) &&
+        p.title.length <= 100 &&
+        p.description.length <= 3000 &&
+        (!p.image || /^data:image\/(png|jpeg|webp);base64,/.test(p.image)),
+    ) &&
+    Array.isArray(v.photos) &&
+    v.photos.length <= 6 &&
+    v.photos.every(
+      (s) =>
+        typeof s === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(s),
+    )
+  );
+}
+export default function Home() {
+  useVisibleViewport();
+  const [view, setView] = useState<HouseView>('study');
+  const [environment, setEnvironment] = useState<Environment>({
+    time: 'afternoon',
+    weather: 'clear',
+  });
+  const [environmentOpen, setEnvironmentOpen] = useState(false);
+  const night = environment.time === 'night';
+  const host = useRef<HTMLDivElement>(null),
+    api = useRef<RoomApi | null>(null);
+  const [ready, setReady] = useState(false),
+    [error, setError] = useState(false),
+    [lamp, setLamp] = useState(true),
+    [music, setMusic] = useState(false);
+  const [selected, setSelected] = useState<ObjectId | null>(null),
+    [hover, setHover] = useState<{ id: ObjectId; x: number; y: number } | null>(
+      null,
+    );
+  const [modal, setModal] = useState<Modal>(null),
+    [project, setProject] = useState(0),
+    [photo, setPhoto] = useState(0),
+    [page, setPage] = useState(0);
+  const [profile, setProfile] = useState<Profile>(defaultProfile),
+    [draft, setDraft] = useState<Profile>(defaultProfile),
+    [note, setNote] = useState(''),
+    [toast, setToast] = useState(''),
+    [savingImage, setSavingImage] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    audio = useRef<{
+      ctx: AudioContext;
+      timer: ReturnType<typeof setInterval>;
+    } | null>(null);
+  const notify = useCallback((s: string) => {
+    setToast(s);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setToast(''), 2800);
+  }, []);
+  useEffect(() => {
+    let disposed = false;
+    import('./room-scene')
+      .then(({ createRoom }) => {
+        if (disposed || !host.current) return;
+        try {
+          api.current = createRoom(host.current, {
+            onSelect: setSelected,
+            onView: setView,
+            onHover: (id, x, y) => setHover(id ? { id, x, y } : null),
+            onReady: () => setReady(true),
+          });
+        } catch (e) {
+          console.error(e);
+          setError(true);
+        }
+      })
+      .catch(() => setError(true));
+    return () => {
+      disposed = true;
+      api.current?.dispose();
+      api.current = null;
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const p = JSON.parse(stored);
+          if (validProfile(p)) setProfile(p);
+        }
+        setNote(
+          localStorage.getItem('satori-studio-note') ||
+            '光落在桌上的时候，\n新的想法也刚好出现。',
+        );
+      } catch {
+        notify('无法读取本地内容，已打开默认布置。');
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [notify]);
+  useEffect(() => {
+    api.current?.setEnvironment(environment);
+  }, [environment, ready]);
+  useEffect(() => {
+    api.current?.setLamp(lamp);
+  }, [lamp, ready]);
+  useEffect(() => {
+    api.current?.setMusic(music);
+  }, [music, ready]);
+  useEffect(() => {
+    api.current?.setArtwork(profile.projects.map((p) => p.image));
+  }, [profile, ready]);
+  useEffect(
+    () => () => {
+      if (audio.current) {
+        clearInterval(audio.current.timer);
+        void audio.current.ctx.close();
+      }
+    },
+    [],
+  );
+  const toggleMusic = async () => {
+    if (audio.current) {
+      clearInterval(audio.current.timer);
+      void audio.current.ctx.close();
+      audio.current = null;
+      setMusic(false);
+      return;
+    }
+    try {
+      const ctx = new AudioContext();
+      await ctx.resume();
+      const master = ctx.createGain();
+      master.gain.value = 0.055;
+      master.connect(ctx.destination);
+      let step = 0;
+      const play = () => {
+        const notes = [130.81, 164.81, 196, 246.94, 220, 196, 164.81, 146.83];
+        for (const ratio of [1, 2, 3]) {
+          const osc = ctx.createOscillator(),
+            env = ctx.createGain(),
+            t = ctx.currentTime;
+          osc.type = 'sine';
+          osc.frequency.value = notes[step % 8] * ratio;
+          env.gain.setValueAtTime(0, t);
+          env.gain.linearRampToValueAtTime(0.3 / ratio, t + 0.04);
+          env.gain.exponentialRampToValueAtTime(0.001, t + 3.2);
+          osc.connect(env);
+          env.connect(master);
+          osc.start(t);
+          osc.stop(t + 3.3);
+          osc.onended = () => {
+            osc.disconnect();
+            env.disconnect();
+          };
+        }
+        step++;
+      };
+      play();
+      audio.current = { ctx, timer: setInterval(play, 1150) };
+      setMusic(true);
+    } catch {
+      notify('声音未能开启，请再试一次。');
+    }
   };
-  const reset=()=>{api.current?.reset();setSelected(null);setHover(null);};
-  const choose=(id:ObjectId)=>{setSelected(id);api.current?.focus(id);setModal(null);};
-  const action=(id:ObjectId)=>{
-    if(id==='lamp'){setLamp(v=>!v);return;}
-    if(id==='window'){setNight(v=>!v);return;}
-    if(id==='computer'||id==='desk'){setModal('computer');return;}
-    if(id==='frame'){setModal('frame');return;}
-    if(id==='shelf'){setModal('book');return;}
-    if(id==='record'){void toggleMusic();return;}
-    if(id==='floor'||id==='wall'){reset();return;}
+  const visit = (next: HouseView) => {
+    api.current?.setView(next);
+    setSelected(null);
+    setHover(null);
+  };
+  const tvPower = useCallback(
+    (on: boolean, source?: string) => api.current?.setTelevision(on, source),
+    [],
+  );
+  const tvVideo = useCallback(
+    (video: HTMLVideoElement | null) => api.current?.setVideo(video),
+    [],
+  );
+  const reset = () => {
+    api.current?.reset();
+    setSelected(null);
+    setHover(null);
+  };
+  const choose = (id: ObjectId) => {
+    setModal(null);
+    setSelected(id);
+    api.current?.focus(id);
+  };
+  const action = (id: ObjectId) => {
+    if (id === 'television') {
+      setModal('tv');
+      return;
+    }
+    if (
+      id === 'computer' ||
+      id === 'desk' ||
+      id === 'frame' ||
+      id === 'galleryArt'
+    ) {
+      setModal('works');
+      return;
+    }
+    if (id === 'about') {
+      setModal('about');
+      return;
+    }
+    if (id === 'camera') {
+      setPhoto(0);
+      setModal('photos');
+      return;
+    }
+    if (id === 'shelf' || id === 'bedroomBook') {
+      setModal('book');
+      return;
+    }
+    if (id === 'lamp') {
+      setLamp((v) => !v);
+      return;
+    }
+    if (id === 'window' || id.endsWith('Window')) {
+      setEnvironmentOpen(true);
+      return;
+    }
+    if (id === 'record') {
+      void toggleMusic();
+      return;
+    }
+    if (id === 'wall' || id === 'floor') {
+      reset();
+      return;
+    }
     api.current?.interact(id);
-    notify(({bed:'换上新床品，换一个好心情。',chair:'阅读角，有了新的颜色。',rug:'柔软的地毯，换一份心情。',plant:'喝饱水啦，慢慢长大吧。',coffee:'咖啡续好了，享受这一刻。',stool:'给小木凳换个方向。'} as Partial<Record<ObjectId,string>>)[id]||'');
+    if (id === 'plant' || id === 'deskPlant' || id === 'shelfPlant')
+      notify('给绿意一点水。');
+    if (id === 'coffee') notify('咖啡好了。');
   };
-  const fullscreen=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else notify('当前浏览器不支持全屏，可横屏体验小屋。');}catch{notify('当前浏览器暂时无法进入全屏。');}};
-  useEffect(()=>{
-    type Tool={name:string;description:string;inputSchema:object;annotations:{readOnlyHint:boolean};execute:(input:unknown)=>Promise<unknown>};
-    const context=(document as Document & {modelContext?:{registerTool:(tool:Tool,options:{signal:AbortSignal})=>void|Promise<void>}}).modelContext;
-    if(!context?.registerTool)return;
-    const lifecycle=new AbortController();
-    const tool:Tool={name:'configure_komori_room',description:'Set the room to day or night, turn the lamp on or off, or focus one of its interactive objects.',inputSchema:{type:'object',properties:{night:{type:'boolean'},lamp:{type:'boolean'},focus:{type:'string',enum:Object.keys(objects)}},additionalProperties:false},annotations:{readOnlyHint:false},async execute(input){
-      if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('Expected an object');
-      const value=input as Record<string,unknown>;
-      if(Object.keys(value).some(k=>!['night','lamp','focus'].includes(k)))throw new Error('Unknown option');
-      if('night' in value&&typeof value.night!=='boolean')throw new Error('night must be boolean');
-      if('lamp' in value&&typeof value.lamp!=='boolean')throw new Error('lamp must be boolean');
-      if('focus' in value&&(typeof value.focus!=='string'||!Object.hasOwn(objects,value.focus)))throw new Error('Unknown object');
-      if(!api.current)throw new Error('Room is still loading');
-      if(typeof value.night==='boolean'){setNight(value.night);api.current.setNight(value.night);}
-      if(typeof value.lamp==='boolean'){setLamp(value.lamp);api.current.setLamp(value.lamp);}
-      if(typeof value.focus==='string'){setSelected(value.focus as ObjectId);api.current.focus(value.focus as ObjectId);}
-      await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
-      return {applied:value};
-    }};
-    try{void Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}
-    return()=>lifecycle.abort();
-  },[]);
-  const photos=[{title:'山间来信',sub:'山有自己的节奏，我也是。',palette:'mountain'},{title:'日落之前',sub:'把一天里最温柔的光，留在这里。',palette:'sunset'},{title:'蓝色的远方',sub:'下一次旅行，去海边吧。',palette:'ocean'}];
-  return <main className={`app ${night?'night':''}`}>
-    <header className="header">
-      <Link className="brand" href="/" aria-label="小森居首页"><span className="brand-symbol"><House size={21}/><span/></span><span>小森居<span className="brand-en">KOMORI</span></span></Link>
-      <div className="header-caption"><span className="tiny-dot"/> A LITTLE SPACE, ALL YOURS</div>
-      <div className="header-actions"><ToggleGroup className="day-toggle" value={[night?'night':'day']} onValueChange={value=>{if(value.length)setNight(value[0]==='night');}} aria-label="昼夜模式"><ToggleGroupItem value="day" aria-label="白昼"><Sun size={15}/><span>白昼</span></ToggleGroupItem><ToggleGroupItem value="night" aria-label="夜晚"><Moon size={15}/><span>夜晚</span></ToggleGroupItem></ToggleGroup><button className="icon-button help" onClick={()=>setModal('help')} aria-label="操作帮助"><CircleHelp size={19}/></button></div>
-    </header>
-    <div className="scene" ref={host}/>
-    <div className="intro"><div className="eyebrow"><span className="line"/> YOUR SLOW LITTLE WORLD</div><h1>把日子，<br/>过成喜欢的样子<span>。</span></h1><p>不用赶路，<br/>在自己的小世界里，待一会儿。</p><div className="scene-label"><span className="tiny-dot"/>{night?'月色正好 · 适合放空':'午后微风 · 适合发呆'}</div></div>
-    <div className="room-tag"><span>01</span><div>林间小屋<small>THE WOODLAND ROOM</small></div><Leaf size={17}/></div>
-    <div className="scene-tools"><button className="icon-button" aria-label="放大" title="放大" onClick={()=>api.current?.zoom(1)} disabled={!ready}><Plus size={19}/></button><span/><button className="icon-button" aria-label="缩小" title="缩小" onClick={()=>api.current?.zoom(-1)} disabled={!ready}><Minus size={19}/></button><div className="tools-divider"/><button className="icon-button" aria-label="回到初始视角" title="回到初始视角" onClick={reset} disabled={!ready}><RotateCcw size={18}/></button><button className="icon-button" aria-label="全屏" title="全屏" onClick={fullscreen}><Maximize2 size={18}/></button></div>
-    {!ready&&<div className="loading"><Leaf size={28} className={error?'':'loading-leaf'}/><p>{error?'小屋暂时无法显示':'正在打开你的小世界…'}</p>{error&&<><small>请使用支持 WebGL 的浏览器，并启用硬件加速。</small><button onClick={()=>location.reload()}>重新打开</button></>}</div>}
-    {hover&&!selected&&<div className="hover-label" style={{left:Math.min(hover.x+15,typeof window!=='undefined'?window.innerWidth-180:1000),top:hover.y-42}}>{objects[hover.id].name}<ArrowUpRight size={14}/></div>}
-    {selected&&<aside className="object-card" aria-live="polite"><button className="close-card" onClick={()=>setSelected(null)} aria-label="关闭物件详情"><X size={17}/></button><span className="object-kind">{objects[selected].kind}</span><h2>{objects[selected].name}</h2><p>{objects[selected].description}</p><button className="object-action" onClick={()=>action(selected)}>{selected==='lamp'?(lamp?'关掉台灯':'打开台灯'):selected==='record'?(music?'暂停音乐':'播放音乐'):objects[selected].action}<ArrowUpRight size={16}/></button><button className="back-overview" onClick={reset}><ArrowLeft size={13}/>回到小屋全景</button></aside>}
-    <div className="lower-left"><span className="handwritten">a place to just be.</span><p><span className="tiny-dot"/> {music?'此刻，音乐正轻轻播放':'此刻，留一点时间给自己'}</p></div>
-    <div className="bottom-controls"><div className="control-hint"><Mouse size={14}/><span>拖动旋转</span><span className="hint-dot">·</span><span>滚轮缩放</span><span className="hint-dot">·</span><span>点击探索</span></div><nav className="dock" aria-label="小屋操作"><button className={!selected?'dock-item active':'dock-item'} onClick={reset} disabled={!ready}><House size={19}/><span>小屋全景</span></button><button className="dock-item" onClick={()=>setModal('explore')} disabled={!ready}><Compass size={20}/><span>探索物件</span></button><span className="dock-separator"/><button className={`dock-item ${lamp?'is-on':''}`} onClick={()=>setLamp(v=>!v)} aria-pressed={lamp} disabled={!ready}><Lightbulb size={19}/><span>暖光台灯</span><i className="status-dot"/></button><button className={`dock-item ${music?'is-on':''}`} onClick={toggleMusic} aria-pressed={music} disabled={!ready}>{music?<Volume2 size={19}/>:<Headphones size={19}/>}<span>背景音乐</span>{music&&<i className="sound-bars"><i/><i/><i/></i>}</button></nav></div>
-    <div className="lower-right"><span className="compass-mark">N<ArrowDownLeft size={22}/></span><span>慢下来，好好生活<Leaf size={13}/></span></div>
-    {toast&&<output className="toast"><Check size={16}/>{toast}</output>}
-    <Dialog open={modal!==null} onOpenChange={open=>{if(!open)setModal(null);}}><DialogContent className={`room-dialog ${modal==='computer'?'computer-dialog':''}`}>
-      <DialogTitle>{modal==='computer'?'窗边工作站':modal==='frame'?photos[photo].title:modal==='book'?'一本慢生活手记':modal==='explore'?'小屋里的日常':'欢迎来到小森居'}</DialogTitle>
-      <DialogDescription>{modal==='computer'?'把此刻的灵感，留在这里。':modal==='frame'?'一张小画，装下一段远方。':modal==='book'?'翻几页，也是一种休息。':modal==='explore'?'选一件喜欢的物件，靠近看看。':'按照自己的节奏，探索这间小屋。'}</DialogDescription>
-      {modal==='computer'&&<div className="computer-content"><div className="computer-topbar"><span><i/><i/><i/></span><span>KOMORI NOTES</span><Leaf size={15}/></div><div className="note-heading"><BookOpen size={21}/><h3>灵感便签</h3><span>仅保存在此浏览器</span></div><label className="sr-only" htmlFor="note">灵感便签</label><textarea id="note" value={note} onChange={e=>setNote(e.target.value)} maxLength={5000} spellCheck={false}/><div className="note-bottom"><span>{note.length} / 5000</span><span><Check size={13}/> 自动保存</span></div></div>}
-      {modal==='frame'&&<div className="gallery"><div className={`landscape ${photos[photo].palette}`}><Landscape variant={photo}/><span className="print-caption">{['INTO THE WOODS','GOLDEN HOUR','SOMEWHERE BLUE'][photo]}</span></div><p>{photos[photo].sub}</p><div className="gallery-controls">{photos.map((p,i)=><button key={p.title} aria-label={`查看${p.title}`} aria-pressed={photo===i} onClick={()=>setPhoto(i)} className={photo===i?'current':''}/>)}<span>{String(photo+1).padStart(2,'0')} / 03</span></div></div>}
-      {modal==='book'&&<div className="book"><span className="eyebrow">NOTES ON SLOW LIVING</span><h3>{['让生活有一点留白','把注意力交给当下','平凡，也值得收藏'][bookPage]}</h3><p>{['早晨的光落在桌上，杯子里还有一点温热的咖啡。\n\n不必把每一分钟都填满。打开窗，让风进来；翻开书，停在喜欢的一页。\n\n那些看起来什么也没做的时刻，或许正让心慢慢恢复原来的形状。','为窗边的植物浇一次水，认真听完一首歌，感受脚下地毯的柔软。\n\n不用同时做很多事。此刻正在发生的小事，就值得你完整的注意力。\n\n今天，也试着对自己温柔一点。','记住一束下午的光，一个好看的影子，一顿简单的晚餐。\n\n生活里的美好，常常没有宏大的开场。它们安静地出现，等我们慢下来。\n\n愿你的每一天，都有一处可以安心停留的角落。'][bookPage]}</p><div><button aria-label="上一页" disabled={bookPage===0} onClick={()=>setBookPage(v=>v-1)}><ArrowLeft size={16}/></button><span>{bookPage+1} / 3</span><button aria-label="下一页" disabled={bookPage===2} onClick={()=>setBookPage(v=>v+1)}><ChevronRight size={18}/></button></div></div>}
-      {modal==='explore'&&<div className="explore-grid">{(Object.keys(objects) as ObjectId[]).map((id,i)=><button key={id} onClick={()=>choose(id)}><span className="explore-number">{String(i+1).padStart(2,'0')}</span><span>{objects[id].name}<small>{objects[id].kind}</small></span><ArrowUpRight size={16}/></button>)}</div>}
-      {modal==='help'&&<div className="help-content"><div><Move/><span><b>换个角度</b>拖动空白处旋转，手机上用单指拖动。</span></div><div><Focus/><span><b>靠近一点</b>滚轮或双指缩放；点击家具，镜头自动靠近。</span></div><div><Lightbulb/><span><b>让日常发生</b>在物件详情中开灯、浇水、换床品，或打开电脑和相框。</span></div><div><Sun/><span><b>从午后到深夜</b>右上角切换昼夜，底部按钮回到全景、开灯或播放音乐。</span></div><p>也可通过「探索物件」用键盘选择家具。弹窗按 Esc 关闭。</p></div>}
-    </DialogContent></Dialog>
-  </main>;
+  const openEditor = () => {
+    setDraft(structuredClone(profile));
+    setModal('settings');
+  };
+  const save = () => {
+    if (!draft.name.trim()) {
+      notify('请填写展示名称。');
+      return;
+    }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(draft));
+      setProfile(structuredClone(draft));
+      setProject(0);
+      setModal(null);
+      notify('已保存到本机。');
+    } catch {
+      notify('本地空间不足，请减少图片后再保存。');
+    }
+  };
+  const upload = async (file: File | undefined, index: number | null) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      notify('请选择 JPG、PNG 或 WebP 图片。');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      notify('请选择小于 20 MB 的图片。');
+      return;
+    }
+    setSavingImage(true);
+    try {
+      const bitmap = await createImageBitmap(file),
+        canvas = document.createElement('canvas'),
+        ratio = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height));
+      canvas.width = Math.round(bitmap.width * ratio);
+      canvas.height = Math.round(bitmap.height * ratio);
+      canvas
+        .getContext('2d')!
+        .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const image = canvas.toDataURL('image/jpeg', 0.82);
+      setDraft((p) =>
+        index === null
+          ? { ...p, photos: [...p.photos, image].slice(0, 6) }
+          : {
+              ...p,
+              projects: p.projects.map((x, i) =>
+                i === index ? { ...x, image } : x,
+              ),
+            },
+      );
+    } catch {
+      notify('无法读取这张图片。');
+    } finally {
+      setSavingImage(false);
+    }
+  };
+  const exportProfile = () => {
+    const u = URL.createObjectURL(
+      new Blob([JSON.stringify(profile, null, 2)], {
+        type: 'application/json',
+      }),
+    );
+    const a = document.createElement('a');
+    a.href = u;
+    a.download = 'satori-studio.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(u), 1000);
+  };
+  const importProfile = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      if (file.size > 8 * 1024 * 1024) throw Error();
+      const p = JSON.parse(await file.text());
+      if (!validProfile(p)) throw Error();
+      setDraft(p);
+      notify('已导入，保存后生效。');
+    } catch {
+      notify('这不是有效的工作室配置文件。');
+    }
+  };
+  const fullScreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch {
+      notify('当前浏览器不支持全屏。');
+    }
+  };
+  const current =
+    profile.projects[Math.min(project, profile.projects.length - 1)];
+  return (
+    <main
+      className={`studio ${night ? 'night' : ''} ${selected ? 'focused' : ''}`}
+    >
+      <div ref={host} className="scene" />
+      <div className="viewport-ui">
+        <header className="studio-header">
+          <button
+            className="wordmark"
+            onClick={reset}
+            aria-label="回到工作室全景"
+          >
+            <span className="brand-dot" />
+            <span>
+              {profile.name}
+              <small>{profile.subtitle}</small>
+            </span>
+          </button>
+          <div className="top-actions">
+            <span className="day-caption">
+              {times.find((t) => t.id === environment.time)?.label} ·{' '}
+              {weathers.find((w) => w.id === environment.weather)?.label}
+            </span>
+            <EnvironmentPicker
+              value={environment}
+              onChange={setEnvironment}
+              open={environmentOpen}
+              onOpenChange={setEnvironmentOpen}
+            />
+            <button
+              className="icon-button"
+              aria-label="编辑工作室"
+              onClick={openEditor}
+            >
+              <Settings2 size={18} />
+            </button>
+          </div>
+        </header>
+        <nav className="room-navigation" aria-label="房间切换">
+          {(Object.keys(rooms) as RoomId[]).map((id) => (
+            <button
+              key={id}
+              aria-pressed={view === id}
+              onClick={() => visit(id)}
+            >
+              {rooms[id].name}
+            </button>
+          ))}
+          <i />
+          <button
+            aria-label="房屋俯瞰图"
+            aria-pressed={view === 'plan'}
+            onClick={() => visit('plan')}
+          >
+            <Grid2X2 size={14} />
+            <span>俯瞰</span>
+          </button>
+        </nav>
+        {!ready && (
+          <output className="loading">
+            {error ? (
+              <>
+                <p>小屋暂时无法显示</p>
+                <small>请启用浏览器硬件加速后重试。</small>
+                <button onClick={() => location.reload()}>重新打开</button>
+              </>
+            ) : (
+              <>
+                <LoaderCircle className="spin" size={24} />
+                <span>推开工作室的门…</span>
+              </>
+            )}
+          </output>
+        )}
+        {hover && !selected && ready && (
+          <div
+            className="hover-label"
+            style={{
+              left: Math.max(
+                12,
+                Math.min(
+                  hover.x + 16,
+                  typeof window === 'undefined'
+                    ? 1000
+                    : window.innerWidth - 170,
+                ),
+              ),
+              top: Math.max(85, hover.y - 40),
+            }}
+          >
+            <span className="brand-dot" />
+            {objects[hover.id].name}
+            <ArrowUpRight size={13} />
+          </div>
+        )}
+        {selected && (
+          <aside className="object-card" aria-live="polite">
+            <div>
+              <small>{objects[selected].kind}</small>
+              <button
+                className="icon-button"
+                aria-label="关闭物件详情"
+                onClick={() => setSelected(null)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <h2>{objects[selected].name}</h2>
+            <button className="object-action" onClick={() => action(selected)}>
+              {selected === 'lamp'
+                ? lamp
+                  ? '关灯'
+                  : '开灯'
+                : selected === 'record'
+                  ? music
+                    ? '暂停唱片'
+                    : '播放唱片'
+                  : objects[selected].action}
+              <ArrowUpRight size={16} />
+            </button>
+            <button className="return-link" onClick={reset}>
+              <ArrowLeft size={12} />
+              返回全景
+            </button>
+          </aside>
+        )}
+        <div className="room-caption">
+          <span>
+            {view === 'overview' || view === 'plan'
+              ? 'SATORI / THE HOUSE'
+              : `${rooms[view].number} / ${rooms[view].english}`}
+          </span>
+          <p>
+            {view === 'plan'
+              ? '四间屋，一种生活。'
+              : view === 'overview'
+                ? '一所屋，关于我。'
+                : rooms[view].name}
+          </p>
+        </div>
+        <div className="view-tools">
+          <button
+            className="icon-button"
+            aria-label="放大"
+            onClick={() => api.current?.zoom(1)}
+            disabled={!ready}
+          >
+            <Plus size={17} />
+          </button>
+          <button
+            className="icon-button"
+            aria-label="缩小"
+            onClick={() => api.current?.zoom(-1)}
+            disabled={!ready}
+          >
+            <Minus size={17} />
+          </button>
+          <i />
+          <button className="icon-button" aria-label="重置视角" onClick={reset}>
+            <RotateCcw size={16} />
+          </button>
+          <button
+            className="icon-button fullscreen"
+            aria-label="全屏"
+            onClick={fullScreen}
+          >
+            <Expand size={16} />
+          </button>
+        </div>
+        <footer className="bottom-bar">
+          <div className="interaction-hint">
+            拖动环顾<span>·</span>点击物件
+          </div>
+          <nav className="dock" aria-label="工作室导航">
+            <button
+              className={view === 'overview' ? 'active' : ''}
+              onClick={() => visit('overview')}
+              aria-label="整屋全景"
+            >
+              <House size={17} />
+              <span>整屋</span>
+            </button>
+            <button onClick={() => setModal('works')}>
+              <Grid2X2 size={16} />
+              <span>作品</span>
+            </button>
+            <button onClick={() => setModal('about')}>
+              <UserRound size={16} />
+              <span>关于</span>
+            </button>
+            <i />
+            <button
+              className={lamp ? 'lit' : ''}
+              onClick={() => setLamp((v) => !v)}
+              aria-label="台灯开关"
+              aria-pressed={lamp}
+            >
+              <LampDesk size={18} />
+            </button>
+            <button
+              className={music ? 'lit' : ''}
+              onClick={toggleMusic}
+              aria-label="唱片开关"
+              aria-pressed={music}
+            >
+              <Music2 size={17} />
+              {music && <span className="sound-dot" />}
+            </button>
+          </nav>
+          <button
+            className="help-button"
+            onClick={() => setModal('objects')}
+            aria-label="探索所有物件"
+          >
+            <span>探索</span>
+            <Plus size={16} />
+          </button>
+        </footer>
+        {toast && (
+          <output className="toast">
+            <Check size={15} />
+            {toast}
+          </output>
+        )}
+      </div>
+      <Dialog
+        open={modal !== null}
+        onOpenChange={(v) => {
+          if (!v) setModal(null);
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className={`studio-dialog ${modal === 'works' || modal === 'photos' ? 'gallery-dialog' : ''} ${modal === 'settings' ? 'settings-dialog' : ''} ${modal === 'tv' ? 'cinema-dialog' : ''}`}
+        >
+          <DialogClose
+            className="dialog-close icon-button"
+            aria-label="关闭弹窗"
+          >
+            <X size={17} />
+          </DialogClose>
+          <DialogTitle>
+            {
+              (
+                {
+                  tv: '家庭影院',
+                  works: '精选作品',
+                  about: '关于我',
+                  photos: '镜头里的日常',
+                  book: '灵感手记',
+                  settings: '布置你的工作室',
+                  help: '随意探索',
+                  objects: '屋内物件',
+                } as Record<string, string>
+              )[modal || '']
+            }
+          </DialogTitle>
+          <DialogDescription>
+            {modal === 'tv'
+              ? 'SATORI / HOME CINEMA'
+              : modal === 'settings'
+                ? '内容与图片仅保存在当前浏览器。'
+                : modal === 'works'
+                  ? 'SELECTED WORK'
+                  : modal === 'photos'
+                    ? 'COLLECTED MOMENTS'
+                    : modal === 'about'
+                      ? 'A LITTLE ABOUT ME'
+                      : 'SATORI / PERSONAL COLLECTION'}
+          </DialogDescription>
+          {modal === 'tv' && <Television onPower={tvPower} onVideo={tvVideo} />}
+          {modal === 'works' && (
+            <div className="project-layout">
+              <div className="art-wrap">
+                <StudioArt
+                  index={project}
+                  image={current.image}
+                  title={current.title}
+                />
+              </div>
+              <div className="project-copy">
+                <span className="studio-kicker">{current.category}</span>
+                <h2>{current.title}</h2>
+                <p>{current.description}</p>
+                {safeUrl(current.url) && (
+                  <a
+                    className="dark-button"
+                    href={safeUrl(current.url)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    打开作品
+                    <ArrowUpRight size={16} />
+                  </a>
+                )}
+                <div className="project-pagination">
+                  <button
+                    className="icon-button"
+                    aria-label="上一件作品"
+                    onClick={() =>
+                      setProject(
+                        (v) =>
+                          (v + profile.projects.length - 1) %
+                          profile.projects.length,
+                      )
+                    }
+                  >
+                    <ChevronLeft size={19} />
+                  </button>
+                  <span>
+                    {String(project + 1).padStart(2, '0')}
+                    <em>
+                      {' '}
+                      / {String(profile.projects.length).padStart(2, '0')}
+                    </em>
+                  </span>
+                  <button
+                    className="icon-button"
+                    aria-label="下一件作品"
+                    onClick={() =>
+                      setProject((v) => (v + 1) % profile.projects.length)
+                    }
+                  >
+                    <ChevronRight size={19} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {modal === 'about' && (
+            <div className="about-content">
+              <div className="personal-seal">{profile.name.slice(0, 1)}</div>
+              <span className="studio-kicker">{profile.subtitle}</span>
+              <h2>{profile.name}</h2>
+              <p>{profile.about}</p>
+              <button className="text-button" onClick={() => setModal('works')}>
+                去看看我的作品
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
+          {modal === 'photos' && (
+            <div className="photo-content">
+              <div className="photo-frame">
+                <StudioArt
+                  index={photo % 3}
+                  image={profile.photos[photo] || ''}
+                  title={`收藏 ${photo + 1}`}
+                />
+              </div>
+              <div className="photo-pagination">
+                <button
+                  className="icon-button"
+                  aria-label="上一张收藏"
+                  onClick={() =>
+                    setPhoto(
+                      (v) =>
+                        (v + (profile.photos.length || 3) - 1) %
+                        (profile.photos.length || 3),
+                    )
+                  }
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span>
+                  {photo + 1} / {profile.photos.length || 3}
+                </span>
+                <button
+                  className="icon-button"
+                  aria-label="下一张收藏"
+                  onClick={() =>
+                    setPhoto((v) => (v + 1) % (profile.photos.length || 3))
+                  }
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+          )}
+          {modal === 'book' && (
+            <div className="notebook">
+              <div className="notebook-tabs">
+                <button
+                  className={page === 0 ? 'active' : ''}
+                  onClick={() => setPage(0)}
+                >
+                  扉页
+                </button>
+                <button
+                  className={page === 1 ? 'active' : ''}
+                  onClick={() => setPage(1)}
+                >
+                  我的随记
+                </button>
+              </div>
+              {page === 0 ? (
+                <div className="book-page">
+                  <small>NOTES ON OBSERVATION</small>
+                  <h2>留一点空白。</h2>
+                  <p>
+                    一束光，一片叶子，一段没有目的的散步。
+                    <br />
+                    <br />
+                    想法不总是在工作时出现。
+                    <br />
+                    有时，它藏在你停下来的那一刻。
+                  </p>
+                  <span>01</span>
+                </div>
+              ) : (
+                <>
+                  <label className="sr-only" htmlFor="notebook">
+                    我的随记
+                  </label>
+                  <textarea
+                    id="notebook"
+                    maxLength={5000}
+                    value={note}
+                    onChange={(e) => {
+                      setNote(e.target.value);
+                      try {
+                        localStorage.setItem(
+                          'satori-studio-note',
+                          e.target.value,
+                        );
+                      } catch {
+                        notify('随记未能保存，本地存储空间不足。');
+                      }
+                    }}
+                  />
+                  <small>仅保存在此浏览器 · {note.length}/5000</small>
+                </>
+              )}
+            </div>
+          )}
+          {modal === 'objects' && (
+            <>
+              <div className="objects-grid">
+                {(Object.keys(objects) as ObjectId[])
+                  .filter(
+                    (id) =>
+                      !['floor', 'wall'].includes(id) &&
+                      (view === 'overview' ||
+                        view === 'plan' ||
+                        roomForObject(id) === view),
+                  )
+                  .map((id, i) => (
+                    <button key={id} onClick={() => choose(id)}>
+                      <small>{String(i + 1).padStart(2, '0')}</small>
+                      <span>{objects[id].name}</span>
+                      <ArrowUpRight size={14} />
+                    </button>
+                  ))}
+              </div>
+              <button className="text-button" onClick={() => setModal('help')}>
+                <CircleHelp size={15} />
+                操作提示
+              </button>
+            </>
+          )}
+          {modal === 'help' && (
+            <div className="help-content">
+              <p>
+                顶部切换房间，底部「整屋」查看四间房，或点击「俯瞰」看平面布局。拖动空白处环顾，滚轮或双指缩放。
+              </p>
+              <p>
+                点击物件靠近，再使用物件卡上的按钮：打开抽屉、转动雕塑、浇水、换布料，或浏览作品。
+              </p>
+              <p>
+                右上角选择时间与天气，或编辑个人内容。底部可开灯、播放原创合成旋律，或回到全景。
+              </p>
+              <p>
+                客厅电视可播放
+                YouTube、视频直链或本地视频。播放在线内容时需要网络，关闭播放器会停止播放。本地视频不会上传。
+              </p>
+              <p>键盘可从「探索」访问当前房间物件。弹窗按 Esc 关闭。</p>
+            </div>
+          )}
+          {modal === 'settings' && (
+            <div className="editor">
+              <div className="editor-fields">
+                <label>
+                  展示名称
+                  <input
+                    value={draft.name}
+                    maxLength={50}
+                    onChange={(e) =>
+                      setDraft({ ...draft, name: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  一句短标题
+                  <input
+                    value={draft.subtitle}
+                    maxLength={80}
+                    onChange={(e) =>
+                      setDraft({ ...draft, subtitle: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  关于你
+                  <textarea
+                    value={draft.about}
+                    maxLength={3000}
+                    onChange={(e) =>
+                      setDraft({ ...draft, about: e.target.value })
+                    }
+                  />
+                </label>
+              </div>
+              <div className="editor-section-title">
+                作品集<small>原创示例可替换；前三件同步作品墙</small>
+              </div>
+              {draft.projects.map((p, i) => (
+                <details key={i} className="project-editor" open={i === 0}>
+                  <summary>
+                    <span>{String(i + 1).padStart(2, '0')}</span>
+                    {p.title || '未命名作品'}
+                  </summary>
+                  <div className="editor-fields">
+                    <label>
+                      作品名称
+                      <input
+                        value={p.title}
+                        maxLength={100}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            projects: draft.projects.map((p, j) =>
+                              j === i ? { ...p, title: e.target.value } : p,
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      分类
+                      <input
+                        value={p.category}
+                        maxLength={80}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            projects: draft.projects.map((p, j) =>
+                              j === i ? { ...p, category: e.target.value } : p,
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      说明
+                      <textarea
+                        value={p.description}
+                        maxLength={3000}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            projects: draft.projects.map((p, j) =>
+                              j === i
+                                ? { ...p, description: e.target.value }
+                                : p,
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      作品链接
+                      <input
+                        type="url"
+                        placeholder="https://"
+                        value={p.url}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            projects: draft.projects.map((p, j) =>
+                              j === i ? { ...p, url: e.target.value } : p,
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                    <div className="image-field">
+                      <div className="mini-art">
+                        <StudioArt index={i} image={p.image} />
+                      </div>
+                      <label className="upload-button">
+                        <Upload size={15} />
+                        {p.image ? '替换封面' : '上传封面'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          disabled={savingImage}
+                          onChange={(e) => {
+                            void upload(e.target.files?.[0], i);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      {p.image && (
+                        <button
+                          className="text-button"
+                          onClick={() =>
+                            setDraft({
+                              ...draft,
+                              projects: draft.projects.map((p, j) =>
+                                j === i ? { ...p, image: '' } : p,
+                              ),
+                            })
+                          }
+                        >
+                          还原
+                        </button>
+                      )}
+                    </div>
+                    {draft.projects.length > 1 && (
+                      <button
+                        className="text-button remove-project"
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            projects: draft.projects.filter((_, j) => j !== i),
+                          })
+                        }
+                      >
+                        移除这件作品
+                      </button>
+                    )}
+                  </div>
+                </details>
+              ))}
+              {draft.projects.length < 12 && (
+                <button
+                  className="text-button"
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      projects: [
+                        ...draft.projects,
+                        {
+                          title: '新作品',
+                          category: 'SELECTED WORK',
+                          description: '',
+                          url: '',
+                          image: '',
+                        },
+                      ],
+                    })
+                  }
+                >
+                  <Plus size={15} />
+                  添加作品
+                </button>
+              )}
+              <div className="editor-section-title">
+                相机收藏<small>最多 6 张</small>
+              </div>
+              <div className="photo-editor">
+                {draft.photos.map((src, i) => (
+                  <div key={i}>
+                    <img src={src} alt={`收藏 ${i + 1}`} />
+                    <button
+                      aria-label={`移除收藏 ${i + 1}`}
+                      onClick={() =>
+                        setDraft({
+                          ...draft,
+                          photos: draft.photos.filter((_, j) => j !== i),
+                        })
+                      }
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                {draft.photos.length < 6 && (
+                  <label className="upload-button">
+                    <Plus size={18} />
+                    添加照片
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={savingImage}
+                      onChange={(e) => {
+                        void upload(e.target.files?.[0], null);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="editor-footer">
+                <div>
+                  <button
+                    className="icon-button"
+                    aria-label="导出已保存配置"
+                    title="导出已保存配置"
+                    onClick={exportProfile}
+                  >
+                    <Download size={17} />
+                  </button>
+                  <label
+                    className="icon-button"
+                    aria-label="导入配置"
+                    title="导入配置"
+                  >
+                    <Upload size={17} />
+                    <input
+                      type="file"
+                      accept="application/json,.json"
+                      onChange={(e) => {
+                        void importProfile(e.target.files?.[0]);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+                <button
+                  className="dark-button"
+                  onClick={save}
+                  disabled={savingImage}
+                >
+                  {savingImage ? '处理图片…' : '保存布置'}
+                  <Check size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </main>
+  );
 }

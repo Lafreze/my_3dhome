@@ -1,0 +1,110 @@
+[
+  {
+    "asset": "brown_leather",
+    "map": "Diffuse",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_albedo_1k.jpg",
+    "path": "public/materials/brown_leather/Diffuse.jpg",
+    "bytes": 503348,
+    "sha256": "7e9e1d6566d1fd91d4ceb4966c4820361e85d53a7a828b6bab3b2a093a876cd1",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "brown_leather",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_nor_gl_1k.jpg",
+    "path": "public/materials/brown_leather/nor_gl.jpg",
+    "bytes": 863280,
+    "sha256": "506a0b7650c2dea285e247f26ed2d0d6ec38fc10dd584359f0d203e9c082236d",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "brown_leather",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_rough_1k.jpg",
+    "path": "public/materials/brown_leather/Rough.jpg",
+    "bytes": 686142,
+    "sha256": "f9739ef2da2e3d17b9ec253f5042f61b10dc10f3ae28f6cf6491650d3d1b0ca3",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "fabric_pattern_07",
+    "map": "col_1",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_pattern_07/fabric_pattern_07_col_1_1k.jpg",
+    "path": "public/materials/fabric_pattern_07/col_1.jpg",
+    "bytes": 788593,
+    "sha256": "aeb7a1487b77aec55e39de662def4d371f5c7c617f62d1f291d7f9932ffebdc9",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "fabric_pattern_07",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_pattern_07/fabric_pattern_07_nor_gl_1k.jpg",
+    "path": "public/materials/fabric_pattern_07/nor_gl.jpg",
+    "bytes": 828071,
+    "sha256": "f6955bbdead9f023f2357f6f8808ed49627d10882cd2a3cb6b5a5ace155abc45",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "fabric_pattern_07",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_pattern_07/fabric_pattern_07_rough_1k.jpg",
+    "path": "public/materials/fabric_pattern_07/Rough.jpg",
+    "bytes": 488744,
+    "sha256": "3d90ac40b5c32a15649cc8525b7eeed133ea46b63a0e3eae5e34911d5c967e3a",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "white_plaster_02",
+    "map": "Diffuse",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_diff_1k.jpg",
+    "path": "public/materials/white_plaster_02/Diffuse.jpg",
+    "bytes": 527219,
+    "sha256": "a1ebbe091bd1ae93d2abd5de8d69f9003a8d0ee6532bcf9a87c2492c97051f23",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "white_plaster_02",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_nor_gl_1k.jpg",
+    "path": "public/materials/white_plaster_02/nor_gl.jpg",
+    "bytes": 652310,
+    "sha256": "eb572ca3630d5bfde72e2601b1f02412da23ca005cd19384dced8690be4cb783",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "white_plaster_02",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_rough_1k.jpg",
+    "path": "public/materials/white_plaster_02/Rough.jpg",
+    "bytes": 295900,
+    "sha256": "4ff1fe957cd161b07f721fe6c28a9459c8c2e8ec65627a26c16e483a07c80d85",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "fine_grained_wood",
+    "map": "Diffuse",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fine_grained_wood/fine_grained_wood_col_1k.jpg",
+    "path": "public/materials/fine_grained_wood/Diffuse.jpg",
+    "bytes": 336305,
+    "sha256": "d171f45ef01bc6e239b00dfaa4961bcd27f7d8e93e3962da3bd3d0ce703d802c",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "fine_grained_wood",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fine_grained_wood/fine_grained_wood_nor_gl_1k.jpg",
+    "path": "public/materials/fine_grained_wood/nor_gl.jpg",
+    "bytes": 193626,
+    "sha256": "ba95eadc009818e161d0f753191f1bacc3fc861e593be0bc6d82b437f9ec8044",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "fine_grained_wood",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fine_grained_wood/fine_grained_wood_rough_1k.jpg",
+    "path": "public/materials/fine_grained_wood/Rough.jpg",
+    "bytes": 215155,
+    "sha256": "f281f682e62fe322303dfeaa13dac18b5cb9e113617fe0aca43605b49161d82b",
+    "license": "CC0-1.0"
+  }
+]

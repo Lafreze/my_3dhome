@@ -1,0 +1,16 @@
+.git
+.openai
+.railway
+.env*
+node_modules
+dist
+output
+outputs
+work
+.playwright-cli
+.vinext
+.next
+coverage
+*.log
+*.tsbuildinfo
+.DS_Store

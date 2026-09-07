@@ -38,3 +38,9 @@ next-env.d.ts
 /work/
 
 *.tsbuildinfo
+
+# Local browser verification
+/.playwright-cli/
+/output/
+/.railway/
+/.openai/

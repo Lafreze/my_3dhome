@@ -1,19 +1,85 @@
+import { newObjects } from './house-data';
 export const objects = {
-  bed: { name: '柔软的角落', kind: '休息区', description: '亚麻床品，蓬松枕头。把忙碌留在门外，今天也可以慢一点。', action: '换一套床品' },
-  desk: { name: '窗边工作台', kind: '工作区', description: '一张橡木桌，一束穿过窗户的光。灵感从这里开始。', action: '打开电脑' },
-  computer: { name: '灵感工作站', kind: '工作区', description: '收集想法，写下小事。在这里，让思绪自由生长。', action: '打开电脑' },
-  lamp: { name: '一盏暖光', kind: '照明', description: '小小的蘑菇台灯，给每个安静的夜晚留一盏灯。', action: '切换台灯' },
-  frame: { name: '山间来信', kind: '回忆', description: '把远方的山和日落，装进一只小小的木相框。', action: '看看相框' },
-  shelf: { name: '日常收藏', kind: '阅读区', description: '喜欢的书和旅行带回的小物，慢慢填满生活的空隙。', action: '翻开一本书' },
-  chair: { name: '阅读一刻', kind: '阅读区', description: '坐进柔软的椅子里，读几页书，或者只是发一会儿呆。', action: '换一个颜色' },
-  coffee: { name: '午后的咖啡', kind: '休闲区', description: '一杯手冲，一本没读完的书。美好的下午不需要太多安排。', action: '续一杯咖啡' },
-  plant: { name: '会呼吸的绿意', kind: '绿植', description: '一株向着窗外生长的绿植。给它一点水，也给自己一点耐心。', action: '浇一点水' },
-  rug: { name: '脚下的温柔', kind: '软装', description: '柔软的编织地毯，把休息、阅读和发呆的角落连接起来。', action: '更换地毯' },
-  record: { name: '慢半拍电台', kind: '音乐', description: '唱针落下，时间也跟着慢下来。一段轻柔的原创合成旋律。', action: '播放 / 暂停' },
-  window: { name: '窗外好时光', kind: '窗景', description: '白天看远山，夜晚等星星。这里的时间，由你决定。', action: '切换昼夜' },
-  stool: { name: '小小的陪伴', kind: '家具', description: '圆润的小木凳，刚好接住一个放松的午后。', action: '转动小凳' },
-  floor: { name: '温润木地板', kind: '空间', description: '一块块温暖的橡木，托起一整间小小的生活。', action: '回到全景' },
-  wall: { name: '森林的颜色', kind: '空间', description: '森林绿和奶油白，给小屋一个平静的拥抱。', action: '回到全景' },
+  ...newObjects,
+  bed: { name: '亚麻沙发', kind: 'LOUNGE', action: '更换织物' },
+  desk: { name: '木作工作台', kind: 'WORKSPACE', action: '浏览作品' },
+  computer: { name: '作品工作站', kind: 'SELECTED WORK', action: '浏览作品' },
+  lamp: { name: '蘑菇灯', kind: 'LIGHT', action: '切换灯光' },
+  taskLamp: { name: '折臂工作灯', kind: 'TASK LIGHT', action: '开关工作灯' },
+  deskPlant: { name: '桌面小绿植', kind: 'BOTANICAL', action: '浇水' },
+  shelfPlant: { name: '书柜小绿植', kind: 'BOTANICAL', action: '浇水' },
+  frame: { name: '作品墙', kind: 'GALLERY', action: '展开作品' },
+  shelf: { name: '灵感藏书', kind: 'LIBRARY', action: '翻开手记' },
+  chair: { name: '皮革阅读椅', kind: 'READING', action: '更换皮革' },
+  coffee: { name: '手冲咖啡', kind: 'COFFEE', action: '续一杯' },
+  plant: { name: '窗边绿植', kind: 'BOTANICAL', action: '浇水' },
+  rug: { name: '羊毛编织毯', kind: 'TEXTILE', action: '更换配色' },
+  record: { name: '黑胶唱片机', kind: 'LISTENING', action: '播放 / 暂停' },
+  window: { name: '山景窗', kind: 'ATMOSPHERE', action: '时间与天气' },
+  stool: { name: '工作椅', kind: 'FURNITURE', action: '拉出 / 归位' },
+  drawer: { name: '收藏抽屉', kind: 'DETAIL', action: '打开 / 收起' },
+  camera: { name: '胶片相机', kind: 'PHOTOGRAPHY', action: '打开相册' },
+  sculpture: { name: '平衡练习', kind: 'OBJECT', action: '转动雕塑' },
+  about: { name: '关于我', kind: 'PORTRAIT', action: '查看名片' },
+  floor: { name: '橡木地板', kind: 'ARCHITECTURE', action: '回到全景' },
+  wall: { name: '灰泥墙面', kind: 'ARCHITECTURE', action: '回到全景' },
 } as const;
 export type ObjectId = keyof typeof objects;
-export type RoomApi = { reset: () => void; zoom: (direction: number) => void; focus: (id: ObjectId) => void; setNight: (value: boolean) => void; setLamp: (value: boolean) => void; setMusic: (value: boolean) => void; interact: (id: ObjectId) => void; dispose: () => void };
+export type Project = {
+  title: string;
+  category: string;
+  description: string;
+  url: string;
+  image: string;
+};
+export type Profile = {
+  name: string;
+  subtitle: string;
+  about: string;
+  projects: Project[];
+  photos: string[];
+};
+export const defaultProfile: Profile = {
+  name: 'SATORI',
+  subtitle: 'PERSONAL STUDIO',
+  about: '在这里，收藏创作、观察，以及日常的灵感。',
+  projects: [
+    {
+      title: '静山之间',
+      category: 'SPATIAL STUDY · 01',
+      description:
+        '关于空间、光线与安静的习作。以自然的层次，寻找恰到好处的留白。',
+      url: '',
+      image: '',
+    },
+    {
+      title: '形与秩序',
+      category: 'VISUAL STUDY · 02',
+      description: '圆、线与平面之间的关系。一组探索节奏与平衡的视觉实验。',
+      url: '',
+      image: '',
+    },
+    {
+      title: '日常切片',
+      category: 'FIELD NOTES · 03',
+      description: '把走过的地方、遇见的颜色，收进日常的观察笔记。',
+      url: '',
+      image: '',
+    },
+  ],
+  photos: [],
+};
+export type RoomApi = {
+  setView: (view: import('./house-data').HouseView) => void;
+  setTelevision: (on: boolean, source?: string) => void;
+  setVideo: (video: HTMLVideoElement | null) => void;
+  reset: () => void;
+  zoom: (direction: number) => void;
+  focus: (id: ObjectId) => void;
+  setEnvironment: (value: import('./environment-data').Environment) => void;
+  setLamp: (value: boolean) => void;
+  setMusic: (value: boolean) => void;
+  setArtwork: (images: string[]) => void;
+  interact: (id: ObjectId) => void;
+  dispose: () => void;
+};
