@@ -56,7 +56,7 @@ export function televisionScreen(
     resize(width: number, height: number) {
       renderer.setSize(width, height);
     },
-    update(camera: T.Camera) {
+    update(camera: T.Camera, interactive = true) {
       if (!object) return;
       screen.updateWorldMatrix(true, false);
       let visible = true;
@@ -68,8 +68,10 @@ export function televisionScreen(
       visible = visible && normal.dot(eye.sub(point)) > 0.05;
       object.visible = visible;
       enabled = visible;
-      if (object.element.inert === visible) object.element.inert = !visible;
-      object.element.style.pointerEvents = visible ? 'auto' : 'none';
+      const acceptsInput = visible && interactive;
+      if (object.element.inert === acceptsInput)
+        object.element.inert = !acceptsInput;
+      object.element.style.pointerEvents = acceptsInput ? 'auto' : 'none';
       object.matrix.copy(screen.matrixWorld).multiply(scale);
       renderer.render(scene, camera);
     },

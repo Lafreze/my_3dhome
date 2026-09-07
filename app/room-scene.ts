@@ -1492,47 +1492,127 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   const taskLamp = group('taskLamp');
   desk.add(taskLamp);
   taskLamp.position.set(-1.09, 1.28, -0.27);
-  cylinder(taskLamp, 0.115, 0.13, 0.027, 0, 0.018, 0, brass);
+  // Counterweighted articulated lamp: every arm meets a real hinge, and the
+  // shade, lining and light share one local transform so they cannot separate.
+  cylinder(taskLamp, 0.133, 0.142, 0.026, 0, 0.015, 0, charcoal);
+  cylinder(taskLamp, 0.128, 0.134, 0.022, 0, 0.039, 0, brass);
+  cylinder(taskLamp, 0.035, 0.048, 0.063, 0, 0.075, 0, brass);
+  const joints = [
+    new T.Vector3(0, 0.11, 0),
+    new T.Vector3(-0.1, 0.36, 0.01),
+    new T.Vector3(0.035, 0.59, 0.18),
+  ];
+  for (let i = 0; i < 2; i++) {
+    for (const offset of [-0.022, 0.022])
+      rod(
+        taskLamp,
+        joints[i].clone().add(new T.Vector3(offset, 0, 0)),
+        joints[i + 1].clone().add(new T.Vector3(offset, 0, 0)),
+        0.009,
+        brass,
+      );
+  }
+  for (const point of joints) {
+    const hinge = cylinder(
+      taskLamp,
+      0.027,
+      0.027,
+      0.07,
+      point.x,
+      point.y,
+      point.z,
+      brass,
+    );
+    hinge.rotation.z = Math.PI / 2;
+    for (const side of [-1, 1]) {
+      const screw = cylinder(
+        taskLamp,
+        0.014,
+        0.014,
+        0.004,
+        point.x + side * 0.038,
+        point.y,
+        point.z,
+        charcoal,
+      );
+      screw.rotation.z = Math.PI / 2;
+      box(
+        taskLamp,
+        0.002,
+        0.003,
+        0.016,
+        point.x + side * 0.041,
+        point.y,
+        point.z,
+        brass,
+        0.0005,
+      );
+    }
+  }
+  const head = new T.Group();
+  taskLamp.add(head);
+  head.position.copy(joints[2]);
+  head.rotation.x = -0.28;
+  cylinder(head, 0.03, 0.035, 0.048, 0, -0.007, 0, brass);
+  const shell = brass.clone();
+  shell.side = T.DoubleSide;
+  shell.roughness = 0.43;
+  materials.push(shell);
+  lathe(
+    head,
+    [
+      [0.118, -0.2],
+      [0.125, -0.195],
+      [0.123, -0.183],
+      [0.105, -0.14],
+      [0.04, -0.023],
+      [0.028, 0],
+      [0.021, 0],
+      [0.033, -0.032],
+      [0.099, -0.146],
+      [0.115, -0.185],
+      [0.112, -0.195],
+      [0.118, -0.2],
+    ],
+    0,
+    0,
+    0,
+    shell,
+  );
+  const lining = mat('#f2e6c9', 0.76);
+  lining.side = T.DoubleSide;
+  lathe(
+    head,
+    [
+      [0.109, -0.18],
+      [0.095, -0.14],
+      [0.034, -0.027],
+    ],
+    0,
+    0,
+    0,
+    lining,
+  );
+  const bulb = mat('#fff0cf', 0.52);
+  bulb.emissive.set('#ffd39a');
+  bulb.emissiveIntensity = 1.2;
+  cylinder(head, 0.1, 0.1, 0.008, 0, -0.169, 0, bulb);
+  const deskLight = new T.PointLight('#ffcf92', 0.7, 2.6, 2);
+  head.add(deskLight);
+  deskLight.position.set(0, -0.209, 0);
+  const cablePoints = joints.map((p) => [p.x + 0.005, p.y, p.z - 0.018]);
+  tube(taskLamp, [[0.1, 0.038, -0.04], ...cablePoints], 0.004, charcoal);
   tube(
     taskLamp,
     [
-      [0, 0.025, 0],
-      [0, 0.3, 0],
-      [-0.09, 0.48, 0.07],
-      [-0.04, 0.62, 0.17],
+      [0.1, 0.038, -0.04],
+      [0.13, 0.012, -0.1],
+      [0.15, -0.02, -0.2],
+      [0.14, -0.13, -0.29],
     ],
-    0.018,
-    brass,
+    0.005,
+    charcoal,
   );
-  for (const point of [
-    [0, 0.3, 0],
-    [-0.09, 0.48, 0.07],
-  ])
-    sphere(taskLamp, 0.033, ...(point as [number, number, number]), brass);
-  const taskShade = lathe(
-    taskLamp,
-    [
-      [0.028, 0],
-      [0.04, 0.03],
-      [0.105, 0.14],
-      [0.12, 0.17],
-      [0.117, 0.18],
-      [0.105, 0.174],
-      [0.03, 0.04],
-    ],
-    -0.04,
-    0.49,
-    0.17,
-    brass,
-  );
-  taskShade.rotation.z = Math.PI;
-  const bulb = mat('#fff0c5', 0.3);
-  bulb.emissive.set('#ffce7c');
-  bulb.emissiveIntensity = 1.2;
-  sphere(taskLamp, 0.043, -0.04, 0.36, 0.17, bulb, 1, 0.3, 1);
-  const deskLight = new T.PointLight('#ffca82', 0.7, 2.6, 2);
-  taskLamp.add(deskLight);
-  deskLight.position.set(-0.04, 0.38, 0.17);
   tube(
     desk,
     [
@@ -1709,7 +1789,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       (-(e.clientY - r.top) / r.height) * 2 + 1,
     );
     raycaster.setFromCamera(mouse, camera);
-    const hit = raycaster.intersectObjects(
+    const pickedHits = raycaster.intersectObjects(
       interactables.filter((o) => {
         let node: T.Object3D | null = o;
         while (node) {
@@ -1719,7 +1799,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         return true;
       }),
       true,
-    )[0];
+    );
+    const hit = pickedHits.find(({ object }) => {
+      for (let node: T.Object3D | null = object; node; node = node.parent)
+        if (!node.visible) return false;
+      return true;
+    });
     if (!hit) return null;
     let o: T.Object3D | null = hit.object;
     while (o && !o.userData.id) o = o.parent;
@@ -1857,18 +1942,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         0.7,
       );
   }
-  const selectedRing = mesh(
-    new T.TorusGeometry(0.26, 0.012, 8, 40),
-    brass,
-    root,
-    0,
-    0.12,
-    0,
-  );
-  selectedRing.rotation.x = -Math.PI / 2;
-  scene.add(selectedRing);
-  selectedRing.visible = false;
-  selectedRing.castShadow = false;
   function frameTelevision() {
     const center = house.screen.getWorldPosition(new T.Vector3());
     const horizontalTangent =
@@ -2010,7 +2083,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     controls.update();
     landscape.update(camera, t);
     tvScreen.update(camera);
-    computerScreen.update(camera);
+    computerScreen.update(camera, focusedObject === 'computer');
     renderer.render(scene, camera);
   }
   const api: RoomApi = {
@@ -2040,7 +2113,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           view === 'bedroom' ? new T.Vector3(2, 9.2, 15.5) : initial.clone();
         moveTo(vantage.add(offset), target.clone().add(offset));
       }
-      selectedRing.visible = false;
     },
     setTelevision(on, source) {
       house.setTelevision(on, source);
@@ -2091,7 +2163,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           .addScaledVector(right, 0.65);
         eye.y = 2.65;
         moveTo(eye, center.clone().add(new T.Vector3(0, 0.08, 0)));
-        selectedRing.visible = false;
         return;
       }
       if (/^(livingArt[12]|galleryArt[123])$/.test(id)) {
@@ -2101,7 +2172,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           ? new T.Vector3(1, 0.06, 0.1)
           : new T.Vector3(0.1, 0.06, 1);
         moveTo(center.clone().addScaledVector(normal, 4.6), center);
-        selectedRing.visible = false;
         return;
       }
       if (id === 'computer') {
@@ -2109,12 +2179,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         controls.minDistance = 1.5;
         controls.maxPolarAngle = Math.PI / 2;
         moveTo(center.clone().add(new T.Vector3(0.1, 0.08, 2.4)), center);
-        selectedRing.visible = false;
         return;
       }
       if (id === 'television') {
         frameTelevision();
-        selectedRing.visible = false;
         return;
       }
       controls.maxPolarAngle = Math.PI / 2.15;
@@ -2141,8 +2209,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
               Math.min(8, bounds.getSize(new T.Vector3()).length() * 1.65),
             );
       moveTo(center.clone().add(dir.multiplyScalar(distance)), center);
-      selectedRing.position.set(center.x, 0.12, center.z);
-      selectedRing.visible = true;
     },
     setEnvironment(value) {
       refreshShadows(2500);

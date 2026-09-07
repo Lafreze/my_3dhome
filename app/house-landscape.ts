@@ -6,7 +6,7 @@ import type { RoomId } from './house-data';
 
 // One site, four apertures. North = -Z, east = +X. No independent invented skies.
 export const windowViews = {
-  study: { bearing: 0, name: '北 · 林地', position: [1.12, 1.98, -3.28] },
+  study: { bearing: 0, name: '北 · 水岸花园', position: [1.12, 1.98, -3.28] },
   living: { bearing: 90, name: '东 · 街巷', position: [11.88, 1.98, 0] },
   bedroom: { bearing: 270, name: '西 · 庭院', position: [-3.88, 1.98, 6.8] },
   gallery: { bearing: 90, name: '东 · 前庭', position: [11.88, 1.98, 6.8] },
@@ -272,13 +272,74 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
       );
   }
   box(scene, 180, 0.3, 160, 0, -0.24, 0, grass);
-  // North woodland: nearby shrubs, a fence and successive, differently scaled trees.
-  fence(1, -8.7, 17, 0, 0.85);
-  for (let i = 0; i < 20; i++)
-    tree(-18 + i * 2.2, -15 - seed(i) * 12, 1.1 + seed(i + 19) * 1.5, i);
-  for (let i = 0; i < 16; i++)
-    tree(-24 + i * 3.2, -34 - seed(i) * 10, 2.1 + seed(i) * 1.6, i + 61);
-  for (let i = 0; i < 8; i++) bush(-4 + i * 1.6, -7, 1.2, i + 70);
+  // North is an open waterside garden, with a clear view across a low planting border.
+  fence(1, -8.7, 17, 0, 0.6);
+  for (const [x, z, size, i] of [
+    [-12, -13, 1.1, 11],
+    [12, -16, 1.3, 12],
+    [-18, -30, 1.7, 13],
+    [20, -32, 1.9, 14],
+  ])
+    tree(x, z, size, i);
+  for (let i = 0; i < 5; i++) bush(-4 + i * 2.5, -7.8, 0.55, i + 70);
+  const pondStone = mat('#c1b7a0'),
+    flowerClay = mat('#ac7663'),
+    petals = mat('#d4ac9a');
+  // A long reflecting pool with a walkable perimeter and low, rounded stone coping.
+  box(scene, 15.6, 0.18, 6.0, 1.5, 0.04, -14.2, pondStone);
+  box(scene, 14.9, 0.03, 5.35, 1.5, 0.15, -14.2, water);
+  for (const z of [-17.17, -11.23])
+    box(scene, 15.7, 0.16, 0.23, 1.5, 0.2, z, ivory);
+  for (const x of [-6.22, 9.22])
+    box(scene, 0.23, 0.16, 6, x, 0.2, -14.2, ivory);
+  const rippleMaterial = mat('#afc2b2', 0.28);
+  for (let i = 0; i < 12; i++) {
+    const ripple = mesh(
+      scene,
+      new T.TorusGeometry(0.18 + i * 0.009, 0.008, 4, 32).rotateX(Math.PI / 2),
+      rippleMaterial,
+      -4.7 + seed(i) * 12,
+      0.173,
+      -16.1 + seed(i + 21) * 3.9,
+    );
+    ripple.scale.z = 0.45;
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = -4.5 + i * 2.15;
+    box(scene, 0.78, 0.42, 0.68, x, 0.29, -9.5, flowerClay);
+    box(scene, 0.7, 0.018, 0.59, x, 0.512, -9.5, bark);
+    for (let j = 0; j < 7; j++) {
+      const xx = x + (seed(i * 13 + j) - 0.5) * 0.6,
+        zz = -9.5 + (seed(i + j * 19) - 0.5) * 0.45,
+        h = 0.72 + seed(i + j) * 0.25;
+      rod(scene, [xx, 0.51, zz], [xx, h, zz], 0.009, leafMats[1]);
+      for (let k = 0; k < 5; k++)
+        ellipsoid(
+          scene,
+          xx + Math.cos(k * 1.256) * 0.047,
+          h,
+          zz + Math.sin(k * 1.256) * 0.047,
+          0.042,
+          0.017,
+          0.034,
+          petals,
+        );
+    }
+  }
+  // Far bank: a pale garden pavilion and a low urban roofline, not a wall of trees.
+  const pavilion = new T.Group();
+  pavilion.position.set(2, 0, -23.5);
+  scene.add(pavilion);
+  box(pavilion, 6, 0.22, 3.2, 0, 0.15, 0, pondStone);
+  for (const x of [-2.7, 2.7])
+    for (const z of [-1.3, 1.3])
+      box(pavilion, 0.14, 2.7, 0.14, x, 1.55, z, wood);
+  box(pavilion, 6.3, 0.13, 3.6, 0, 2.94, 0, roof);
+  for (let i = 0; i < 13; i++)
+    box(pavilion, 0.08, 0.1, 3.8, -2.9 + i * 0.48, 3.04, 0, wood);
+  box(pavilion, 4.9, 0.09, 0.48, 0, 0.64, -1.1, wood);
+  for (const x of [-2, 2])
+    box(pavilion, 0.12, 0.55, 0.38, x, 0.34, -1.1, metal);
   // Trail behind the studio, edged by individual granite pavers.
   box(scene, 16, 0.04, 1.15, 1, 0.005, -6, gravel);
   for (let i = 0; i < 24; i++)
@@ -303,7 +364,7 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
   }
   tree(-10.8, 5.1, 1.2, 82, true);
   tree(-13.1, 10.5, 1.3, 71);
-  for (let i = 0; i < 14; i++)
+  for (let i = 0; i < 6; i++)
     bush(
       -14 + seed(i + 19) * 8,
       3 + seed(i + 38) * 8,
@@ -351,15 +412,15 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
   box(scene, 2.15, 0.045, 78, 14.65, 0.035, 0, gravel);
   fence(13.25, -0.4, 4.4, Math.PI / 2, 0.88);
   fence(13.25, 9.4, 3.2, Math.PI / 2, 0.88);
-  for (const z of [-5, 2.8, 12.2, 20]) {
+  for (const z of [-7, 14.8, 25]) {
     tree(15.05, z, 0.85, Math.round(z + 30));
     bush(13.5, z, 0.7, Math.round(z + 50));
   }
   // Ground-floor homes, with pitched tile roofs, recessed glazing, soffits and porches.
-  function home(x: number, z: number, index: number) {
+  function home(x: number, z: number, index: number, rotation = -Math.PI / 2) {
     const g = new T.Group();
     g.position.set(x, 0, z);
-    g.rotation.y = -Math.PI / 2;
+    g.rotation.y = rotation;
     scene.add(g);
     const wall = index % 2 ? plaster : mat('#c4c6b1');
     wall.side = T.DoubleSide;
@@ -419,6 +480,22 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
     const awning = box(g, 1.28, 0.09, 0.84, -0.13, 2.3, 2.18, roof);
     awning.rotation.x = 0.07;
   }
+  // The far edge of the water garden has a low boundary and village roofline.
+  box(scene, 31, 1.08, 0.26, 1.5, 0.54, -28, plaster);
+  box(scene, 31.3, 0.09, 0.4, 1.5, 1.125, -28, ivory);
+  for (let i = 0; i < 16; i++)
+    box(scene, 0.1, 1.3, 0.36, -13.8 + i * 2.04, 0.65, -28, pondStone);
+  tree(-8.2, -23.5, 0.85, 401);
+  tree(11, -23.8, 0.95, 402);
+  home(-11, -37, 4, 0);
+  home(4, -40, 5, 0);
+  home(18, -37, 6, 0);
+  for (const [x, z, w, h, c] of [
+    [-30, -75, 32, 8, '#8da69c'],
+    [8, -85, 38, 11, '#a0b1a5'],
+    [43, -76, 27, 7, '#8a9f91'],
+  ] as const)
+    ellipsoid(scene, x, -1, z, w, h, 20, mat(c));
   home(26, -6, 0);
   home(26, 5.8, 1);
   home(26, 18, 2);
@@ -438,8 +515,133 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
       0.24 + seed(i + 8) * 0.45,
       puddle,
     );
-  for (let i = 0; i < 12; i++)
-    tree(38 + seed(i) * 6, -25 + i * 5.2, 1.8 + seed(i + 31), i + 230);
+  for (const [x, z, index] of [
+    [37, -12, 0],
+    [39, 1, 1],
+    [37, 14, 2],
+    [39, 27, 3],
+  ]) {
+    const facade = mat(['#c7b8a0', '#c2c9c4', '#d9c4ad', '#c9c0b0'][index]);
+    const height = 6.2 + index * 0.65;
+    box(scene, 6, height, 7, x, height / 2, z, facade);
+    box(scene, 6.3, 0.18, 7.3, x, height + 0.09, z, roof);
+    for (let floor = 0; floor < 3; floor++)
+      for (let j = 0; j < 3; j++) {
+        box(
+          scene,
+          0.06,
+          1.12,
+          0.86,
+          x - 3.035,
+          1.2 + floor * 1.9,
+          z - 2.15 + j * 2.05,
+          nightGlass,
+        );
+        box(
+          scene,
+          0.16,
+          0.08,
+          1.05,
+          x - 3.09,
+          0.61 + floor * 1.9,
+          z - 2.15 + j * 2.05,
+          ivory,
+        );
+      }
+  }
+  // One small corner cafe faces the lane opposite the living room.
+  const cafe = new T.Group();
+  cafe.position.set(25.1, 0, -0.25);
+  cafe.rotation.y = -Math.PI / 2;
+  scene.add(cafe);
+  const cafeWall = mat('#d9b89a'),
+    awningCloth = mat('#55776c');
+  box(cafe, 4.2, 2.7, 2.7, 0, 1.37, 0, cafeWall);
+  box(cafe, 4.5, 0.18, 3, 0, 2.83, 0, roof);
+  box(cafe, 3.4, 1.7, 0.05, 0, 1.2, 1.375, nightGlass);
+  for (const x of [-1.72, -0.5, 0.65, 1.72])
+    box(cafe, 0.055, 1.8, 0.085, x, 1.2, 1.42, wood);
+  for (let i = 0; i < 12; i++) {
+    const a = box(
+      cafe,
+      0.34,
+      0.07,
+      0.83,
+      -1.87 + i * 0.34,
+      2.22,
+      1.68,
+      i % 2 ? ivory : awningCloth,
+    );
+    a.rotation.x = 0.16;
+    box(
+      cafe,
+      0.34,
+      0.17,
+      0.04,
+      -1.87 + i * 0.34,
+      2.085,
+      2.075,
+      i % 2 ? ivory : awningCloth,
+    );
+  }
+  for (const x of [-1.2, 1.2]) {
+    mesh(
+      cafe,
+      new T.CylinderGeometry(0.31, 0.31, 0.035, 32),
+      wood,
+      x,
+      0.7,
+      2.63,
+    );
+    rod(cafe, [x, 0.06, 2.63], [x, 0.68, 2.63], 0.035, metal);
+    for (const dx of [-0.4, 0.4]) {
+      box(cafe, 0.31, 0.065, 0.32, x + dx, 0.39, 2.63, wood);
+      for (const dz of [-0.12, 0.12])
+        rod(
+          cafe,
+          [x + dx, 0.04, 2.63 + dz],
+          [x + dx, 0.38, 2.63 + dz],
+          0.018,
+          metal,
+        );
+      box(cafe, 0.31, 0.25, 0.035, x + dx, 0.58, 2.78, wood);
+    }
+  }
+  // Road markings, a bicycle stand and parked compact car give the lane a human scale.
+  for (let i = 0; i < 5; i++)
+    box(scene, 3.4, 0.008, 0.2, 18.5, 0.053, -2.7 + i * 0.46, ivory);
+  const car = new T.Group();
+  car.position.set(19.4, 0, -8.0);
+  scene.add(car);
+  const carPaint = mat('#899d99', 0.4, 0.25),
+    tire = mat('#303635');
+  box(car, 1.55, 0.52, 3.1, 0, 0.66, 0, carPaint);
+  box(car, 1.35, 0.52, 1.65, 0, 1.13, -0.05, carPaint);
+  box(car, 1.2, 0.35, 0.025, 0, 1.17, 0.79, nightGlass);
+  box(car, 1.2, 0.32, 0.025, 0, 1.17, -0.89, nightGlass);
+  for (const x of [-0.79, 0.79])
+    for (const z of [-1.05, 1.05]) {
+      const t = mesh(
+        car,
+        new T.CylinderGeometry(0.31, 0.31, 0.17, 24),
+        tire,
+        x,
+        0.35,
+        z,
+      );
+      t.rotation.z = Math.PI / 2;
+      const h = mesh(
+        car,
+        new T.CylinderGeometry(0.17, 0.17, 0.175, 20),
+        metal,
+        x,
+        0.35,
+        z,
+      );
+      h.rotation.z = Math.PI / 2;
+    }
+  for (const x of [-0.52, 0.52])
+    box(car, 0.27, 0.13, 0.04, x, 0.72, 1.575, lampGlass);
   // A low courtyard outside the gallery: brick edging, herbs and a cedar pergola.
   box(scene, 2.4, 0.12, 2.1, 14.15, 0.05, 6.7, stone);
   for (let i = 0; i < 12; i++)
@@ -450,6 +652,46 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
     box(scene, 2.6, 0.1, 0.085, 14.15, 2.39, 5.62 + i * 0.27, wood);
   box(scene, 1.32, 0.3, 0.38, 14.15, 0.23, 7.5, wood);
   for (let i = 0; i < 6; i++) bush(13.65 + i * 0.21, 7.5, 0.4, i + 190);
+  // Gallery forecourt: bistro furniture and glazed pottery under the pergola.
+  mesh(
+    scene,
+    new T.CylinderGeometry(0.34, 0.34, 0.045, 32),
+    ivory,
+    14.2,
+    0.76,
+    6.6,
+  );
+  rod(scene, [14.2, 0.19, 6.6], [14.2, 0.74, 6.6], 0.04, metal);
+  for (const z of [5.98, 7.12]) {
+    box(scene, 0.41, 0.05, 0.39, 14.2, 0.52, z, wood);
+    for (const x of [14.05, 14.35])
+      for (const zz of [z - 0.12, z + 0.12])
+        rod(scene, [x, 0.18, zz], [x, 0.51, zz], 0.014, metal);
+    box(
+      scene,
+      0.43,
+      0.32,
+      0.04,
+      14.2,
+      0.72,
+      z + (z > 6.6 ? 0.18 : -0.18),
+      wood,
+    );
+  }
+  for (const [x, z] of [
+    [13.0, 8.7],
+    [15.2, 8.8],
+  ]) {
+    mesh(
+      scene,
+      new T.CylinderGeometry(0.28, 0.2, 0.42, 28),
+      flowerClay,
+      x,
+      0.31,
+      z,
+    );
+    bush(x, z, 0.48, Math.round(x * 7));
+  }
   // Street lamps have bases, diffuser housings and warm night emission.
   for (const z of [-10, 9, 26]) {
     rod(scene, [20.35, 0, z], [20.35, 3.55, z], 0.045, metal);

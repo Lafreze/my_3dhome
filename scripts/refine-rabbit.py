@@ -26,7 +26,7 @@ for obj in meshes:
   head=.458<z<.77 and ((x-.007)/.247)**2+((z-.61)/.18)**2<1.2
   crown=.750<z<.889 and y<-.181 and (x/.097)**2+((y+.25)/.12)**2<1.12
   staff=y<-.155 and (x<-.235 if z>.55 else abs(x-(-.254-.08*z))<.031)
-  eye=y<-.29 and (((x+.096)/.037)**2+((z-.596)/.043)**2<1 or ((x-.111)/.037)**2+((z-.595)/.043)**2<1)
+  eye=y<-.29 and (((x+.079)/.028)**2+((z-.596)/.037)**2<1 or ((x-.126)/.028)**2+((z-.596)/.037)**2<1)
   nose=y<-.33 and abs(x-.008)<.016 and .515<z<.534
   mouth=y<-.34 and abs(x-.009)<.014 and .490<z<.515
   belly=y<-.055 and abs(x)<.240 and z<.405
@@ -37,7 +37,8 @@ for obj in meshes:
   white=ear or head or belly or arm or hand or tail or whisker
   poly.material_index=idx if white else red
   if crown or staff and not hand:poly.material_index=metal
-  # Facial features are rebuilt as clean geometry below, without painted outlines.
+  if eye:poly.material_index=dark
+  # Use the existing eye surface, never a second eyeball sitting outside the face.
   if poly.material_index==idx:painted+=1
  # Weld UV seams before softly blending painted boundaries on the mesh.
  bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.remove_doubles(threshold=.00012);bpy.ops.object.mode_set(mode='OBJECT')
@@ -45,7 +46,7 @@ for obj in meshes:
  votes=[Counter() for _ in obj.data.vertices]
  for face in obj.data.polygons:
   for v in face.vertices:votes[v][face.material_index]+=1
- colors=[Vector((.92,.89,.83)) if c.most_common(1)[0][0]==idx else Vector((.69,.40,.09)) if c.most_common(1)[0][0]==metal else Vector((.40,.018,.012)) for c in votes]
+ colors=[Vector((.92,.89,.83)) if c.most_common(1)[0][0]==idx else Vector((.69,.40,.09)) if c.most_common(1)[0][0]==metal else Vector((.008,.012,.015)) if c.most_common(1)[0][0]==dark else Vector((.40,.018,.012)) for c in votes]
  neighbors=[set() for _ in colors]
  for edge in obj.data.edges:
   a,b=edge.vertices;neighbors[a].add(b);neighbors[b].add(a)
@@ -53,7 +54,7 @@ for obj in meshes:
   colors=[c*.5+sum((colors[n] for n in neighbors[i]),Vector())*(.5/len(neighbors[i])) if neighbors[i] else c for i,c in enumerate(colors)]
  attr=obj.data.color_attributes.new(name='Royal finish',type='FLOAT_COLOR',domain='POINT')
  for item,color in zip(attr.data,colors):item.color=(*color,1)
- for m in [fur,velvet,gold]:
+ for m in [fur,velvet,gold,eye_material]:
   color=m.node_tree.nodes.new('ShaderNodeVertexColor');color.layer_name='Royal finish';m.node_tree.links.new(color.outputs['Color'],m.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
  # Keep silhouette detail, reduce remaining dense geometry for multi-room navigation.
  mod=obj.modifiers.new('Final web topology','DECIMATE');mod.ratio=.80;mod.use_collapse_triangulate=True;bpy.ops.object.modifier_apply(modifier=mod.name)
@@ -69,10 +70,10 @@ def oval(name,position,scale,mat):
  bpy.ops.mesh.primitive_uv_sphere_add(segments=32,ring_count=20,radius=1,location=position);o=bpy.context.object;o.name=name;o.scale=scale;o.data.materials.append(mat)
  for face in o.data.polygons:face.use_smooth=True
  meshes.append(o);o.select_set(False)
-for x in [-.096,.111]:
- y=min(front(x+dx,.596+dz) for dx in [-.023,0,.023] for dz in [-.025,0,.025])-.012
- oval('Polished eye',(x,y,.596),(.035,.026,.042),eye_material)
- oval('Eye catchlight',(x-.008,y-.025,.610),(.006,.002,.006),material('Eye highlight '+str(x),(.95,.96,.95),.2))
+for x in [-.079,.126]:
+ y=front(x-.004,.608)-.0015
+ oval('Inset eye glint',(x-.004,y,.608),(.0035,.0018,.0035),material('Eye glint '+str(x),(.95,.95,.92),.3))
+eye_material=material('Soft charcoal facial details',(.008,.012,.015),.36)
 noseY=front(.008,.523)-.006
 oval('Soft nose',(.008,noseY,.523),(.014,.008,.009),eye_material)
 curve=bpy.data.curves.new('Gentle mouth','CURVE');curve.dimensions='3D';curve.bevel_depth=.0012;curve.bevel_resolution=3
@@ -84,7 +85,7 @@ bpy.context.view_layer.objects.active=mouth;mouth.select_set(True);bpy.ops.objec
 for obj in meshes:obj.select_set(True)
 out=os.path.join(root,'public/models/gallery-figure.glb')
 bpy.ops.export_scene.gltf(filepath=out,export_format='GLB',use_selection=True,export_image_format='JPEG',export_jpeg_quality=86,export_yup=True,export_animations=False)
-reportfile=os.path.join(root,'public/models/gallery-figure.json');report=json.load(open(reportfile));report.update(faces=sum(len(o.data.polygons) for o in meshes),triangles=sum(len(p.vertices)-2 for o in meshes for p in o.data.polygons),bytes=os.path.getsize(out),textures=[],refinement='White fur with softened vertex-color boundaries, satin gold accessories, rebuilt polished eyes and clean facial details',fur_faces=painted);json.dump(report,open(reportfile,'w'),indent=2)
+reportfile=os.path.join(root,'public/models/gallery-figure.json');report=json.load(open(reportfile));report.update(faces=sum(len(o.data.polygons) for o in meshes),triangles=sum(len(p.vertices)-2 for o in meshes for p in o.data.polygons),bytes=os.path.getsize(out),textures=[],refinement='White fur with softened vertex-color boundaries, satin gold accessories, original eye topology recolored without floating overlays, and clean facial details',fur_faces=painted);json.dump(report,open(reportfile,'w'),indent=2)
 # Inspect front and three-quarter views after repair.
 bpy.ops.object.select_all(action='DESELECT');bpy.ops.mesh.primitive_plane_add(size=200,location=(0,0,-.004));mat=bpy.data.materials.new('Floor');mat.diffuse_color=(.25,.29,.27,1);bpy.context.object.data.materials.append(mat)
 for pos,power in [((2,-3,4),400),((-3,-1,2),250),((0,3,3),350)]:

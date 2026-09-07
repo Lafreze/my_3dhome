@@ -188,6 +188,10 @@ export function createWindowEnvironment(
   snow.position.z = -0.06;
   snow.frustumCulled = false;
   parent.add(snow);
+  // Weather is a visual layer, never a physical target. In dry weather an
+  // unused droplet instance still has an identity matrix and must not steal
+  // clicks from the computer and other furniture in front of the window.
+  for (const effect of [rain, drops, snow]) effect.raycast = () => {};
   let snowAmount = 0;
   const dummy = new T.Object3D();
   const fraction = (v: number) => v - Math.floor(v);

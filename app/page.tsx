@@ -149,7 +149,10 @@ export default function Home() {
         if (disposed || !host.current) return;
         try {
           api.current = createRoom(host.current, {
-            onSelect: setSelected,
+            onSelect: (id) => {
+              setSelected(id === 'computer' ? null : id);
+              if (id === 'computer') setModal('computer');
+            },
             onView: setView,
             onHover: (id, x, y) => setHover(id ? { id, x, y } : null),
             onReady: () => setReady(true),
@@ -175,7 +178,13 @@ export default function Home() {
         const stored = localStorage.getItem(storageKey);
         if (stored) {
           const p = JSON.parse(stored);
-          if (validProfile(p)) setProfile(p);
+          if (validProfile(p))
+            setProfile({
+              ...p,
+              subtitle: /^personal\s+studio$/i.test(p.subtitle.trim())
+                ? 'STUDIO'
+                : p.subtitle,
+            });
         }
         setNote(
           localStorage.getItem('satori-studio-note') ||
@@ -287,7 +296,8 @@ export default function Home() {
   };
   const choose = (id: ObjectId) => {
     setModal(null);
-    setSelected(id);
+    setSelected(id === 'computer' ? null : id);
+    if (id === 'computer') setModal('computer');
     api.current?.focus(id);
   };
   const action = (id: ObjectId) => {
@@ -631,18 +641,6 @@ export default function Home() {
             >
               <LampDesk size={18} />
             </button>
-            {view === 'study' && (
-              <button
-                aria-label="电脑设置"
-                onClick={() => {
-                  api.current?.focus('computer');
-                  setSelected(null);
-                  setModal('computer');
-                }}
-              >
-                <TvMinimal size={18} />
-              </button>
-            )}
             {view === 'living' && (
               <button
                 aria-label="电视遥控器"

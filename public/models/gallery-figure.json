@@ -1,13 +1,13 @@
 {
   "source": "Hi3D_Untitled_allparts_20260907_215458.glb",
   "source_faces": 2000000,
-  "faces": 115780,
+  "faces": 114500,
   "width": 0.800901455281761,
   "depth": 0.84,
   "height": 1.112524536121538,
-  "bytes": 3611144,
+  "bytes": 3572096,
   "textures": [],
-  "refinement": "White fur with softened vertex-color boundaries, satin gold accessories, rebuilt polished eyes and clean facial details",
-  "fur_faces": 85358,
-  "triangles": 119260
+  "refinement": "White fur with softened vertex-color boundaries, satin gold accessories, original eye topology recolored without floating overlays, and clean facial details",
+  "fur_faces": 83786,
+  "triangles": 116828
 }
