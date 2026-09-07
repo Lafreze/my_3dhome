@@ -19,6 +19,11 @@ export const rooms = {
 export type RoomId = keyof typeof rooms;
 export type HouseView = RoomId | 'overview' | 'plan';
 export const newObjects = {
+  livingArt1: { name: '客厅 · 林间', kind: 'ART', action: '自定义画作' },
+  livingArt2: { name: '客厅 · 暖日', kind: 'ART', action: '自定义画作' },
+  galleryArt1: { name: '展厅 · 作品一', kind: 'ART', action: '自定义画作' },
+  galleryArt2: { name: '展厅 · 作品二', kind: 'ART', action: '自定义画作' },
+  galleryArt3: { name: '展厅 · 作品三', kind: 'ART', action: '自定义画作' },
   television: { name: '家庭影院', kind: 'CINEMA', action: '打开电视' },
   livingSofa: { name: '模块沙发', kind: 'LOUNGE', action: '更换织物' },
   switch: { name: 'Switch 游戏机', kind: 'PLAY', action: '取下 / 装回手柄' },
@@ -34,11 +39,16 @@ export const newObjects = {
   bedroomBook: { name: '睡前读物', kind: 'READING', action: '翻开手记' },
   galleryArt: { name: '个人作品展', kind: 'SELECTED WORK', action: '浏览作品' },
   galleryCase: { name: '物件档案', kind: 'ARCHIVE', action: '打开 / 合上展罩' },
-  gallerySculpture: { name: '环形习作', kind: 'SCULPTURE', action: '旋转展台' },
+  gallerySculpture: { name: '王冠兔', kind: 'SCULPTURE', action: '旋转展台' },
   galleryLight: { name: '展览照明', kind: 'LIGHT', action: '开灯 / 关灯' },
   galleryWindow: { name: '展厅东窗', kind: 'E · 前庭', action: '时间与天气' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
+  livingArt1: 'living',
+  livingArt2: 'living',
+  galleryArt1: 'gallery',
+  galleryArt2: 'gallery',
+  galleryArt3: 'gallery',
   television: 'living',
   livingSofa: 'living',
   switch: 'living',

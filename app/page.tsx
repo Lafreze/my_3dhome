@@ -14,6 +14,7 @@ import {
   Grid2X2,
   House,
   LampDesk,
+  TvMinimal,
   LoaderCircle,
   Minus,
   Music2,
@@ -41,6 +42,8 @@ import {
 } from './room-data';
 import StudioArt from './studio-art';
 import Television from './television';
+import Computer from './computer';
+import WallArtEditor from './wall-art-editor';
 import {
   rooms,
   roomForObject,
@@ -52,6 +55,8 @@ import { times, weathers } from './environment-data';
 import { useLiveEnvironment } from './use-live-environment';
 import { useVisibleViewport } from './use-visible-viewport';
 type Modal =
+  | 'computer'
+  | 'wallArt'
   | 'tv'
   | 'works'
   | 'about'
@@ -258,8 +263,21 @@ export default function Home() {
     (on: boolean, source?: string) => api.current?.setTelevision(on, source),
     [],
   );
-  const tvVideo = useCallback(
-    (video: HTMLVideoElement | null) => api.current?.setVideo(video),
+  const computerScreen = useCallback(
+    (element: HTMLElement | null) => api.current?.setComputerScreen(element),
+    [],
+  );
+  const computerPower = useCallback(
+    (on: boolean) => api.current?.setComputerPower(on),
+    [],
+  );
+  const wallPictures = useCallback(
+    (pictures: Record<string, string>) =>
+      api.current?.setWallPictures(pictures),
+    [],
+  );
+  const tvScreen = useCallback(
+    (element: HTMLElement | null) => api.current?.setTVScreen(element),
     [],
   );
   const reset = () => {
@@ -273,16 +291,21 @@ export default function Home() {
     api.current?.focus(id);
   };
   const action = (id: ObjectId) => {
+    if (id === 'computer') {
+      setModal('computer');
+      setSelected(null);
+      return;
+    }
+    if (/^(livingArt[12]|galleryArt[123])$/.test(id)) {
+      setModal('wallArt');
+      return;
+    }
     if (id === 'television') {
+      setSelected(null);
       setModal('tv');
       return;
     }
-    if (
-      id === 'computer' ||
-      id === 'desk' ||
-      id === 'frame' ||
-      id === 'galleryArt'
-    ) {
+    if (id === 'desk' || id === 'frame' || id === 'galleryArt') {
       setModal('works');
       return;
     }
@@ -297,10 +320,6 @@ export default function Home() {
     }
     if (id === 'shelf' || id === 'bedroomBook') {
       setModal('book');
-      return;
-    }
-    if (id === 'lamp') {
-      setLamp((v) => !v);
       return;
     }
     if (id === 'window' || id.endsWith('Window')) {
@@ -607,11 +626,35 @@ export default function Home() {
             <button
               className={lamp ? 'lit' : ''}
               onClick={() => setLamp((v) => !v)}
-              aria-label="台灯开关"
+              aria-label="全屋照明"
               aria-pressed={lamp}
             >
               <LampDesk size={18} />
             </button>
+            {view === 'study' && (
+              <button
+                aria-label="电脑设置"
+                onClick={() => {
+                  api.current?.focus('computer');
+                  setSelected(null);
+                  setModal('computer');
+                }}
+              >
+                <TvMinimal size={18} />
+              </button>
+            )}
+            {view === 'living' && (
+              <button
+                aria-label="电视遥控器"
+                onClick={() => {
+                  api.current?.focus('television');
+                  setSelected(null);
+                  setModal('tv');
+                }}
+              >
+                <TvMinimal size={18} />
+              </button>
+            )}
             <button
               className={music ? 'lit' : ''}
               onClick={toggleMusic}
@@ -638,8 +681,38 @@ export default function Home() {
           </output>
         )}
       </div>
+      {ready && (
+        <Television
+          open={modal === 'tv'}
+          active={view === 'living'}
+          onClose={() => setModal(null)}
+          onPower={tvPower}
+          onScreen={tvScreen}
+        />
+      )}
+      {ready && (
+        <>
+          <Computer
+            active={view === 'study'}
+            open={modal === 'computer'}
+            onClose={() => setModal(null)}
+            onScreen={computerScreen}
+            onPower={computerPower}
+          />
+          <WallArtEditor
+            selected={selected}
+            open={modal === 'wallArt'}
+            onClose={() => setModal(null)}
+            onChange={wallPictures}
+            onFrame={(id) => {
+              api.current?.focus(id);
+              setSelected(id);
+            }}
+          />
+        </>
+      )}
       <Dialog
-        open={modal !== null}
+        open={modal !== null && !['tv', 'computer', 'wallArt'].includes(modal)}
         onOpenChange={(v) => {
           if (!v) setModal(null);
         }}
@@ -683,7 +756,6 @@ export default function Home() {
                       ? 'A LITTLE ABOUT ME'
                       : 'SATORI / PERSONAL COLLECTION'}
           </DialogDescription>
-          {modal === 'tv' && <Television onPower={tvPower} onVideo={tvVideo} />}
           {modal === 'works' && (
             <div className="project-layout">
               <div className="art-wrap">

@@ -1,3 +1,7 @@
+import { wallArt } from './wall-art-data';
+import { houseFinishes, galleryPrint } from './house-finishes';
+import { houseLighting } from './house-lighting';
+import { loadGalleryModel } from './gallery-model';
 import type { HouseLandscape } from './house-landscape';
 import { addWindowCraft } from './window-craft';
 import * as T from 'three';
@@ -16,6 +20,7 @@ import type { Environment } from './environment-data';
 
 type Kit = {
   landscape: HouseLandscape;
+  onModelReady: () => void;
   scene: T.Scene;
   study: T.Group;
   groups: Map<ObjectId, T.Group>;
@@ -30,7 +35,6 @@ type Kit = {
   brass: T.MeshStandardMaterial;
   charcoal: T.MeshStandardMaterial;
   textile: (color: string) => T.MeshStandardMaterial;
-  artMats: T.MeshStandardMaterial[];
 };
 export function buildHouse(k: Kit) {
   const {
@@ -44,6 +48,16 @@ export function buildHouse(k: Kit) {
     brass,
     charcoal,
   } = k;
+  let disposed = false;
+  const pictureMaterials = new Map<
+    string,
+    {
+      material: T.MeshStandardMaterial;
+      original: T.Texture;
+      current?: T.Texture;
+      url?: string;
+    }
+  >();
   const roots = {
     study: k.study,
     living: new T.Group(),
@@ -59,6 +73,7 @@ export function buildHouse(k: Kit) {
     materials.push(m);
     return m;
   };
+  const finishes = houseFinishes(materials, textures);
   const fabric = k.textile;
   const terracotta = mat('#b76e53'),
     green = mat('#466455'),
@@ -256,16 +271,87 @@ export function buildHouse(k: Kit) {
   function plant(p: T.Object3D, x: number, y: number, z: number, scale = 1) {
     const g = child(p, x, y, z);
     g.scale.setScalar(scale);
-    cyl(g, 0.17, 0.12, 0.28, 0, 0.14, 0, terracotta);
-    cyl(g, 0.158, 0.158, 0.025, 0, 0.278, 0, darkWood);
-    for (let i = 0; i < 9; i++) {
-      const a = i * 2.4,
-        xx = Math.cos(a) * (0.1 + i * 0.01),
-        zz = Math.sin(a) * 0.18,
-        yy = 0.4 + (i % 4) * 0.12;
-      rod(g, [0, 0.27, 0], [xx, yy, zz], 0.01, green);
-      const l = ball(g, 0.14, xx, yy, zz, green, 0.44, 1.5, 0.15);
-      l.rotation.set(Math.sin(a) * 0.6, a, Math.cos(a) * 0.55);
+    if (p === roots.bedroom) {
+      // Dried oat stems in a ribbed sand ceramic vase, unique to the bedroom.
+      cyl(g, 0.12, 0.09, 0.3, 0, 0.15, 0, cream);
+      for (let j = 0; j < 28; j++) {
+        const a = (j / 28) * Math.PI * 2;
+        rod(
+          g,
+          [Math.sin(a) * 0.103, 0.04, Math.cos(a) * 0.103],
+          [Math.sin(a) * 0.12, 0.28, Math.cos(a) * 0.12],
+          0.003,
+          paleWood,
+        );
+      }
+      const oat = mat('#c8ad79');
+      for (let i = 0; i < 9; i++) {
+        const a = i * 2.4,
+          xx = Math.sin(a) * 0.17,
+          zz = Math.cos(a) * 0.12,
+          yy = 0.6 + (i % 3) * 0.1;
+        rod(g, [0, 0.23, 0], [xx, yy, zz], 0.004, paleWood);
+        for (let j = 0; j < 7; j++) {
+          const leaf = ball(
+            g,
+            0.037,
+            xx + (j % 2 ? -0.023 : 0.023),
+            yy + j * 0.027,
+            zz,
+            oat,
+            0.45,
+            1.4,
+            0.3,
+          );
+          leaf.rotation.z = j % 2 ? -0.6 : 0.6;
+        }
+      }
+    } else if (p === roots.gallery) {
+      // Slender olive tree with forked woody branches and paired narrow leaves.
+      cyl(g, 0.19, 0.145, 0.34, 0, 0.17, 0, charcoal);
+      cyl(g, 0.177, 0.177, 0.02, 0, 0.34, 0, darkWood);
+      rod(g, [0, 0.3, 0], [0.02, 1.22, 0], 0.016, darkWood);
+      const olive = mat('#788774'),
+        underside = mat('#a5ad91');
+      for (let i = 0; i < 7; i++) {
+        const a = i * 2.4,
+          xx = Math.cos(a) * 0.24,
+          zz = Math.sin(a) * 0.24,
+          yy = 0.63 + i * 0.073;
+        rod(g, [0, yy - 0.2, 0], [xx, yy, zz], 0.006, darkWood);
+        for (let j = 0; j < 5; j++)
+          for (const sign of [-1, 1]) {
+            const f = 0.3 + j * 0.15;
+            const leaf = ball(
+              g,
+              0.07,
+              xx * f + Math.sin(a) * sign * 0.038,
+              yy - 0.2 + f * 0.2,
+              zz * f + Math.cos(a) * sign * 0.038,
+              j % 2 ? olive : underside,
+              0.32,
+              1.1,
+              0.12,
+            );
+            leaf.rotation.set(0.5, a, sign * 0.65);
+          }
+      }
+    } else {
+      // Rubber plant: broad cupped leaves with separate midribs in a footed clay pot.
+      cyl(g, 0.18, 0.13, 0.29, 0, 0.17, 0, terracotta);
+      cyl(g, 0.11, 0.13, 0.05, 0, 0.035, 0, terracotta);
+      cyl(g, 0.168, 0.168, 0.025, 0, 0.315, 0, darkWood);
+      rod(g, [0, 0.3, 0], [0, 0.88, 0], 0.014, darkWood);
+      for (let i = 0; i < 8; i++) {
+        const a = i * 2.4,
+          xx = Math.cos(a) * 0.16,
+          zz = Math.sin(a) * 0.16,
+          yy = 0.42 + i * 0.064;
+        rod(g, [0, yy - 0.08, 0], [xx, yy, zz], 0.008, green);
+        const leaf = ball(g, 0.15, xx, yy, zz, green, 0.67, 1.1, 0.14);
+        leaf.rotation.set(0.4, a, 0.35);
+        rod(g, [xx, yy - 0.07, zz], [xx, yy + 0.1, zz], 0.002, sage);
+      }
     }
     return g;
   }
@@ -387,29 +473,48 @@ export function buildHouse(k: Kit) {
     b(w, 3.22, 0.06, 0.08, 0, -0.05, 0.12, white);
     b(w, 3.57, 0.1, 0.4, 0, -1.18, 0.14, paleWood);
     rod(w, [-1.94, 1.3, 0.15], [1.94, 1.3, 0.15], 0.025, brass);
-    for (const side of [-1, 1])
-      for (let i = 0; i < 5; i++) {
-        const curtain = cyl(
+    if (room === 'gallery') {
+      b(w, 3.6, 0.13, 0.19, 0, 1.24, 0.19, charcoal, 0.015);
+      b(w, 3.24, 0.33, 0.025, 0, 1.01, 0.17, ivoryCloth, 0.003);
+      rod(w, [-1.65, 1.1, 0.19], [-1.65, 0.63, 0.19], 0.004, brass);
+      cyl(w, 0.013, 0.013, 0.04, -1.65, 0.62, 0.19, brass);
+    } else
+      for (const side of [-1, 1])
+        for (let i = 0; i < (room === 'bedroom' ? 7 : 5); i++) {
+          const curtain = cyl(
+            w,
+            0.072,
+            0.083,
+            2.45,
+            side * (1.65 + i * 0.067),
+            0,
+            0.16 + Math.sin(i * 1.5) * 0.035,
+            ivoryCloth,
+          );
+          curtain.scale.z = 0.7;
+          const ring = torus(
+            w,
+            0.052,
+            0.008,
+            side * (1.65 + i * 0.067),
+            1.3,
+            0.15,
+            brass,
+          );
+          ring.rotation.y = Math.PI / 2;
+        }
+    if (room === 'bedroom')
+      for (const side of [-1, 1]) {
+        const tie = torus(w, 0.13, 0.012, side * 1.82, -0.34, 0.18, brass);
+        tie.scale.x = 1.55;
+        tie.rotation.x = Math.PI / 2;
+        rod(
           w,
-          0.072,
-          0.083,
-          2.45,
-          side * (1.65 + i * 0.067),
-          0,
-          0.16 + Math.sin(i * 1.5) * 0.035,
-          ivoryCloth,
-        );
-        curtain.scale.z = 0.7;
-        const ring = torus(
-          w,
-          0.052,
-          0.008,
-          side * (1.65 + i * 0.067),
-          1.3,
-          0.15,
+          [side * 1.86, -0.35, 0.28],
+          [side * 1.86, -0.65, 0.28],
+          0.007,
           brass,
         );
-        ring.rotation.y = Math.PI / 2;
       }
     return parent;
   }
@@ -427,6 +532,29 @@ export function buildHouse(k: Kit) {
     galleryWall,
   );
 
+  // Individually editable west-wall frames sit clear of the connecting doorway.
+  for (let i = 0; i < 2; i++) {
+    const id = (i === 0 ? 'livingArt1' : 'livingArt2') as ObjectId;
+    const frame = group('living', id, -3.87, 0, -1.78 + i * 1.72);
+    frame.rotation.y = Math.PI / 2;
+    b(frame, 1.2, 1.58, 0.07, 0, 2.15, 0, darkWood, 0.012);
+    b(frame, 1.12, 1.5, 0.014, 0, 2.15, 0.043, white, 0.004);
+    const texture = galleryPrint(i + 3, textures);
+    const material = new T.MeshStandardMaterial({
+      map: texture,
+      roughness: 0.94,
+    });
+    materials.push(material);
+    pictureMaterials.set(id, { material, original: texture });
+    mesh(
+      frame,
+      new T.PlaneGeometry(1.02, 1.4),
+      material,
+      0,
+      2.15,
+      0.053,
+    ).castShadow = false;
+  }
   // LIVING ROOM. Seats look north at the screen, with an uninterrupted west-side aisle.
   const lf = houseFurniture.living;
   const sofa = group('living', 'livingSofa', lf.sofa.x, 0, lf.sofa.z);
@@ -771,6 +899,7 @@ export function buildHouse(k: Kit) {
   );
   const livingShade = mat('#ded0ac');
   livingShade.side = T.DoubleSide;
+  livingShade.emissive.set('#ffc876');
   cyl(floorLamp, 0.15, 0.34, 0.32, -0.88, 1.95, 0, livingShade);
   const livingLight = new T.PointLight('#ffcc86', 4, 5, 2);
   livingLight.position.set(-0.88, 1.75, 0);
@@ -809,6 +938,14 @@ export function buildHouse(k: Kit) {
   const bedRug = group('bedroom');
   b(bedRug, 4.18, 0.028, 4.39, -0.5, 0.098, 0.05, ivoryCloth, 0.08);
   const lamps: T.PointLight[] = [];
+  const bedsideShade = fabric('#e8d4ae');
+  Object.assign(bedsideShade, {
+    map: finishes.bedroom.cloth.map,
+    bumpMap: finishes.bedroom.cloth.bumpMap,
+    normalMap: null,
+    roughnessMap: finishes.bedroom.cloth.roughnessMap,
+  });
+  bedsideShade.emissive.set('#ffd697');
   const bedside = group('bedroom', 'bedsideLamp');
   for (const x of [-2.55, 1.54]) {
     const stand = child(roots.bedroom, x, 0, -1.94);
@@ -820,7 +957,7 @@ export function buildHouse(k: Kit) {
     const light = child(bedside, x, 0.742, -1.98);
     cyl(light, 0.12, 0.15, 0.045, 0, 0.023, 0, brass);
     cyl(light, 0.018, 0.018, 0.3, 0, 0.18, 0, brass);
-    cyl(light, 0.12, 0.22, 0.26, 0, 0.42, 0, ivoryCloth);
+    cyl(light, 0.12, 0.22, 0.26, 0, 0.42, 0, bedsideShade);
     const glow = new T.PointLight('#ffd391', 3, 3, 2);
     glow.position.set(0, 0.38, 0);
     light.add(glow);
@@ -961,28 +1098,46 @@ export function buildHouse(k: Kit) {
   // GALLERY. Wall pieces, independent pedestals and a viewing bench with clear circulation.
   const art = group('gallery', 'galleryArt');
   for (let i = 0; i < 3; i++) {
-    const x = -0.65 + i * 1.43;
-    b(art, 1.25, 1.68, 0.09, x, 2.05, -3.145, oak, 0.018);
-    b(art, 1.14, 1.57, 0.013, x, 2.05, -3.09, white, 0.005);
-    const painting = mesh(
-      art,
+    const id = `galleryArt${i + 1}` as ObjectId,
+      frame = group('gallery', id, -0.65 + i * 1.43, 0, 0);
+    art.add(frame);
+    b(frame, 1.25, 1.68, 0.09, 0, 2.05, -3.145, oak, 0.018);
+    b(frame, 1.14, 1.57, 0.013, 0, 2.05, -3.09, white, 0.005);
+    const texture = galleryPrint(i, textures),
+      material = new T.MeshStandardMaterial({ map: texture, roughness: 0.94 });
+    materials.push(material);
+    pictureMaterials.set(id, { material, original: texture });
+    mesh(
+      frame,
       new T.PlaneGeometry(0.96, 1.39),
-      k.artMats[i],
-      x,
+      material,
+      0,
       2.05,
       -3.079,
-    );
-    painting.castShadow = false;
-    label(art, `0${i + 1} / SELECTED WORK`, x, 1.08, -3.07, 0.62);
+    ).castShadow = false;
+    label(frame, `0${i + 1} / SELECTED WORK`, 0, 1.08, -3.07, 0.62);
   }
   const galleryLamps = group('gallery', 'galleryLight');
   b(galleryLamps, 5.5, 0.06, 0.065, 0.65, 3.32, -2.64, charcoal, 0.015);
   const spotlights: T.SpotLight[] = [];
+  const spotLens = mat('#fff1d6');
+  spotLens.emissive.set('#ffe4ad');
   for (let i = 0; i < 3; i++) {
     const x = -0.65 + i * 1.43;
     rod(galleryLamps, [x, 3.33, -2.64], [x, 3.11, -2.62], 0.015, brass);
     const hood = cyl(galleryLamps, 0.07, 0.095, 0.2, x, 3.06, -2.72, charcoal);
     hood.rotation.x = -0.6;
+    const lens = cyl(
+      galleryLamps,
+      0.082,
+      0.082,
+      0.008,
+      x,
+      2.979,
+      -2.776,
+      spotLens,
+    );
+    lens.rotation.x = -0.6;
     const light = new T.SpotLight('#fff0c8', 4, 5, 0.62, 0.65, 1.3);
     light.position.set(x, 3.0, -2.56);
     light.target.position.set(x, 1.8, -3.1);
@@ -993,13 +1148,8 @@ export function buildHouse(k: Kit) {
   b(plinth, 1, 0.92, 1, 0, 0.55, 0, cream, 0.035);
   b(plinth, 1.05, 0.045, 1.05, 0, 1.03, 0, white, 0.012);
   const sculpture = child(plinth, 0, 1.06, 0);
-  cyl(sculpture, 0.2, 0.24, 0.055, 0, 0.025, 0, brass);
-  const r1 = torus(sculpture, 0.36, 0.045, 0, 0.5, 0, brass);
-  r1.rotation.y = 0.6;
-  const r2 = torus(sculpture, 0.24, 0.039, 0.05, 0.77, 0, terracotta);
-  r2.rotation.y = -0.3;
-  ball(sculpture, 0.09, -0.24, 0.31, 0, green);
-  label(plinth, '01 / ORBIT', 0, 0.75, 0.506, 0.54);
+  const importedSculpture = loadGalleryModel(sculpture, k.onModelReady);
+  label(plinth, '01 / CROWNED RABBIT', 0, 0.75, 0.506, 0.69);
   const caseGroup = group('gallery', 'galleryCase', 2.5, 0, 0.2);
   b(caseGroup, 0.82, 0.76, 1.7, 0, 0.48, 0, oak, 0.025);
   b(caseGroup, 0.86, 0.06, 1.74, 0, 0.89, 0, ivoryCloth, 0.008);
@@ -1206,6 +1356,71 @@ export function buildHouse(k: Kit) {
       }
     }
   }
+  // Assign independent finishes before batching, preserving the live upholstery controls.
+  for (const room of ['living', 'bedroom', 'gallery'] as const) {
+    const finish = finishes[room],
+      cache = new Map<T.Material, T.Material>();
+    const liveCloth = new Set([sofaCloth, bedCloth, blanketCloth]);
+    const remap = (m: T.Material): T.Material => {
+      if (cache.has(m)) return cache.get(m)!;
+      if (
+        !(m instanceof T.MeshStandardMaterial) ||
+        m === glass ||
+        m === diode ||
+        m === consoleLed ||
+        m === livingShade ||
+        m === bedsideShade ||
+        m === spotLens ||
+        m === padMat
+      )
+        return m;
+      let next: T.MeshStandardMaterial;
+      if (m === oak) next = finish.wood;
+      else if (m === paleWood) next = finish.pale;
+      else if (m === darkWood) next = finish.dark;
+      else if (m === cream || m === terracottaWall || m === galleryWall)
+        next = finish.wall;
+      else if (m.map === ivoryCloth.map) {
+        next = liveCloth.has(m) ? m : m.clone();
+        Object.assign(next, {
+          map: finish.cloth.map,
+          bumpMap: finish.cloth.bumpMap,
+          bumpScale: finish.cloth.bumpScale,
+          roughnessMap: finish.cloth.roughnessMap,
+          normalMap: null,
+        });
+        if (next !== m) materials.push(next);
+      } else {
+        next = m.clone();
+        next.name = `${room}/${m.name || 'detail'}`;
+        materials.push(next);
+        if (m === brass) {
+          next.color.set(
+            room === 'living'
+              ? '#887650'
+              : room === 'bedroom'
+                ? '#ac9f86'
+                : '#76786f',
+          );
+          next.roughness = 0.38;
+        }
+      }
+      cache.set(m, next);
+      return next;
+    };
+    roots[room].traverse((o) => {
+      if (o instanceof T.Mesh)
+        o.material = Array.isArray(o.material)
+          ? o.material.map(remap)
+          : remap(o.material);
+    });
+    pictureMaterials.forEach((entry) => {
+      entry.material = (cache.get(entry.material) ||
+        entry.material) as T.MeshStandardMaterial;
+    });
+  }
+  const ceilingLighting = houseLighting(roots, materials);
+  let masterLight = true;
   // Window groups own their resources and animations; keep them separate from batching.
   for (const room of ['living', 'bedroom', 'gallery'] as const)
     for (const g of roots[room].children) {
@@ -1229,11 +1444,62 @@ export function buildHouse(k: Kit) {
     bedIndex = 0,
     padIndex = 0;
   let currentView: HouseView = 'study';
-  let videoTexture: T.VideoTexture | null = null;
   return {
     roots,
+    screen,
+    setWallPictures(pictures: Record<string, string>) {
+      pictureMaterials.forEach((entry, id) => {
+        const url = pictures[id] || '';
+        if (entry.url === url) return;
+        entry.url = url;
+        if (!url) {
+          entry.current?.dispose();
+          entry.current = undefined;
+          entry.material.map = entry.original;
+          entry.material.needsUpdate = true;
+          return;
+        }
+        const image = new Image();
+        image.onload = () => {
+          if (disposed || entry.url !== url) return;
+          const ratio = wallArt.find((a) => a.id === id)!.aspect,
+            canvas = document.createElement('canvas');
+          canvas.width = Math.round(1400 * ratio);
+          canvas.height = 1400;
+          const ctx = canvas.getContext('2d')!;
+          ctx.fillStyle = '#eee8da';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          const scale = Math.min(
+              canvas.width / image.width,
+              canvas.height / image.height,
+            ),
+            w = image.width * scale,
+            h = image.height * scale;
+          ctx.drawImage(
+            image,
+            (canvas.width - w) / 2,
+            (canvas.height - h) / 2,
+            w,
+            h,
+          );
+          const texture = new T.CanvasTexture(canvas);
+          texture.colorSpace = T.SRGBColorSpace;
+          texture.anisotropy = 8;
+          entry.current?.dispose();
+          entry.current = texture;
+          entry.material.map = texture;
+          entry.material.needsUpdate = true;
+        };
+        image.src = url;
+      });
+    },
+    setLamp(on: boolean) {
+      masterLight = on;
+      ceilingLighting.set(on);
+    },
     setView(view: HouseView) {
       currentView = view;
+      ceilingLighting.setPlan(view === 'plan');
       planLabels.visible = view === 'plan';
       art.visible = galleryLamps.visible = view !== 'plan';
       const all = view === 'overview' || view === 'plan';
@@ -1255,18 +1521,6 @@ export function buildHouse(k: Kit) {
     },
     setTelevision(on: boolean, source = '') {
       paintTV(on, source);
-      if (!on) {
-        videoTexture?.dispose();
-        videoTexture = null;
-        screenMat.map = screenTexture;
-      }
-    },
-    setVideo(video: HTMLVideoElement | null) {
-      videoTexture?.dispose();
-      videoTexture = video ? new T.VideoTexture(video) : null;
-      if (videoTexture) videoTexture.colorSpace = T.SRGBColorSpace;
-      screenMat.map = videoTexture || screenTexture;
-      screenMat.needsUpdate = true;
     },
     interact(id: ObjectId) {
       if (id === 'livingSofa')
@@ -1312,6 +1566,7 @@ export function buildHouse(k: Kit) {
           currentView === 'plan') &&
         cameraX < 11.8;
       const a = 1 - Math.exp(-dt * 5);
+      ceilingLighting.update(dt, night);
       windows.forEach((w) => w.update(t, dt, reduced, viewer));
       mediaDrawer.position.z = T.MathUtils.lerp(
         mediaDrawer.position.z,
@@ -1339,20 +1594,39 @@ export function buildHouse(k: Kit) {
       sculpture.rotation.y = T.MathUtils.lerp(sculpture.rotation.y, angle, a);
       livingLight.intensity = T.MathUtils.lerp(
         livingLight.intensity,
-        lampOn ? (night ? 7 : 2.4) : 0,
+        masterLight && lampOn ? (night ? 7 : 2.4) : 0,
         a,
       );
       lamps.forEach(
         (l) =>
           (l.intensity = T.MathUtils.lerp(
             l.intensity,
-            bedLampOn ? (night ? 4 : 1.4) : 0,
+            masterLight && bedLampOn ? (night ? 4 : 1.4) : 0,
             a,
           )),
       );
       spotlights.forEach(
         (l) =>
-          (l.intensity = T.MathUtils.lerp(l.intensity, exhibitOn ? 4 : 0, a)),
+          (l.intensity = T.MathUtils.lerp(
+            l.intensity,
+            masterLight && exhibitOn ? 4 : 0,
+            a,
+          )),
+      );
+      livingShade.emissiveIntensity = T.MathUtils.lerp(
+        livingShade.emissiveIntensity,
+        masterLight && lampOn ? 0.45 : 0,
+        a,
+      );
+      bedsideShade.emissiveIntensity = T.MathUtils.lerp(
+        bedsideShade.emissiveIntensity,
+        masterLight && bedLampOn ? 0.55 : 0,
+        a,
+      );
+      spotLens.emissiveIntensity = T.MathUtils.lerp(
+        spotLens.emissiveIntensity,
+        masterLight && exhibitOn ? 1.2 : 0,
+        a,
       );
       consoleLed.emissiveIntensity = consoleOn ? 2 : 0.1;
       tvLight.intensity = T.MathUtils.lerp(
@@ -1363,8 +1637,10 @@ export function buildHouse(k: Kit) {
     },
     roomForObject,
     dispose() {
+      disposed = true;
+      pictureMaterials.forEach((entry) => entry.current?.dispose());
+      importedSculpture.dispose();
       windows.forEach((w) => w.dispose());
-      videoTexture?.dispose();
     },
   };
 }

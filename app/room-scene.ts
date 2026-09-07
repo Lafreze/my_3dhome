@@ -1,5 +1,6 @@
 import { createHouseLandscape, windowViews } from './house-landscape';
 import { addWindowCraft } from './window-craft';
+import { televisionScreen } from './television-screen';
 import { buildHouse } from './house-rooms';
 import { rooms, roomForObject, type HouseView } from './house-data';
 import type { Environment } from './environment-data';
@@ -47,7 +48,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   const target = new T.Vector3(0, 1.35, 0);
   camera.position.copy(initial);
   let activeView: HouseView = 'study';
-  const controls = new OrbitControls(camera, renderer.domElement);
+  let focusedObject: ObjectId | null = null;
+  const controls = new OrbitControls(camera, host);
   controls.target.copy(target);
   controls.enableDamping = true;
   controls.dampingFactor = 0.07;
@@ -407,6 +409,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     return g;
   }
   const hemi = new T.HemisphereLight('#eef5f0', '#a3886a', 2.4);
+  // Approximate the ceiling lights bouncing off the room's plaster and floor.
+  const indoorBounce = new T.AmbientLight('#ffe8cc', 0.3);
+  scene.add(indoorBounce);
   scene.add(hemi);
   const sun = new T.DirectionalLight('#fff0cf', 4.2);
   sun.position.set(-1, 8, 5);
@@ -425,7 +430,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   scene.add(fill);
   const lampLight = new T.PointLight('#ffb75b', 7, 5, 2);
   lampLight.position.set(-0.6, 1.82, -1.9);
-  scene.add(lampLight);
+  root.add(lampLight);
   const screenLight = new T.PointLight('#9dcce3', 0.1, 3);
   screenLight.position.set(1.2, 1.8, -1.6);
   scene.add(screenLight);
@@ -715,7 +720,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     roughness: 0.36,
   });
   materials.push(screenMat);
-  box(pc, 1.13, 0.67, 0.009, 0, 0.61, -0.039, screenMat, 0.01);
+  const computerPanel = mesh(
+    new T.PlaneGeometry(1.13, 0.67),
+    screenMat,
+    pc,
+    0,
+    0.61,
+    -0.033,
+  );
+  const computerOff = new T.MeshBasicMaterial({ color: '#111714' });
+  materials.push(computerOff);
+  let computerPowered = true;
   sphere(pc, 0.008, 0, 0.966, -0.04, charcoal);
   box(pc, 0.79, 0.038, 0.27, -0.06, 0.025, 0.48, cream, 0.022);
   const keyCanvas = document.createElement('canvas');
@@ -1656,6 +1671,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   }
   const house = buildHouse({
     landscape,
+    onModelReady: () => refreshShadows(),
     scene,
     study: root,
     groups,
@@ -1670,9 +1686,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     brass,
     charcoal,
     textile,
-    artMats,
   });
   house.setView('study');
+  const tvScreen = televisionScreen(host, house.screen);
+  const computerScreen = televisionScreen(host, computerPanel, {
+    width: 1.13,
+    height: 0.67,
+    pixelsWidth: 1280,
+    pixelsHeight: 760,
+  });
   const raycaster = new T.Raycaster();
   const mouse = new T.Vector2();
   let downX = 0,
@@ -1704,6 +1726,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     return (o?.userData.id as ObjectId) || null;
   };
   const pointerDown = (e: PointerEvent) => {
+    if ((e.target as HTMLElement).closest('.tv-native-screen')) return;
     activePointers.add(e.pointerId);
     if (activePointers.size > 1) multiTouch = true;
     downX = e.clientX;
@@ -1711,7 +1734,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   };
   const pointerMove = (e: PointerEvent) => {
     const id = pick(e);
-    renderer.domElement.style.cursor = id ? 'pointer' : 'grab';
+    host.style.cursor = id ? 'pointer' : 'grab';
     options.onHover(id, e.clientX, e.clientY);
   };
   const pointerLeave = () => {
@@ -1722,6 +1745,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     multiTouch = false;
   };
   const pointerUp = (e: PointerEvent) => {
+    if ((e.target as HTMLElement).closest('.tv-native-screen')) return;
     activePointers.delete(e.pointerId);
     const wasMulti = multiTouch;
     if (activePointers.size === 0) multiTouch = false;
@@ -1768,11 +1792,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       options.onSelect(id);
     }
   };
-  renderer.domElement.addEventListener('pointerdown', pointerDown);
-  renderer.domElement.addEventListener('pointermove', pointerMove);
-  renderer.domElement.addEventListener('pointerleave', pointerLeave);
-  renderer.domElement.addEventListener('pointerup', pointerUp);
-  renderer.domElement.addEventListener('pointercancel', pointerCancel);
+  host.addEventListener('pointerdown', pointerDown);
+  host.addEventListener('pointermove', pointerMove);
+  host.addEventListener('pointerleave', pointerLeave);
+  host.addEventListener('pointerup', pointerUp);
+  host.addEventListener('pointercancel', pointerCancel);
   let tween: {
     from: T.Vector3;
     to: T.Vector3;
@@ -1801,6 +1825,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   controls.addEventListener('start', stopTween);
   let night = false,
     lit = true,
+    masterLight = true,
     music = false,
     bedColor = 0,
     chairColor = 0,
@@ -1844,10 +1869,20 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   scene.add(selectedRing);
   selectedRing.visible = false;
   selectedRing.castShadow = false;
+  function frameTelevision() {
+    const center = house.screen.getWorldPosition(new T.Vector3());
+    const horizontalTangent =
+      Math.tan(T.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
+    const distance = Math.max(5.7, 4.65 / (2 * horizontalTangent));
+    controls.maxPolarAngle = Math.PI / 2;
+    moveTo(center.clone().add(new T.Vector3(0, 0.04, distance)), center);
+  }
   const resize = () => {
     const w = host.clientWidth,
       h = host.clientHeight;
     renderer.setSize(w, h);
+    tvScreen.resize(w, h);
+    computerScreen.resize(w, h);
     camera.aspect = w / h;
     camera.fov = T.MathUtils.radToDeg(
       2 *
@@ -1856,6 +1891,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         ),
     );
     camera.updateProjectionMatrix();
+    if (focusedObject === 'television') frameTelevision();
   };
   const observer = new ResizeObserver(resize);
   observer.observe(host);
@@ -1894,6 +1930,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     }
     const a = 1 - Math.exp(-dt * 3);
     hemi.intensity = T.MathUtils.lerp(hemi.intensity, lightTarget.ambient, a);
+    indoorBounce.intensity = T.MathUtils.lerp(
+      indoorBounce.intensity,
+      masterLight ? (night ? 0.7 : 0.25) : 0,
+      a,
+    );
     hemi.color.lerp(lightTarget.hemi, a);
     hemi.groundColor.lerp(lightTarget.ground, a);
     sun.intensity = T.MathUtils.lerp(sun.intensity, lightTarget.power, a);
@@ -1915,25 +1956,25 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     house.update(t, dt, reduced, night, camera.position.x, camera);
     lampLight.intensity = T.MathUtils.lerp(
       lampLight.intensity,
-      lit ? (night ? 12 : 5) : 0,
+      masterLight && lit ? (night ? 12 : 5) : 0,
       a,
     );
     shade.emissiveIntensity = T.MathUtils.lerp(
       shade.emissiveIntensity,
-      lit ? 0.75 : 0,
+      masterLight && lit ? 0.75 : 0,
       a,
     );
     screenLight.intensity = T.MathUtils.lerp(
       screenLight.intensity,
-      night ? 1.8 : 0.1,
+      computerPowered && activeView === 'study' ? (night ? 1.8 : 0.1) : 0,
       a,
     );
     deskLight.intensity = T.MathUtils.lerp(
       deskLight.intensity,
-      taskLit ? (night ? 1.7 : 0.45) : 0,
+      masterLight && taskLit ? (night ? 1.7 : 0.45) : 0,
       a,
     );
-    bulb.emissiveIntensity = taskLit ? 1.2 : 0;
+    bulb.emissiveIntensity = masterLight && taskLit ? 1.2 : 0;
     if (music) vinyl.rotation.y += dt * 1.5;
     tonearm.rotation.y = T.MathUtils.lerp(
       tonearm.rotation.y,
@@ -1968,12 +2009,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     steam.position.y = Math.sin(t * 2) * 0.03;
     controls.update();
     landscape.update(camera, t);
+    tvScreen.update(camera);
+    computerScreen.update(camera);
     renderer.render(scene, camera);
   }
   const api: RoomApi = {
     setView(view) {
       refreshShadows();
       activeView = view;
+      focusedObject = null;
       house.setView(view);
       options.onView(view);
       const all = view === 'overview' || view === 'plan';
@@ -2001,8 +2045,18 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     setTelevision(on, source) {
       house.setTelevision(on, source);
     },
-    setVideo(video) {
-      house.setVideo(video);
+    setComputerPower(on) {
+      computerPowered = on;
+      computerScreen.setBaseMaterial(on ? screenMat : computerOff);
+    },
+    setComputerScreen(element) {
+      computerScreen.set(element);
+    },
+    setWallPictures(pictures) {
+      house.setWallPictures(pictures);
+    },
+    setTVScreen(element) {
+      tvScreen.set(element);
     },
     reset() {
       this.setView(activeView);
@@ -2020,6 +2074,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         this.setView(room);
       const g = groups.get(id);
       if (!g) return;
+      focusedObject = id;
       if (id === 'floor' || id === 'wall') {
         this.reset();
         return;
@@ -2039,6 +2094,30 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         selectedRing.visible = false;
         return;
       }
+      if (/^(livingArt[12]|galleryArt[123])$/.test(id)) {
+        const center = new T.Box3().setFromObject(g).getCenter(new T.Vector3());
+        controls.minDistance = 2.4;
+        const normal = id.startsWith('living')
+          ? new T.Vector3(1, 0.06, 0.1)
+          : new T.Vector3(0.1, 0.06, 1);
+        moveTo(center.clone().addScaledVector(normal, 4.6), center);
+        selectedRing.visible = false;
+        return;
+      }
+      if (id === 'computer') {
+        const center = computerPanel.getWorldPosition(new T.Vector3());
+        controls.minDistance = 1.5;
+        controls.maxPolarAngle = Math.PI / 2;
+        moveTo(center.clone().add(new T.Vector3(0.1, 0.08, 2.4)), center);
+        selectedRing.visible = false;
+        return;
+      }
+      if (id === 'television') {
+        frameTelevision();
+        selectedRing.visible = false;
+        return;
+      }
+      controls.maxPolarAngle = Math.PI / 2.15;
       const bounds = new T.Box3().setFromObject(g);
       const center = bounds.getCenter(new T.Vector3());
       const dir = (
@@ -2075,7 +2154,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       house.setEnvironment(value);
     },
     setLamp(value) {
-      lit = value;
+      masterLight = value;
+      house.setLamp(value);
     },
     setMusic(value) {
       music = value;
@@ -2090,6 +2170,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       if (id === 'rug')
         rugMat.color.set(['#e5d8b8', '#b1bdac', '#d7bda4'][++rugColor % 3]);
       if (plants.has(id)) wateringUntil.set(id, performance.now() + 3200);
+      if (id === 'lamp') lit = !lit;
       if (id === 'taskLamp') taskLit = !taskLit;
       if (id === 'coffee') steamUntil = performance.now() + 6000;
       if (id === 'stool') chairPulled = !chairPulled;
@@ -2138,12 +2219,14 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       cancelAnimationFrame(frameId);
       observer.disconnect();
       controls.dispose();
-      renderer.domElement.removeEventListener('pointerdown', pointerDown);
-      renderer.domElement.removeEventListener('pointermove', pointerMove);
-      renderer.domElement.removeEventListener('pointerleave', pointerLeave);
-      renderer.domElement.removeEventListener('pointerup', pointerUp);
-      renderer.domElement.removeEventListener('pointercancel', pointerCancel);
+      host.removeEventListener('pointerdown', pointerDown);
+      host.removeEventListener('pointermove', pointerMove);
+      host.removeEventListener('pointerleave', pointerLeave);
+      host.removeEventListener('pointerup', pointerUp);
+      host.removeEventListener('pointercancel', pointerCancel);
       windowEnvironment.dispose();
+      computerScreen.dispose();
+      tvScreen.dispose();
       house.dispose();
       landscape.dispose();
       const geometries = new Set<T.BufferGeometry>();

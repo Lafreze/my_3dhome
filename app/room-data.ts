@@ -3,7 +3,7 @@ export const objects = {
   ...newObjects,
   bed: { name: '亚麻沙发', kind: 'LOUNGE', action: '更换织物' },
   desk: { name: '木作工作台', kind: 'WORKSPACE', action: '浏览作品' },
-  computer: { name: '作品工作站', kind: 'SELECTED WORK', action: '浏览作品' },
+  computer: { name: '作品工作站', kind: 'WEB', action: '电脑设置' },
   lamp: { name: '蘑菇灯', kind: 'LIGHT', action: '切换灯光' },
   taskLamp: { name: '折臂工作灯', kind: 'TASK LIGHT', action: '开关工作灯' },
   deskPlant: { name: '桌面小绿植', kind: 'BOTANICAL', action: '浇水' },
@@ -72,7 +72,10 @@ export const defaultProfile: Profile = {
 export type RoomApi = {
   setView: (view: import('./house-data').HouseView) => void;
   setTelevision: (on: boolean, source?: string) => void;
-  setVideo: (video: HTMLVideoElement | null) => void;
+  setComputerScreen: (element: HTMLElement | null) => void;
+  setComputerPower: (on: boolean) => void;
+  setWallPictures: (pictures: Record<string, string>) => void;
+  setTVScreen: (element: HTMLElement | null) => void;
   reset: () => void;
   zoom: (direction: number) => void;
   focus: (id: ObjectId) => void;

@@ -8,7 +8,7 @@ const root = fileURLToPath(new URL('../dist/client/', import.meta.url));
 const port = Number(process.env.PORT || process.env.KOMORI_PORT || 3000);
 const host = process.env.STUDIO_HOST || '127.0.0.1';
 if (!Number.isInteger(port) || port < 1 || port > 65535) { console.error('端口必须是 1–65535 的整数'); process.exit(1); }
-const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.webp':'image/webp', '.woff2':'font/woff2', '.rsc':'text/x-component' };
+const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.webp':'image/webp', '.woff2':'font/woff2', '.rsc':'text/x-component', '.glb':'model/gltf-binary', '.mp4':'video/mp4', '.webm':'video/webm', '.ogv':'video/ogg', '.vtt':'text/vtt' };
 if (!existsSync(resolve(root, 'index.html'))) { console.error('请先运行 npm run build'); process.exit(1); }
 const server = createServer(async (req, res) => {
   if (!['GET','HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
@@ -21,8 +21,21 @@ const server = createServer(async (req, res) => {
     if ((await stat(file)).isDirectory()) file = resolve(file, 'index.html');
     const info = await stat(file);
     if (!info.isFile()) throw new Error('Not a file');
-    res.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream', 'Content-Length': info.size, 'Cache-Control':'no-cache', 'X-Content-Type-Options':'nosniff' });
-    if (req.method === 'HEAD') res.end(); else createReadStream(file).on('error', () => res.destroy()).pipe(res);
+    const headers = { 'Content-Type': types[extname(file)] || 'application/octet-stream', 'Cache-Control':'no-cache', 'X-Content-Type-Options':'nosniff', 'Accept-Ranges':'bytes' };
+    let start = 0, end = info.size - 1, status = 200;
+    if (req.headers.range && req.method === 'GET') {
+      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+      if (!range || (!range[1] && !range[2])) { res.writeHead(416, { ...headers, 'Content-Range': `bytes */${info.size}` }); res.end(); return; }
+      start = range[1] ? Number(range[1]) : Math.max(0, info.size - Number(range[2]));
+      end = range[1] && range[2] ? Math.min(Number(range[2]), info.size - 1) : info.size - 1;
+      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || start >= info.size) { res.writeHead(416, { ...headers, 'Content-Range': `bytes */${info.size}` }); res.end(); return; }
+      status = 206;
+      headers['Content-Range'] = `bytes ${start}-${end}/${info.size}`;
+    }
+    headers['Content-Length'] = Math.max(0, end - start + 1);
+    res.writeHead(status, headers);
+    if (req.method === 'HEAD' || info.size === 0) res.end(); else createReadStream(file, {start, end}).on('error', () => res.destroy()).pipe(res);
+
   } catch { res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8'}); res.end('页面不存在'); }
 });
 server.on('error', error => { console.error(error.code === 'EADDRINUSE' ? `端口 ${port} 已占用，可设置 KOMORI_PORT 使用其他端口。` : error.message); process.exit(1); });

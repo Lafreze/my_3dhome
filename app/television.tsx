@@ -1,14 +1,9 @@
 'use client';
-/* A video source is connected only after the visitor explicitly presses play. */
+/* Saved sources reconnect on room entry; manual power-off persists across visits. */
 import { useEffect, useRef, useState } from 'react';
-import {
-  ArrowUpRight,
-  Play,
-  Power,
-  Upload,
-  Video,
-  SquarePlay,
-} from 'lucide-react';
+import { readDevice, saveDevice, tvSettingsKey } from './device-settings';
+import { createPortal } from 'react-dom';
+import { ArrowUpRight, Play, Power, Upload, X, Pause } from 'lucide-react';
 import { parseVideoSource, type VideoSource } from './video-source';
 type YoutubePlayer = { destroy: () => void };
 type YoutubeApi = {
@@ -47,10 +42,16 @@ function youtubeApi() {
 }
 export default function Television({
   onPower,
-  onVideo,
+  onScreen,
+  open,
+  active,
+  onClose,
 }: {
   onPower: (on: boolean, source?: string) => void;
-  onVideo: (video: HTMLVideoElement | null) => void;
+  onScreen: (screen: HTMLElement | null) => void;
+  open: boolean;
+  active: boolean;
+  onClose: () => void;
 }) {
   const [url, setUrl] = useState('');
   const [source, setSource] = useState<
@@ -58,6 +59,18 @@ export default function Television({
   >(null);
   const [error, setError] = useState('');
   const [powered, setPowered] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [screenHost] = useState(() => {
+    const element = document.createElement('div');
+    element.className = 'tv-native-screen';
+    element.addEventListener('pointerdown', (event) => event.stopPropagation());
+    element.addEventListener('wheel', (event) => event.stopPropagation(), {
+      passive: true,
+    });
+    return element;
+  });
   const file = useRef<HTMLInputElement>(null),
     youtubeHost = useRef<HTMLDivElement>(null),
     video = useRef<HTMLVideoElement>(null);
@@ -65,23 +78,66 @@ export default function Television({
   const [captions, setCaptions] = useState('');
   const captionInput = useRef<HTMLInputElement>(null);
   const captionUrl = useRef('');
+  const closeButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    onPower(true);
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      const stored = readDevice(tvSettingsKey);
+      if (stored) {
+        setPowered(stored.enabled);
+        const parsed = parseVideoSource(stored.url);
+        if (parsed) {
+          setSource(parsed);
+          setUrl(stored.url);
+          setPowered(stored.enabled);
+        }
+      }
+      setLoaded(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (open) closeButton.current?.focus({ preventScroll: true });
+  }, [open]);
+  const playing = loaded && powered && active;
+  useEffect(() => {
+    onPower(
+      playing,
+      source?.kind === 'youtube' ? 'YouTube' : source ? 'Video' : '',
+    );
+  }, [playing, source, onPower]);
+  useEffect(() => {
     return () => {
       onPower(false);
-      onVideo(null);
+      onScreen(null);
       if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
       if (captionUrl.current) URL.revokeObjectURL(captionUrl.current);
     };
-  }, [onPower, onVideo]);
+  }, [onPower, onScreen]);
   useEffect(() => {
-    if (!powered || source?.kind !== 'youtube' || !youtubeHost.current) return;
+    onScreen(playing && source ? screenHost : null);
+    return () => onScreen(null);
+  }, [source, playing, screenHost, onScreen]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [open, onClose]);
+  useEffect(() => {
+    if (!playing || source?.kind !== 'youtube' || !youtubeHost.current) return;
     const host = youtubeHost.current;
     const frame = document.createElement('iframe');
     const query = new URLSearchParams({
       enablejsapi: '1',
       playsinline: '1',
       autoplay: '1',
+      mute: '1',
       origin: location.origin,
       start: String(source.start),
       rel: '0',
@@ -89,12 +145,11 @@ export default function Television({
     frame.src = `https://www.youtube-nocookie.com/embed/${source.id}?${query}`;
     frame.title = 'YouTube 电视播放器';
     frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-    frame.allowFullscreen = true;
     frame.referrerPolicy = 'strict-origin-when-cross-origin';
     host.appendChild(frame);
     let player: YoutubePlayer | undefined;
     let active = true;
-    // The API owns only this isolated host; dispose the player when the television closes.
+    // Player lifetime follows source and power, independently of the remote control panel.
     void youtubeApi()
       .then((api) => {
         if (!active) return;
@@ -122,12 +177,7 @@ export default function Television({
       player?.destroy();
       host.replaceChildren();
     };
-  }, [source, powered]);
-  useEffect(() => {
-    if (source?.kind === 'local' && video.current) onVideo(video.current);
-    else onVideo(null);
-    return () => onVideo(null);
-  }, [source, powered, onVideo]);
+  }, [source, playing]);
   const submit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const next = parseVideoSource(url);
@@ -135,150 +185,207 @@ export default function Television({
       setError('请输入 YouTube 链接，或 MP4 / WebM 视频直链。');
       return;
     }
+    try {
+      saveDevice(tvSettingsKey, url.trim(), true);
+    } catch {
+      setError('浏览器无法保存地址，请检查存储空间。');
+      return;
+    }
     setError('');
+    setSaved(true);
     setPowered(true);
     setSource(next);
     onPower(true, next.kind === 'youtube' ? 'YouTube' : 'Video');
   };
   const toggle = () => {
     const next = !powered;
+    try {
+      saveDevice(
+        tvSettingsKey,
+        source && source.kind !== 'local'
+          ? source.kind === 'youtube'
+            ? `${source.original}&t=${source.start}s`
+            : source.url
+          : readDevice(tvSettingsKey)?.url || '',
+        next,
+      );
+    } catch {
+      setError('电源状态无法保存。');
+    }
     setPowered(next);
     onPower(
       next,
       source?.kind === 'youtube' ? 'YouTube' : source ? 'Video' : '',
     );
-    if (!next) onVideo(null);
   };
   return (
-    <div className="television-player">
-      <div className="television-screen">
-        {!powered ? (
-          <div className="tv-idle">
-            <Power size={30} strokeWidth={1} />
-            <span>电视已关闭</span>
-          </div>
-        ) : source?.kind === 'youtube' ? (
-          <div className="youtube-host" ref={youtubeHost} />
-        ) : source && (source.kind === 'video' || source.kind === 'local') ? (
-          <video
-            key={source.url}
-            ref={video}
-            controls
-            autoPlay
-            playsInline
-            src={source.url}
-            aria-label="电视视频播放器"
-            onError={() => setError('视频无法读取，请检查格式或换一个链接。')}
-          >
-            <track
-              kind="captions"
-              src={captions || undefined}
-              srcLang="zh"
-              label="字幕"
-              default
-            />
-          </video>
-        ) : (
-          <div className="tv-idle">
-            <span className="tv-monogram">S</span>
-            <span>选一部，慢慢看。</span>
-            <div>
-              <SquarePlay size={19} />
-              <i />
-              <Video size={18} />
-            </div>
-          </div>
-        )}
-      </div>
-      <form className="tv-source-form" onSubmit={submit}>
-        <input
-          aria-label="视频链接"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="YouTube 链接 / 视频直链"
-          type="url"
-        />
-        <button type="submit" className="tv-play" aria-label="播放视频链接">
-          <Play size={16} fill="currentColor" />
-        </button>
-      </form>
-      <div className="tv-toolbar">
-        <button type="button" onClick={() => file.current?.click()}>
-          <Upload size={14} />
-          本地视频
-        </button>
-        <input
-          ref={file}
-          hidden
-          type="file"
-          accept="video/mp4,video/webm,video/ogg,.mp4,.webm,.ogv"
-          aria-label="选择本地视频"
-          onChange={(e) => {
-            const selected = e.target.files?.[0];
-            if (!selected) return;
-            if (!/\.(mp4|webm|ogv|ogg)$/i.test(selected.name)) {
-              setError('请选择 MP4、WebM 或 Ogg 视频。');
-              return;
-            }
-            if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
-            objectUrl.current = URL.createObjectURL(selected);
-            setSource({
-              kind: 'local',
-              url: objectUrl.current,
-              name: selected.name,
-            });
-            setError('');
-            setPowered(true);
-            onPower(true, selected.name.slice(0, 30));
-            e.target.value = '';
-          }}
-        />
-        {source && source.kind !== 'youtube' && (
-          <>
-            <button type="button" onClick={() => captionInput.current?.click()}>
-              字幕
-            </button>
-            <input
-              ref={captionInput}
-              type="file"
-              hidden
-              accept=".vtt,text/vtt"
-              aria-label="选择 VTT 字幕"
-              onChange={(e) => {
-                const chosen = e.target.files?.[0];
-                if (!chosen) return;
-                if (!chosen.name.toLowerCase().endsWith('.vtt')) {
-                  setError('字幕请选择 VTT 格式。');
-                  return;
-                }
-                if (captionUrl.current) URL.revokeObjectURL(captionUrl.current);
-                captionUrl.current = URL.createObjectURL(chosen);
-                setCaptions(captionUrl.current);
-              }}
-            />
-          </>
-        )}
-        {source && source.kind !== 'local' && (
-          <a href={source.original} target="_blank" rel="noreferrer">
-            原网页
-            <ArrowUpRight size={13} />
-          </a>
-        )}
-        <button
-          type="button"
-          className="tv-power"
-          aria-label={powered ? '关闭电视电源' : '打开电视电源'}
-          aria-pressed={powered}
-          onClick={toggle}
-        >
-          <Power size={15} />
-        </button>
-      </div>
-      {error && (
-        <p className="tv-error" role="alert">
-          {error}
-        </p>
+    <>
+      {createPortal(
+        playing && source ? (
+          source.kind === 'youtube' ? (
+            <div className="youtube-host" ref={youtubeHost} />
+          ) : (
+            <video
+              key={source.url}
+              ref={video}
+              controls
+              autoPlay
+              muted
+              playsInline
+              src={source.url}
+              aria-label="电视视频播放器"
+              onPlay={() => setPaused(false)}
+              onPause={() => setPaused(true)}
+              onError={() => setError('视频无法读取，请检查格式或换一个链接。')}
+            >
+              <track
+                kind="captions"
+                src={captions || undefined}
+                srcLang="zh"
+                label="字幕"
+                default
+              />
+            </video>
+          )
+        ) : null,
+        screenHost,
       )}
-    </div>
+      <section className="tv-remote" hidden={!open} aria-label="电视遥控器">
+        <div className="tv-remote-heading">
+          <span>家庭影院</span>
+          <button
+            ref={closeButton}
+            type="button"
+            onClick={onClose}
+            aria-label="收起电视遥控器"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <form className="tv-source-form" onSubmit={submit}>
+          <input
+            aria-label="视频链接"
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setSaved(false);
+            }}
+            placeholder="YouTube 链接 / 视频直链"
+            type="url"
+          />
+          <button
+            type="submit"
+            className="tv-play"
+            aria-label="保存并播放视频"
+            title="保存并播放"
+          >
+            <Play size={16} fill="currentColor" />
+          </button>
+        </form>
+        {saved && (
+          <output className="device-saved">
+            已保存 · 进入客厅自动静音播放
+          </output>
+        )}
+        <div className="tv-toolbar">
+          {powered && source && source.kind !== 'youtube' && (
+            <button
+              type="button"
+              aria-label={paused ? '继续播放' : '暂停视频'}
+              onClick={() => {
+                if (video.current?.paused)
+                  void video.current
+                    .play()
+                    .catch(() => setError('请在电视屏幕上点击播放。'));
+                else video.current?.pause();
+              }}
+            >
+              {paused ? <Play size={14} /> : <Pause size={14} />}
+            </button>
+          )}
+
+          <button type="button" onClick={() => file.current?.click()}>
+            <Upload size={14} />
+            本地视频
+          </button>
+          <input
+            ref={file}
+            hidden
+            type="file"
+            accept="video/mp4,video/webm,video/ogg,.mp4,.webm,.ogv"
+            aria-label="选择本地视频"
+            onChange={(e) => {
+              const selected = e.target.files?.[0];
+              if (!selected) return;
+              if (!/\.(mp4|webm|ogv|ogg)$/i.test(selected.name)) {
+                setError('请选择 MP4、WebM 或 Ogg 视频。');
+                return;
+              }
+              if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+              objectUrl.current = URL.createObjectURL(selected);
+              setSource({
+                kind: 'local',
+                url: objectUrl.current,
+                name: selected.name,
+              });
+              setError('');
+              setSaved(false);
+              setPowered(true);
+              onPower(true, selected.name.slice(0, 30));
+              e.target.value = '';
+            }}
+          />
+          {source && source.kind !== 'youtube' && (
+            <>
+              <button
+                type="button"
+                onClick={() => captionInput.current?.click()}
+              >
+                字幕
+              </button>
+              <input
+                ref={captionInput}
+                type="file"
+                hidden
+                accept=".vtt,text/vtt"
+                aria-label="选择 VTT 字幕"
+                onChange={(e) => {
+                  const chosen = e.target.files?.[0];
+                  if (!chosen) return;
+                  if (!chosen.name.toLowerCase().endsWith('.vtt')) {
+                    setError('字幕请选择 VTT 格式。');
+                    return;
+                  }
+                  if (captionUrl.current)
+                    URL.revokeObjectURL(captionUrl.current);
+                  captionUrl.current = URL.createObjectURL(chosen);
+                  setCaptions(captionUrl.current);
+                }}
+              />
+            </>
+          )}
+          {source && source.kind !== 'local' && (
+            <a href={source.original} target="_blank" rel="noreferrer">
+              原网页
+              <ArrowUpRight size={13} />
+            </a>
+          )}
+          <button
+            type="button"
+            className="tv-power"
+            aria-label={powered ? '关闭电视电源' : '打开电视电源'}
+            aria-pressed={powered}
+            onClick={toggle}
+          >
+            <Power size={15} />
+          </button>
+        </div>
+        {error && (
+          <p className="tv-error" role="alert">
+            {error}
+          </p>
+        )}
+      </section>
+    </>
   );
 }
