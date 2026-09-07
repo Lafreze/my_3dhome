@@ -18,7 +18,22 @@ npm start
 
 代码仓库：https://github.com/Lafreze/my_3dhome
 
-Railway 服务连接此仓库的 `main` 分支。`Dockerfile` 使用 Node.js 24 构建静态页面，运行容器只包含页面、素材和静态服务；不需要数据库或额外密钥。`railway.json` 设置 `/healthz` 健康检查和失败重启。
+线上地址：https://my-3dhome-production.up.railway.app/
+
+Railway 项目：`my-3dhome`，服务：`my-3dhome`，环境：`production`。本次通过 Railway CLI 部署已提交到 GitHub 的代码。GitHub 仓库直连返回权限错误，暂未启用自动部署；仅 `git push` 不会更新线上页面。
+
+后续在已登录 Railway CLI 的机器上更新：
+
+```sh
+railway link --project c53bedb9-fc4d-4b94-8139-ca84196431ac --environment production --service my-3dhome
+npm run build
+git push origin main
+railway up --service my-3dhome --environment production
+```
+
+需要自动部署时，在 Railway / GitHub 中为该仓库补齐连接权限，再连接服务到 `Lafreze/my_3dhome` 的 `main` 分支。
+
+`Dockerfile` 使用 Node.js 24 构建静态页面，运行容器只包含页面、素材和静态服务；不需要数据库或额外密钥。`railway.json` 设置 `/healthz` 健康检查和失败重启。
 
 容器通过 `STUDIO_HOST=0.0.0.0` 接收请求，端口读取 Railway 的 `PORT`。本地直接 `npm start` 仍默认监听 `127.0.0.1:3000`。部署说明参考 [Railway Dockerfile 文档](https://docs.railway.com/builds/dockerfiles)。
 
