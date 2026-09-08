@@ -1,24 +1,77 @@
 export const rooms = {
-  study: { name: '书房', english: 'THE STUDY', x: 0, z: 0, number: '01' },
+  study: {
+    name: '书房',
+    english: 'THE STUDY',
+    x: 0,
+    z: 0,
+    width: 8,
+    depth: 6.8,
+    number: '01',
+  },
   living: {
     name: '客厅',
     english: 'THE LIVING ROOM',
     x: 8,
     z: 0,
     number: '02',
+    width: 8,
+    depth: 6.8,
   },
-  bedroom: { name: '卧室', english: 'THE BEDROOM', x: 0, z: 6.8, number: '03' },
+  bedroom: {
+    name: '卧室',
+    english: 'THE BEDROOM',
+    x: 0,
+    z: 6.8,
+    width: 8,
+    depth: 6.8,
+    number: '03',
+  },
   gallery: {
     name: '展示区',
     english: 'THE GALLERY',
     x: 8,
     z: 6.8,
     number: '04',
+    width: 8,
+    depth: 6.8,
+  },
+  cafe: {
+    name: '咖啡厅',
+    english: 'SATORI COFFEE',
+    x: 4,
+    z: 14.2,
+    width: 16,
+    depth: 8,
+    number: '05',
   },
 } as const;
 export type RoomId = keyof typeof rooms;
 export type HouseView = RoomId | 'overview' | 'plan';
+export const roomIds = Object.keys(rooms) as RoomId[];
+export function roomAt(x: number, z: number): RoomId | undefined {
+  return roomIds.find((id) => {
+    const r = rooms[id];
+    return Math.abs(x - r.x) <= r.width / 2 && Math.abs(z - r.z) <= r.depth / 2;
+  });
+}
+export const houseBounds = {
+  minX: Math.min(...roomIds.map((id) => rooms[id].x - rooms[id].width / 2)),
+  maxX: Math.max(...roomIds.map((id) => rooms[id].x + rooms[id].width / 2)),
+  minZ: Math.min(...roomIds.map((id) => rooms[id].z - rooms[id].depth / 2)),
+  maxZ: Math.max(...roomIds.map((id) => rooms[id].z + rooms[id].depth / 2)),
+};
 export const newObjects = {
+  cafeEspresso: {
+    name: '双头意式咖啡机',
+    kind: 'ESPRESSO',
+    action: '萃取一杯咖啡',
+  },
+  cafePastry: { name: '今日烘焙', kind: 'BAKERY', action: '打开 / 合上展柜' },
+  cafeMenu: { name: '今日咖啡', kind: 'COFFEE MENU', action: '切换今日特调' },
+  cafeSeat: { name: '窗边卡座', kind: 'LOUNGE', action: '更换皮革配色' },
+  cafePourOver: { name: '手冲工作台', kind: 'BREW BAR', action: '开始手冲' },
+  cafeLight: { name: '咖啡厅吊灯', kind: 'WARM LIGHT', action: '开灯 / 关灯' },
+  cafeWindow: { name: '咖啡厅南窗', kind: 'S · 露台', action: '时间与天气' },
   livingArt1: { name: '客厅 · 林间', kind: 'ART', action: '自定义画作' },
   livingArt2: { name: '客厅 · 暖日', kind: 'ART', action: '自定义画作' },
   galleryArt1: { name: '展厅 · 作品一', kind: 'ART', action: '自定义画作' },
@@ -28,7 +81,15 @@ export const newObjects = {
   livingSofa: { name: '模块沙发', kind: 'LOUNGE', action: '更换织物' },
   switch: { name: 'Switch 游戏机', kind: 'PLAY', action: '取下 / 装回手柄' },
   console: { name: '游戏主机', kind: 'CONSOLE', action: '开机 / 待机' },
-  controller: { name: '无线手柄', kind: 'CONTROLLER', action: '更换配色' },
+  controller: { name: '无线手柄', kind: 'CONTROLLER', action: '试按手柄' },
+  livingSpeakers: {
+    name: '书架音响',
+    kind: 'HI-FI',
+    action: '播放 / 暂停音乐',
+  },
+  livingRemote: { name: '电视遥控器', kind: 'REMOTE', action: '打开电视遥控' },
+  livingCup: { name: '陶瓷咖啡杯', kind: 'COFFEE', action: '续一杯热咖啡' },
+  bedroomClock: { name: '双铃时钟', kind: 'CLOCK', action: '轻拨铃锤' },
   livingLamp: { name: '弧线落地灯', kind: 'LIGHT', action: '开灯 / 关灯' },
   mediaDrawer: { name: '游戏收藏', kind: 'COLLECTION', action: '打开 / 收起' },
   livingWindow: { name: '客厅东窗', kind: 'E · 街巷', action: '时间与天气' },
@@ -44,6 +105,13 @@ export const newObjects = {
   galleryWindow: { name: '展厅东窗', kind: 'E · 前庭', action: '时间与天气' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
+  cafeEspresso: 'cafe',
+  cafePastry: 'cafe',
+  cafeMenu: 'cafe',
+  cafeSeat: 'cafe',
+  cafePourOver: 'cafe',
+  cafeLight: 'cafe',
+  cafeWindow: 'cafe',
   livingArt1: 'living',
   livingArt2: 'living',
   galleryArt1: 'gallery',
@@ -54,6 +122,10 @@ export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
   switch: 'living',
   console: 'living',
   controller: 'living',
+  livingSpeakers: 'living',
+  livingRemote: 'living',
+  livingCup: 'living',
+  bedroomClock: 'bedroom',
   livingLamp: 'living',
   mediaDrawer: 'living',
   livingWindow: 'living',
@@ -71,12 +143,22 @@ export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
 export function roomForObject(id: string): RoomId {
   return objectRooms[id as keyof typeof objectRooms] ?? 'study';
 }
+// Relative to the media cabinet. Speaker cabinets stay completely outside the TV silhouette.
+export const livingMediaDetails = {
+  speakerOffset: 2.45,
+  speakerWidth: 0.32,
+  speakerHeight: 0.52,
+  speakerDepth: 0.3,
+  speakerBase: 0.9165,
+  speakerZ: 0.035,
+  tvWidth: 4.3,
+} as const;
 
 // Local footprints in scene units (0.625 m), including furniture depth and cushions.
 export const houseFurniture = {
   living: {
     sofa: { x: 0.55, z: 0.85, width: 3.55, depth: 1.38, facing: [0, -1] },
-    media: { x: 0.45, z: -2.74, width: 4.55, depth: 0.72 },
+    media: { x: 0.45, z: -2.74, width: 5.35, depth: 0.72 },
     table: { x: 0.55, z: -0.75, width: 1.75, depth: 0.83 },
     lamp: { x: 2.95, z: 1.08, width: 0.55, depth: 0.55 },
   },

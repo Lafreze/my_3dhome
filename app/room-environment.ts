@@ -100,9 +100,9 @@ export function createWindowEnvironment(
   parent: T.Group,
   room: RoomId,
   landscape: HouseLandscape,
+  aperture = { width: 3.22, height: 2.12 },
 ) {
-  const width = 3.22,
-    height = 2.12;
+  const { width, height } = aperture;
   const canvas = document.createElement('canvas');
   canvas.width = 960;
   canvas.height = 640;
@@ -115,7 +115,7 @@ export function createWindowEnvironment(
   sky.position.z = -0.14;
   parent.add(sky);
   const exteriorMaterial = new T.MeshBasicMaterial({
-    map: landscape.register(room, parent),
+    map: landscape.register(room, parent, width, height),
     transparent: true,
     toneMapped: false,
     depthWrite: false,
@@ -124,7 +124,13 @@ export function createWindowEnvironment(
   exterior.position.z = -0.13;
   parent.add(exterior);
   let camera: T.Camera | undefined;
-  const viewSeed = { study: 11, living: 37, bedroom: 63, gallery: 89 }[room];
+  const viewSeed = {
+    study: 11,
+    living: 37,
+    bedroom: 63,
+    gallery: 89,
+    cafe: 113,
+  }[room];
   let state: Environment = { time: 'afternoon', weather: 'clear' };
   let previous = -Infinity;
   let dirty = true;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { rooms, houseFurniture } from '../app/house-data.ts';
+import { rooms, houseFurniture, livingMediaDetails } from '../app/house-data.ts';
 import { parseVideoSource } from '../app/video-source.ts';
 const bounds = f => ({ x0:f.x-f.width/2,x1:f.x+f.width/2,z0:f.z-f.depth/2,z1:f.z+f.depth/2 });
 const overlap=(a,b)=>a.x0<b.x1-.001&&a.x1>b.x0+.001&&a.z0<b.z1-.001&&a.z1>b.z0+.001;
@@ -14,6 +14,11 @@ for(const [room,items] of Object.entries(houseFurniture)){
 assert.equal(rooms.living.x-rooms.study.x,8);assert.equal(rooms.bedroom.z-rooms.study.z,6.8);
 assert.equal(rooms.gallery.x,rooms.living.x);assert.equal(rooms.gallery.z,rooms.bedroom.z);
 const living=houseFurniture.living;
+const media = livingMediaDetails;
+assert(media.speakerOffset-media.speakerWidth/2 >= media.tvWidth/2+.04, 'Speakers intersect the TV bezel or image');
+assert(media.speakerOffset+media.speakerWidth/2 <= living.media.width/2-.04, 'Speaker extends beyond cabinet');
+assert(Math.abs(media.speakerBase-.014-(.86+.085/2))<.001, 'Speaker feet must rest on cabinet');
+assert(Math.abs(media.speakerZ)+media.speakerDepth/2 < living.media.depth/2, 'Speaker depth must fit countertop');
 assert(living.sofa.facing[1]<0&&living.media.z<living.sofa.z,'Sofa must face TV');
 assert(Math.abs(living.sofa.x-living.media.x)<.2,'TV aligned with sofa');
 const openWardrobe={...bounds(houseFurniture.bedroom.wardrobe),x0:houseFurniture.bedroom.wardrobe.x-1.65};

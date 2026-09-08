@@ -1,0 +1,473 @@
+import * as T from 'three';
+import {
+  acquireVisitorModel,
+  partVisible,
+  configureVisitorTint,
+  type VisitorPart,
+} from './visitor-model';
+import { appearanceOptions, readAppearance } from './visitor-appearance';
+import { seats, seatById, type Visitor } from './seat-data';
+import {
+  configureVisitorMotion,
+  sampleVisitorMotion,
+  visitorSeed,
+  visitorShadowMaterials,
+} from './visitor-motion';
+
+// An anchor belongs to the actual furniture, so a pulled-out chair carries its visitor.
+export type SeatAnchors = Map<string, T.Group>;
+export function attachSeats(
+  anchors: SeatAnchors,
+  parent: T.Group,
+  ids: string[],
+) {
+  parent.userData.seatIds = ids;
+  for (const id of ids) {
+    const seat = seatById.get(id);
+    if (!seat) throw new Error(`Unknown seat: ${id}`);
+    const anchor = new T.Group();
+    anchor.name = `seat:${id}`;
+    anchor.position.fromArray(seat.offset);
+    anchor.rotation.y = seat.yaw;
+    parent.add(anchor);
+    anchors.set(id, anchor);
+  }
+}
+
+export function createSeatScene(
+  scene: T.Scene,
+  anchors: SeatAnchors,
+  interactables: T.Object3D[],
+  invalidate: () => void,
+) {
+  let disposed = false,
+    current: Visitor[] = [],
+    me = '',
+    hovered: string | null = null;
+  const crowd = new T.Group();
+  crowd.name = 'Seated visitors';
+  scene.add(crowd);
+  const meshes: {
+    mesh: T.InstancedMesh;
+    part: VisitorPart;
+    slotIds: string[];
+    motion: T.InstancedBufferAttribute;
+    rest: T.InstancedBufferAttribute;
+  }[] = [];
+  const ownedMaterials: T.Material[] = [];
+  const pickingGeometries: T.BufferGeometry[] = [];
+  const states = new Map<string, { seed: number; value: T.Vector4 }>();
+  let releaseModel: (() => void) | undefined;
+  const labels = new Map<string, { sprite: T.Sprite; signature: string }>();
+  const reactions = new Map<
+    string,
+    { sprite: T.Sprite; event: NonNullable<Visitor['gesture']>; height: number }
+  >();
+  function clearReaction(id: string) {
+    const entry = reactions.get(id);
+    if (!entry) return;
+    entry.sprite.removeFromParent();
+    entry.sprite.material.map?.dispose();
+    entry.sprite.material.dispose();
+    reactions.delete(id);
+  }
+  function showReaction(
+    person: Visitor,
+    event: NonNullable<Visitor['gesture']>,
+  ) {
+    const anchor = anchors.get(person.seatId);
+    if (!anchor) return;
+    const key = person.id;
+    if (reactions.get(key)?.event.id === event.id) {
+      anchor.add(reactions.get(key)!.sprite);
+      return;
+    }
+    clearReaction(key);
+    const canvas = document.createElement('canvas');
+    canvas.width = 192;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#fff9ee';
+    ctx.beginPath();
+    ctx.roundRect(12, 8, 168, 94, 42);
+    ctx.fill();
+    ctx.fillStyle = event.kind === 'heart' ? '#b66a65' : '#5c7452';
+    ctx.font =
+      event.kind === 'heart' ? '64px sans-serif' : '500 38px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(event.kind === 'heart' ? '♥' : '你好', 96, 59);
+    const texture = new T.CanvasTexture(canvas);
+    texture.colorSpace = T.SRGBColorSpace;
+    const sprite = new T.Sprite(
+      new T.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+      }),
+    );
+    sprite.scale.set(0.45, 0.3, 1);
+    const height =
+      appearanceOptions.characters.find(
+        (c) => c.id === readAppearance(person.appearance).character,
+      )!.labelHeight + 0.19;
+    anchor.add(sprite);
+    reactions.set(key, { sprite, event, height });
+  }
+  const tint = new T.Color();
+  const highlight = new T.Mesh(
+    new T.CircleGeometry(0.26, 48),
+    new T.MeshBasicMaterial({
+      color: '#cfb778',
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false,
+      side: T.DoubleSide,
+    }),
+  );
+  highlight.rotation.x = -Math.PI / 2;
+  highlight.position.y = 0.012;
+  highlight.visible = false;
+  const transform = new T.Matrix4(),
+    local = new T.Matrix4(),
+    position = new T.Vector3();
+  void acquireVisitorModel()
+    .then(({ parts, release }) => {
+      if (disposed) {
+        release();
+        return;
+      }
+      releaseModel = release;
+      for (const part of parts) {
+        // The lightweight geometry shell owns instance motion; vertex buffers remain shared.
+        const geometry = new T.BufferGeometry();
+        geometry.index = part.geometry.index;
+        for (const [name, attribute] of Object.entries(
+          part.geometry.attributes,
+        ))
+          geometry.setAttribute(name, attribute);
+        const motion = new T.InstancedBufferAttribute(
+          new Float32Array(seats.length * 4),
+          4,
+        );
+        motion.setUsage(T.DynamicDrawUsage);
+        geometry.setAttribute('visitorInstanceMotion', motion);
+        const rest = new T.InstancedBufferAttribute(
+          new Float32Array(seats.length),
+          1,
+        );
+        rest.setUsage(T.DynamicDrawUsage);
+        geometry.setAttribute('visitorInstanceRest', rest);
+        const material = Array.isArray(part.material)
+          ? part.material.map((m) => m.clone())
+          : part.material.clone();
+        const state = { value: new T.Vector4() };
+        for (const m of Array.isArray(material) ? material : [material]) {
+          if (part.tint) configureVisitorTint(m, part.character, part.tint);
+          configureVisitorMotion(m, part.character, state, true, part.eyelid);
+          ownedMaterials.push(m);
+        }
+        const mesh = new T.InstancedMesh(geometry, material, seats.length);
+        const shadow = visitorShadowMaterials(
+          part.character,
+          state,
+          true,
+          !!part.eyelid,
+        );
+        mesh.customDepthMaterial = shadow.depth;
+        mesh.customDistanceMaterial = shadow.distance;
+        ownedMaterials.push(shadow.depth, shadow.distance);
+        mesh.name = `Visitors / ${part.name}`;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.frustumCulled = false;
+        mesh.boundingSphere = new T.Sphere(new T.Vector3(4, 1, 7.4), 24);
+        mesh.userData.visitorMesh = true;
+        // CPU hit testing must use the same resting silhouette as the GPU pose.
+        // Otherwise the invisible seated body intercepts clicks above the bed.
+        const restingGeometry = new T.BufferGeometry();
+        restingGeometry.index = geometry.index;
+        restingGeometry.setAttribute(
+          'position',
+          geometry.getAttribute('visitorRestPosition'),
+        );
+        if (geometry.hasAttribute('uv'))
+          restingGeometry.setAttribute('uv', geometry.getAttribute('uv'));
+        restingGeometry.computeBoundingSphere();
+        pickingGeometries.push(restingGeometry);
+        const pickingMesh = new T.Mesh(geometry, material);
+        const instanceWorld = new T.Matrix4();
+        mesh.raycast = (raycaster, hits) => {
+          const intersections: T.Intersection[] = [];
+          for (let i = 0; i < mesh.count; i++) {
+            mesh.getMatrixAt(i, instanceWorld);
+            pickingMesh.matrixWorld.multiplyMatrices(
+              mesh.matrixWorld,
+              instanceWorld,
+            );
+            pickingMesh.geometry =
+              rest.getX(i) > 0.5 ? restingGeometry : geometry;
+            pickingMesh.raycast(raycaster, intersections);
+            for (const hit of intersections)
+              hits.push({ ...hit, instanceId: i, object: mesh });
+            intersections.length = 0;
+          }
+        };
+        const slotIds: string[] = [];
+        mesh.userData.seatSlots = slotIds;
+        mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+        mesh.count = 0;
+        crowd.add(mesh);
+        interactables.push(mesh);
+        meshes.push({ mesh, part, slotIds, motion, rest });
+      }
+      update(0, true);
+      invalidate();
+    })
+    .catch((error) => console.error('人物模型加载失败', error));
+  function isVisible(o: T.Object3D) {
+    for (let n: T.Object3D | null = o; n; n = n.parent)
+      if (!n.visible) return false;
+    return true;
+  }
+  function label(visitor: Visitor) {
+    const anchor = anchors.get(visitor.seatId);
+    if (!anchor) return;
+    const character = readAppearance(visitor.appearance).character;
+    const signature = `${visitor.name}/${visitor.id === me}/${character}/${visitor.posture}`;
+    const previous = labels.get(visitor.seatId);
+    if (previous?.signature === signature) return;
+    if (previous) {
+      previous.sprite.material.map?.dispose();
+      previous.sprite.material.dispose();
+      previous.sprite.removeFromParent();
+    }
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 96;
+    const ctx = c.getContext('2d')!;
+    ctx.font = '500 34px system-ui, sans-serif';
+    const text =
+      visitor.name +
+      (visitor.id === me ? ' · 我' : '') +
+      (visitor.posture === 'rest' ? ' · 休息' : '');
+    const width = Math.min(496, ctx.measureText(text).width + 48);
+    ctx.fillStyle = visitor.id === me ? '#344b3d' : '#faf4e6';
+    ctx.beginPath();
+    ctx.roundRect((512 - width) / 2, 13, width, 70, 35);
+    ctx.fill();
+    ctx.fillStyle = visitor.id === me ? '#f9f4e9' : '#3c443c';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 256, 49, 450);
+    const texture = new T.CanvasTexture(c);
+    texture.colorSpace = T.SRGBColorSpace;
+    const sprite = new T.Sprite(
+      new T.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthTest: true,
+        depthWrite: false,
+      }),
+    );
+    sprite.scale.set(1.05, 0.197, 1);
+    sprite.position.y = appearanceOptions.characters.find(
+      (option) => option.id === character,
+    )!.labelHeight;
+    if (visitor.posture === 'rest') sprite.position.set(0, 0.69, -0.59);
+    sprite.userData.seatId = visitor.seatId;
+    anchor.add(sprite);
+    labels.set(visitor.seatId, { sprite, signature });
+  }
+  function update(t: number, reduced: boolean) {
+    const now = Date.now();
+    for (const [id, { sprite, event, height }] of reactions) {
+      if (now > event.expiresAt) {
+        clearReaction(id);
+        continue;
+      }
+      sprite.position.set(
+        0.15,
+        height +
+          (reduced ? 0 : Math.min(0.1, Math.max(0, (now - event.at) / 20000))),
+        0.05,
+      );
+      sprite.material.opacity = Math.min(1, (event.expiresAt - now) / 1400);
+    }
+    const occupied = new Map(current.map((v) => [v.seatId, v]));
+    const visibleSeats = seats
+      .filter(
+        (s) =>
+          occupied.has(s.id) &&
+          anchors.has(s.id) &&
+          isVisible(anchors.get(s.id)!),
+      )
+      .map((seat) => {
+        const anchor = anchors.get(seat.id)!;
+        anchor.updateWorldMatrix(true, false);
+        return {
+          seat,
+          anchor,
+          visitor: occupied.get(seat.id)!,
+          appearance: readAppearance(occupied.get(seat.id)!.appearance),
+        };
+      });
+    for (const { visitor } of visibleSeats) {
+      let state = states.get(visitor.id);
+      if (!state) {
+        state = { seed: visitorSeed(visitor.id), value: new T.Vector4() };
+        states.set(visitor.id, state);
+      }
+      sampleVisitorMotion(t, state.seed, reduced, state.value);
+      if (visitor.posture === 'rest')
+        state.value.set(
+          1,
+          0,
+          reduced ? 0 : Math.sin(t * 1.18 + (state.seed % 100)) * 0.0018,
+          0,
+        );
+      else if (visitor.gesture && !reduced) {
+        const age = (Date.now() - visitor.gesture.at) / 1000;
+        if (age >= 0 && age < 5.2)
+          state.value.w +=
+            Math.sin(age * Math.PI * 2.2) *
+            Math.sin((Math.PI * age) / 5.2) *
+            0.085;
+      }
+    }
+    for (const { mesh, part, slotIds, motion, rest } of meshes) {
+      slotIds.length = 0;
+      for (let i = 0; i < visibleSeats.length; i++) {
+        const { seat, anchor, appearance, visitor } = visibleSeats[i];
+        if (!partVisible(part, appearance)) continue;
+        const index = slotIds.length;
+        slotIds.push(seat.id);
+        local.copy(part.matrix);
+        // A single continuous sitting pose follows the seat; no disconnected shin/boot scaling.
+        transform.multiplyMatrices(anchor.matrixWorld, local);
+        mesh.setMatrixAt(index, transform);
+        const pose = states.get(visitor.id)!.value;
+        motion.setXYZW(index, pose.x, pose.y, pose.z, pose.w);
+        rest.setX(index, visitor.posture === 'rest' ? 1 : 0);
+        if (part.tint) mesh.setColorAt(index, tint.set(appearance[part.tint]));
+      }
+      mesh.count = slotIds.length;
+      mesh.instanceMatrix.needsUpdate = true;
+      motion.needsUpdate = true;
+      rest.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      mesh.visible = slotIds.length > 0;
+    }
+  }
+
+  return {
+    update,
+    hasVisibleVisitors: () =>
+      meshes.some(({ mesh }) => mesh.visible && mesh.count > 0),
+    setVisitors(visitors: Visitor[], ownId: string) {
+      current = visitors;
+      me = ownId;
+      const identities = new Set(visitors.map((v) => v.id));
+      for (const id of states.keys())
+        if (!identities.has(id)) states.delete(id);
+      const used = new Set(visitors.map((v) => v.seatId));
+      for (const s of seats.filter((s) => s.kind === 'bed')) {
+        const anchor = anchors.get(s.id);
+        if (!anchor) continue;
+        const person = visitors.find((v) => v.seatId === s.id);
+        anchor.position.fromArray(s.offset);
+        anchor.rotation.y = s.yaw;
+        if (person && person.posture !== 'rest') {
+          const side = Math.sign(s.offset[0]);
+          anchor.position.set(side * 1.19, 0.97, 0.34);
+          anchor.rotation.y = (side * Math.PI) / 2;
+        }
+      }
+      for (const [id, entry] of labels)
+        if (!used.has(id)) {
+          entry.sprite.material.map?.dispose();
+          entry.sprite.material.dispose();
+          entry.sprite.removeFromParent();
+          labels.delete(id);
+        }
+      visitors.forEach(label);
+      for (const id of reactions.keys())
+        if (!identities.has(id)) clearReaction(id);
+      for (const person of visitors)
+        if (person.gesture && person.gesture.expiresAt > Date.now()) {
+          showReaction(person, person.gesture);
+          const target = visitors.find(
+            (v) => v.id === person.gesture?.targetId,
+          );
+          if (target && target.posture !== 'rest')
+            showReaction(target, person.gesture);
+        }
+      for (const person of visitors)
+        if (person.posture === 'rest') clearReaction(person.id);
+      // Place the reading book on the armrest when its cushion is in use.
+      const reading = anchors.get('study-reading')?.parent;
+      const book = reading?.getObjectByName('Seat reading book');
+      if (book) {
+        book.position.set(
+          used.has('study-reading') ? 0.52 : 0.05,
+          used.has('study-reading') ? 0.935 : 0.83,
+          0.08,
+        );
+        book.rotation.z = used.has('study-reading') ? -0.04 : 0;
+      }
+      invalidate();
+    },
+    hover(id: string | null) {
+      if (id === hovered) return;
+      hovered = id;
+      highlight.removeFromParent();
+      highlight.visible = false;
+      const anchor = id ? anchors.get(id) : undefined;
+      if (anchor) {
+        anchor.add(highlight);
+        highlight.visible = true;
+      }
+    },
+    pick(hit: T.Intersection): string | null {
+      for (let o: T.Object3D | null = hit.object; o; o = o.parent) {
+        if (o.userData.visitorMesh && hit.instanceId !== undefined)
+          return o.userData.seatSlots[hit.instanceId] || null;
+        if (o.userData.seatId) return o.userData.seatId;
+        if (o.userData.seatIds)
+          return (o.userData.seatIds as string[]).reduce(
+            (best, id) => {
+              const distance = anchors
+                .get(id)!
+                .getWorldPosition(position)
+                .distanceToSquared(hit.point);
+              return distance < best.distance ? { id, distance } : best;
+            },
+            { id: '', distance: Infinity },
+          ).id;
+      }
+      return null;
+    },
+    dispose() {
+      disposed = true;
+      crowd.removeFromParent();
+      highlight.removeFromParent();
+      highlight.geometry.dispose();
+      highlight.material.dispose();
+      for (const { sprite } of labels.values()) {
+        sprite.material.map?.dispose();
+        sprite.material.dispose();
+        sprite.removeFromParent();
+      }
+      for (const { mesh } of meshes) {
+        const i = interactables.indexOf(mesh);
+        if (i >= 0) interactables.splice(i, 1);
+        mesh.dispose();
+        mesh.geometry.dispose();
+      }
+      ownedMaterials.forEach((material) => material.dispose());
+      pickingGeometries.forEach((geometry) => geometry.dispose());
+      for (const id of reactions.keys()) clearReaction(id);
+      releaseModel?.();
+    },
+  };
+}

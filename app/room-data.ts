@@ -42,7 +42,8 @@ export type Profile = {
 export const defaultProfile: Profile = {
   name: 'SATORI',
   subtitle: 'STUDIO',
-  about: '在这里，收藏创作、观察，以及日常的灵感。',
+  about:
+    '我可以帮你把任何想法变成产品。从一个模糊的念头，到设计、开发与落地，让灵感成为可以使用的真实作品。',
   projects: [
     {
       title: '静山之间',
@@ -70,6 +71,8 @@ export const defaultProfile: Profile = {
   photos: [],
 };
 export type RoomApi = {
+  setVisitors: (visitors: import('./seat-data').Visitor[], me: string) => void;
+  focusSeat: (id: string) => void;
   setView: (view: import('./house-data').HouseView) => void;
   setTelevision: (on: boolean, source?: string) => void;
   setComputerScreen: (element: HTMLElement | null) => void;
@@ -83,6 +86,6 @@ export type RoomApi = {
   setLamp: (value: boolean) => void;
   setMusic: (value: boolean) => void;
   setArtwork: (images: string[]) => void;
-  interact: (id: ObjectId) => void;
+  interact: (id: ObjectId, detail?: 'appearance') => void;
   dispose: () => void;
 };

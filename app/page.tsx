@@ -7,14 +7,13 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
   Expand,
-  Grid2X2,
   House,
   LampDesk,
-  TvMinimal,
   LoaderCircle,
   Minus,
   Music2,
@@ -25,6 +24,10 @@ import {
   UserRound,
   X,
   Download,
+  Pencil,
+  ArrowUp,
+  ArrowDown,
+  LocateFixed,
 } from 'lucide-react';
 import {
   Dialog,
@@ -54,6 +57,8 @@ import EnvironmentPicker from './environment-picker';
 import { times, weathers } from './environment-data';
 import { useLiveEnvironment } from './use-live-environment';
 import { useVisibleViewport } from './use-visible-viewport';
+import { readProfile, writeProfile } from './profile-storage';
+import VisitorSeats from './visitor-seats';
 type Modal =
   | 'computer'
   | 'wallArt'
@@ -66,7 +71,6 @@ type Modal =
   | 'help'
   | 'objects'
   | null;
-const storageKey = 'satori-studio-v1';
 const safeUrl = (s: string) => {
   try {
     const u = new URL(s);
@@ -109,6 +113,9 @@ function validProfile(value: unknown): value is Profile {
 export default function Home() {
   useVisibleViewport();
   const [view, setView] = useState<HouseView>('study');
+  const [seatPanel, setSeatPanel] = useState(false),
+    [seatSelected, setSeatSelected] = useState<string | null>(null),
+    [visitorCount, setVisitorCount] = useState(0);
   const live = useLiveEnvironment();
   const { environment, setEnvironment } = live;
   const [environmentOpen, setEnvironmentOpen] = useState(false);
@@ -127,6 +134,12 @@ export default function Home() {
     [project, setProject] = useState(0),
     [photo, setPhoto] = useState(0),
     [page, setPage] = useState(0);
+  const [projectsOnly, setProjectsOnly] = useState(false),
+    [editingProject, setEditingProject] = useState(0),
+    [saving, setSaving] = useState(false),
+    [quiet, setQuiet] = useState(false);
+  const quickAction = useRef<(id: ObjectId) => void>(() => {});
+  const editorSession = useRef(0);
   const [profile, setProfile] = useState<Profile>(defaultProfile),
     [draft, setDraft] = useState<Profile>(defaultProfile),
     [note, setNote] = useState(''),
@@ -149,9 +162,25 @@ export default function Home() {
         if (disposed || !host.current) return;
         try {
           api.current = createRoom(host.current, {
+            onSeatSelect: (id) => {
+              setSelected(null);
+              setModal(null);
+              setSeatSelected(id);
+              setSeatPanel(true);
+            },
             onSelect: (id) => {
               setSelected(id === 'computer' ? null : id);
               if (id === 'computer') setModal('computer');
+              if (
+                id &&
+                [
+                  'livingSpeakers',
+                  'livingRemote',
+                  'livingCup',
+                  'bedroomClock',
+                ].includes(id)
+              )
+                quickAction.current(id);
             },
             onView: setView,
             onHover: (id, x, y) => setHover(id ? { id, x, y } : null),
@@ -172,15 +201,19 @@ export default function Home() {
   }, []);
   useEffect(() => {
     let active = true;
-    queueMicrotask(() => {
+    void (async () => {
       if (!active) return;
       try {
-        const stored = localStorage.getItem(storageKey);
-        if (stored) {
-          const p = JSON.parse(stored);
+        const p = await readProfile();
+        if (!active) return;
+        if (p) {
           if (validProfile(p))
             setProfile({
               ...p,
+              about:
+                p.about === '在这里，收藏创作、观察，以及日常的灵感。'
+                  ? defaultProfile.about
+                  : p.about,
               subtitle: /^personal\s+studio$/i.test(p.subtitle.trim())
                 ? 'STUDIO'
                 : p.subtitle,
@@ -193,11 +226,32 @@ export default function Home() {
       } catch {
         notify('无法读取本地内容，已打开默认布置。');
       }
-    });
+    })();
     return () => {
       active = false;
     };
   }, [notify]);
+  useEffect(() => {
+    if (!ready || modal || selected || environmentOpen || seatPanel) return;
+    let active = true;
+    let timeout: ReturnType<typeof setTimeout>;
+    const wake = () => {
+      setQuiet(false);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setQuiet(true), 5500);
+    };
+    queueMicrotask(() => {
+      if (active) wake();
+    });
+    for (const event of ['pointermove', 'pointerdown', 'keydown', 'focusin'])
+      window.addEventListener(event, wake, { passive: true });
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+      for (const event of ['pointermove', 'pointerdown', 'keydown', 'focusin'])
+        window.removeEventListener(event, wake);
+    };
+  }, [ready, modal, selected, environmentOpen, view, seatPanel]);
   useEffect(() => {
     api.current?.setEnvironment(environment);
   }, [environment, ready]);
@@ -310,7 +364,8 @@ export default function Home() {
       setModal('wallArt');
       return;
     }
-    if (id === 'television') {
+    if (id === 'television' || id === 'livingRemote') {
+      if (id === 'livingRemote') api.current?.focus('television');
       setSelected(null);
       setModal('tv');
       return;
@@ -336,7 +391,7 @@ export default function Home() {
       setEnvironmentOpen(true);
       return;
     }
-    if (id === 'record') {
+    if (id === 'record' || id === 'livingSpeakers') {
       void toggleMusic();
       return;
     }
@@ -348,24 +403,61 @@ export default function Home() {
     if (id === 'plant' || id === 'deskPlant' || id === 'shelfPlant')
       notify('给绿意一点水。');
     if (id === 'coffee') notify('咖啡好了。');
+    if (id === 'cafeEspresso') notify('正在萃取，稍候片刻。');
+    if (id === 'cafePourOver') notify('慢慢注水，让香气展开。');
   };
+  useEffect(() => {
+    quickAction.current = action;
+  });
   const openEditor = () => {
+    editorSession.current++;
+    setProjectsOnly(false);
+    setEditingProject(0);
     setDraft(structuredClone(profile));
     setModal('settings');
   };
-  const save = () => {
+  const editProjects = () => {
+    editorSession.current++;
+    setProjectsOnly(true);
+    setEditingProject(project);
+    setDraft(structuredClone(profile));
+    setModal('settings');
+  };
+  const moveProject = (from: number, to: number) => {
+    setDraft((previous) => {
+      const projects = [...previous.projects];
+      [projects[from], projects[to]] = [projects[to], projects[from]];
+      return { ...previous, projects };
+    });
+    setEditingProject(to);
+  };
+  const save = async () => {
+    if (saving || savingImage) return;
     if (!draft.name.trim()) {
       notify('请填写展示名称。');
       return;
     }
+    if (draft.projects.some((p) => !p.title.trim())) {
+      notify('请为每件作品填写名称。');
+      return;
+    }
+    if (draft.projects.some((p) => p.url.trim() && !safeUrl(p.url.trim()))) {
+      notify('作品链接需以 https:// 或 http:// 开头。');
+      return;
+    }
+    setSaving(true);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(draft));
+      await writeProfile(draft);
       setProfile(structuredClone(draft));
-      setProject(0);
-      setModal(null);
+      setProject(
+        Math.max(0, Math.min(editingProject, draft.projects.length - 1)),
+      );
+      setModal(projectsOnly ? 'works' : null);
       notify('已保存到本机。');
     } catch {
       notify('本地空间不足，请减少图片后再保存。');
+    } finally {
+      setSaving(false);
     }
   };
   const upload = async (file: File | undefined, index: number | null) => {
@@ -379,17 +471,24 @@ export default function Home() {
       return;
     }
     setSavingImage(true);
+    const session = editorSession.current;
     try {
       const bitmap = await createImageBitmap(file),
         canvas = document.createElement('canvas'),
         ratio = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height));
       canvas.width = Math.round(bitmap.width * ratio);
       canvas.height = Math.round(bitmap.height * ratio);
-      canvas
-        .getContext('2d')!
-        .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const context = canvas.getContext('2d')!;
+      context.fillStyle = '#eee8da';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
-      const image = canvas.toDataURL('image/jpeg', 0.82);
+      let image = canvas.toDataURL('image/webp', 0.82);
+      for (const quality of [0.7, 0.56, 0.42]) {
+        if (image.length <= 340 * 1024) break;
+        image = canvas.toDataURL('image/webp', quality);
+      }
+      if (session !== editorSession.current) return;
       setDraft((p) =>
         index === null
           ? { ...p, photos: [...p.photos, image].slice(0, 6) }
@@ -442,7 +541,7 @@ export default function Home() {
     profile.projects[Math.min(project, profile.projects.length - 1)];
   return (
     <main
-      className={`studio ${night ? 'night' : ''} ${selected ? 'focused' : ''}`}
+      className={`studio ${night ? 'night' : ''} ${selected ? 'focused' : ''} ${quiet && ready && !modal && !selected && !environmentOpen && !seatPanel ? 'quiet' : ''}`}
     >
       <div ref={host} className="scene" />
       <div className="viewport-ui">
@@ -480,26 +579,6 @@ export default function Home() {
             </button>
           </div>
         </header>
-        <nav className="room-navigation" aria-label="房间切换">
-          {(Object.keys(rooms) as RoomId[]).map((id) => (
-            <button
-              key={id}
-              aria-pressed={view === id}
-              onClick={() => visit(id)}
-            >
-              {rooms[id].name}
-            </button>
-          ))}
-          <i />
-          <button
-            aria-label="房屋俯瞰图"
-            aria-pressed={view === 'plan'}
-            onClick={() => visit('plan')}
-          >
-            <Grid2X2 size={14} />
-            <span>俯瞰</span>
-          </button>
-        </nav>
         {!ready && (
           <output className="loading">
             {error ? (
@@ -555,33 +634,29 @@ export default function Home() {
                 ? lamp
                   ? '关灯'
                   : '开灯'
-                : selected === 'record'
+                : selected === 'record' || selected === 'livingSpeakers'
                   ? music
-                    ? '暂停唱片'
-                    : '播放唱片'
+                    ? '暂停音乐'
+                    : '播放音乐'
                   : objects[selected].action}
               <ArrowUpRight size={16} />
             </button>
+            {selected === 'controller' && (
+              <button
+                className="text-button"
+                onClick={() =>
+                  api.current?.interact('controller', 'appearance')
+                }
+              >
+                更换手柄配色
+              </button>
+            )}
             <button className="return-link" onClick={reset}>
               <ArrowLeft size={12} />
               返回全景
             </button>
           </aside>
         )}
-        <div className="room-caption">
-          <span>
-            {view === 'overview' || view === 'plan'
-              ? 'SATORI / THE HOUSE'
-              : `${rooms[view].number} / ${rooms[view].english}`}
-          </span>
-          <p>
-            {view === 'plan'
-              ? '四间屋，一种生活。'
-              : view === 'overview'
-                ? '一所屋，关于我。'
-                : rooms[view].name}
-          </p>
-        </div>
         <div className="view-tools">
           <button
             className="icon-button"
@@ -612,25 +687,45 @@ export default function Home() {
           </button>
         </div>
         <footer className="bottom-bar">
-          <div className="interaction-hint">
-            拖动环顾<span>·</span>点击物件
-          </div>
           <nav className="dock" aria-label="工作室导航">
-            <button
-              className={view === 'overview' ? 'active' : ''}
-              onClick={() => visit('overview')}
-              aria-label="整屋全景"
-            >
-              <House size={17} />
-              <span>整屋</span>
-            </button>
-            <button onClick={() => setModal('works')}>
-              <Grid2X2 size={16} />
-              <span>作品</span>
-            </button>
-            <button onClick={() => setModal('about')}>
+            <label className="room-select">
+              <House size={17} aria-hidden="true" />
+              <select
+                aria-label="房间与视角"
+                value={view}
+                onChange={(e) => visit(e.target.value as HouseView)}
+              >
+                <optgroup label="房间">
+                  {(Object.keys(rooms) as RoomId[]).map((id) => (
+                    <option key={id} value={id}>
+                      {rooms[id].name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="整屋">
+                  <option value="overview">整屋全景</option>
+                  <option value="plan">房屋俯瞰图</option>
+                </optgroup>
+              </select>
+              <ChevronDown size={13} aria-hidden="true" />
+            </label>
+            <button aria-label="关于" onClick={() => setModal('about')}>
               <UserRound size={16} />
               <span>关于</span>
+            </button>
+            <button
+              aria-label="定位角色"
+              onClick={() => {
+                setSelected(null);
+                setSeatSelected(null);
+                setSeatPanel(true);
+              }}
+            >
+              <LocateFixed size={17} />
+              <span>定位</span>
+              {visitorCount > 0 && (
+                <small className="visitor-count">{visitorCount}</small>
+              )}
             </button>
             <i />
             <button
@@ -641,18 +736,6 @@ export default function Home() {
             >
               <LampDesk size={18} />
             </button>
-            {view === 'living' && (
-              <button
-                aria-label="电视遥控器"
-                onClick={() => {
-                  api.current?.focus('television');
-                  setSelected(null);
-                  setModal('tv');
-                }}
-              >
-                <TvMinimal size={18} />
-              </button>
-            )}
             <button
               className={music ? 'lit' : ''}
               onClick={toggleMusic}
@@ -679,6 +762,19 @@ export default function Home() {
           </output>
         )}
       </div>
+      <VisitorSeats
+        api={api}
+        ready={ready}
+        open={seatPanel}
+        selected={seatSelected}
+        view={view}
+        onClose={() => setSeatPanel(false)}
+        onChoose={(id) => {
+          setSeatSelected(id || null);
+          if (id) api.current?.focusSeat(id);
+        }}
+        onCount={setVisitorCount}
+      />
       {ready && (
         <Television
           open={modal === 'tv'}
@@ -734,7 +830,7 @@ export default function Home() {
                   about: '关于我',
                   photos: '镜头里的日常',
                   book: '灵感手记',
-                  settings: '布置你的工作室',
+                  settings: projectsOnly ? '编辑我的作品' : '布置你的工作室',
                   help: '随意探索',
                   objects: '屋内物件',
                 } as Record<string, string>
@@ -767,17 +863,26 @@ export default function Home() {
                 <span className="studio-kicker">{current.category}</span>
                 <h2>{current.title}</h2>
                 <p>{current.description}</p>
-                {safeUrl(current.url) && (
-                  <a
-                    className="dark-button"
-                    href={safeUrl(current.url)}
-                    target="_blank"
-                    rel="noreferrer"
+                <div className="project-actions">
+                  <button
+                    className="text-button edit-work"
+                    onClick={editProjects}
                   >
-                    打开作品
-                    <ArrowUpRight size={16} />
-                  </a>
-                )}
+                    <Pencil size={14} />
+                    编辑作品
+                  </button>
+                  {safeUrl(current.url) && (
+                    <a
+                      className="dark-button"
+                      href={safeUrl(current.url)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      打开作品
+                      <ArrowUpRight size={16} />
+                    </a>
+                  )}
+                </div>
                 <div className="project-pagination">
                   <button
                     className="icon-button"
@@ -946,7 +1051,7 @@ export default function Home() {
           {modal === 'help' && (
             <div className="help-content">
               <p>
-                顶部切换房间，底部「整屋」查看四间房，或点击「俯瞰」看平面布局。拖动空白处环顾，滚轮或双指缩放。
+                底部菜单切换房间或整屋全景，选择「房屋俯瞰图」查看完整平面布局。拖动空白处环顾，滚轮或双指缩放。
               </p>
               <p>
                 点击物件靠近，再使用物件卡上的按钮：打开抽屉、转动雕塑、浇水、换布料，或浏览作品。
@@ -963,219 +1068,263 @@ export default function Home() {
           )}
           {modal === 'settings' && (
             <div className="editor">
-              <div className="editor-fields">
-                <label>
-                  展示名称
-                  <input
-                    value={draft.name}
-                    maxLength={50}
-                    onChange={(e) =>
-                      setDraft({ ...draft, name: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  一句短标题
-                  <input
-                    value={draft.subtitle}
-                    maxLength={80}
-                    onChange={(e) =>
-                      setDraft({ ...draft, subtitle: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  关于你
-                  <textarea
-                    value={draft.about}
-                    maxLength={3000}
-                    onChange={(e) =>
-                      setDraft({ ...draft, about: e.target.value })
-                    }
-                  />
-                </label>
-              </div>
-              <div className="editor-section-title">
-                作品集<small>原创示例可替换；前三件同步作品墙</small>
-              </div>
-              {draft.projects.map((p, i) => (
-                <details key={i} className="project-editor" open={i === 0}>
-                  <summary>
-                    <span>{String(i + 1).padStart(2, '0')}</span>
-                    {p.title || '未命名作品'}
-                  </summary>
+              <fieldset
+                className="editor-body"
+                disabled={savingImage || saving}
+              >
+                {!projectsOnly && (
                   <div className="editor-fields">
                     <label>
-                      作品名称
+                      展示名称
                       <input
-                        value={p.title}
-                        maxLength={100}
+                        value={draft.name}
+                        maxLength={50}
                         onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            projects: draft.projects.map((p, j) =>
-                              j === i ? { ...p, title: e.target.value } : p,
-                            ),
-                          })
+                          setDraft({ ...draft, name: e.target.value })
                         }
                       />
                     </label>
                     <label>
-                      分类
+                      一句短标题
                       <input
-                        value={p.category}
+                        value={draft.subtitle}
                         maxLength={80}
                         onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            projects: draft.projects.map((p, j) =>
-                              j === i ? { ...p, category: e.target.value } : p,
-                            ),
-                          })
+                          setDraft({ ...draft, subtitle: e.target.value })
                         }
                       />
                     </label>
                     <label>
-                      说明
+                      关于你
                       <textarea
-                        value={p.description}
+                        value={draft.about}
                         maxLength={3000}
                         onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            projects: draft.projects.map((p, j) =>
-                              j === i
-                                ? { ...p, description: e.target.value }
-                                : p,
-                            ),
-                          })
+                          setDraft({ ...draft, about: e.target.value })
                         }
                       />
                     </label>
-                    <label>
-                      作品链接
-                      <input
-                        type="url"
-                        placeholder="https://"
-                        value={p.url}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            projects: draft.projects.map((p, j) =>
-                              j === i ? { ...p, url: e.target.value } : p,
-                            ),
-                          })
-                        }
-                      />
-                    </label>
-                    <div className="image-field">
-                      <div className="mini-art">
-                        <StudioArt index={i} image={p.image} />
-                      </div>
-                      <label className="upload-button">
-                        <Upload size={15} />
-                        {p.image ? '替换封面' : '上传封面'}
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          disabled={savingImage}
-                          onChange={(e) => {
-                            void upload(e.target.files?.[0], i);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-                      {p.image && (
+                  </div>
+                )}
+                <div className="editor-section-title">
+                  作品集<small>前三件同步书房作品墙 · 封面自动压缩</small>
+                </div>
+                {draft.projects.map((p, i) => (
+                  <details
+                    key={i}
+                    className="project-editor"
+                    open={i === editingProject}
+                  >
+                    <summary
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setEditingProject(editingProject === i ? -1 : i);
+                      }}
+                    >
+                      <span>{String(i + 1).padStart(2, '0')}</span>
+                      {p.title || '未命名作品'}
+                    </summary>
+                    <div className="editor-fields">
+                      <div className="project-order">
                         <button
-                          className="text-button"
-                          onClick={() =>
+                          className="icon-button"
+                          aria-label={`上移作品 ${i + 1}`}
+                          disabled={i === 0}
+                          onClick={() => moveProject(i, i - 1)}
+                        >
+                          <ArrowUp size={16} />
+                        </button>
+                        <button
+                          className="icon-button"
+                          aria-label={`下移作品 ${i + 1}`}
+                          disabled={i === draft.projects.length - 1}
+                          onClick={() => moveProject(i, i + 1)}
+                        >
+                          <ArrowDown size={16} />
+                        </button>
+                      </div>
+                      <label>
+                        作品名称
+                        <input
+                          value={p.title}
+                          maxLength={100}
+                          onChange={(e) =>
                             setDraft({
                               ...draft,
                               projects: draft.projects.map((p, j) =>
-                                j === i ? { ...p, image: '' } : p,
+                                j === i ? { ...p, title: e.target.value } : p,
                               ),
                             })
                           }
+                        />
+                      </label>
+                      <label>
+                        分类
+                        <input
+                          value={p.category}
+                          maxLength={80}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              projects: draft.projects.map((p, j) =>
+                                j === i
+                                  ? { ...p, category: e.target.value }
+                                  : p,
+                              ),
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        说明
+                        <textarea
+                          value={p.description}
+                          maxLength={3000}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              projects: draft.projects.map((p, j) =>
+                                j === i
+                                  ? { ...p, description: e.target.value }
+                                  : p,
+                              ),
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        作品链接
+                        <input
+                          type="url"
+                          placeholder="https://"
+                          value={p.url}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              projects: draft.projects.map((p, j) =>
+                                j === i ? { ...p, url: e.target.value } : p,
+                              ),
+                            })
+                          }
+                        />
+                      </label>
+                      <div className="image-field">
+                        <div className="mini-art">
+                          <StudioArt index={i} image={p.image} />
+                        </div>
+                        <label className="upload-button">
+                          <Upload size={15} />
+                          {p.image ? '替换封面' : '上传封面'}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            disabled={savingImage}
+                            onChange={(e) => {
+                              void upload(e.target.files?.[0], i);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                        {p.image && (
+                          <button
+                            className="text-button"
+                            onClick={() =>
+                              setDraft({
+                                ...draft,
+                                projects: draft.projects.map((p, j) =>
+                                  j === i ? { ...p, image: '' } : p,
+                                ),
+                              })
+                            }
+                          >
+                            还原
+                          </button>
+                        )}
+                      </div>
+                      {draft.projects.length > 1 && (
+                        <button
+                          className="text-button remove-project"
+                          onClick={() => {
+                            setDraft({
+                              ...draft,
+                              projects: draft.projects.filter(
+                                (_, j) => j !== i,
+                              ),
+                            });
+                            setEditingProject(Math.max(0, i - 1));
+                          }}
                         >
-                          还原
+                          移除这件作品
                         </button>
                       )}
                     </div>
-                    {draft.projects.length > 1 && (
-                      <button
-                        className="text-button remove-project"
-                        onClick={() =>
-                          setDraft({
-                            ...draft,
-                            projects: draft.projects.filter((_, j) => j !== i),
-                          })
-                        }
-                      >
-                        移除这件作品
-                      </button>
-                    )}
-                  </div>
-                </details>
-              ))}
-              {draft.projects.length < 12 && (
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    setDraft({
-                      ...draft,
-                      projects: [
-                        ...draft.projects,
-                        {
-                          title: '新作品',
-                          category: 'SELECTED WORK',
-                          description: '',
-                          url: '',
-                          image: '',
-                        },
-                      ],
-                    })
-                  }
-                >
-                  <Plus size={15} />
-                  添加作品
-                </button>
-              )}
-              <div className="editor-section-title">
-                相机收藏<small>最多 6 张</small>
-              </div>
-              <div className="photo-editor">
-                {draft.photos.map((src, i) => (
-                  <div key={i}>
-                    <img src={src} alt={`收藏 ${i + 1}`} />
-                    <button
-                      aria-label={`移除收藏 ${i + 1}`}
-                      onClick={() =>
-                        setDraft({
-                          ...draft,
-                          photos: draft.photos.filter((_, j) => j !== i),
-                        })
-                      }
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
+                  </details>
                 ))}
-                {draft.photos.length < 6 && (
-                  <label className="upload-button">
-                    <Plus size={18} />
-                    添加照片
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      disabled={savingImage}
-                      onChange={(e) => {
-                        void upload(e.target.files?.[0], null);
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
+                {draft.projects.length < 12 && (
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      setEditingProject(draft.projects.length);
+                      setDraft({
+                        ...draft,
+                        projects: [
+                          ...draft.projects,
+                          {
+                            title: '新作品',
+                            category: 'SELECTED WORK',
+                            description: '',
+                            url: '',
+                            image: '',
+                          },
+                        ],
+                      });
+                    }}
+                  >
+                    <Plus size={15} />
+                    添加作品
+                  </button>
                 )}
-              </div>
+                {!projectsOnly && (
+                  <>
+                    <div className="editor-section-title">
+                      相机收藏<small>最多 6 张</small>
+                    </div>
+                    <div className="photo-editor">
+                      {draft.photos.map((src, i) => (
+                        <div key={i}>
+                          <img src={src} alt={`收藏 ${i + 1}`} />
+                          <button
+                            aria-label={`移除收藏 ${i + 1}`}
+                            onClick={() =>
+                              setDraft({
+                                ...draft,
+                                photos: draft.photos.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      {draft.photos.length < 6 && (
+                        <label className="upload-button">
+                          <Plus size={18} />
+                          添加照片
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            disabled={savingImage}
+                            onChange={(e) => {
+                              void upload(e.target.files?.[0], null);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </>
+                )}
+              </fieldset>
               <div className="editor-footer">
                 <div>
                   <button
@@ -1204,10 +1353,16 @@ export default function Home() {
                 </div>
                 <button
                   className="dark-button"
-                  onClick={save}
-                  disabled={savingImage}
+                  onClick={() => void save()}
+                  disabled={savingImage || saving}
                 >
-                  {savingImage ? '处理图片…' : '保存布置'}
+                  {savingImage
+                    ? '处理图片…'
+                    : saving
+                      ? '保存中…'
+                      : projectsOnly
+                        ? '保存作品'
+                        : '保存布置'}
                   <Check size={15} />
                 </button>
               </div>

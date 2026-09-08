@@ -1,8 +1,17 @@
 import { createHouseLandscape, windowViews } from './house-landscape';
 import { addWindowCraft } from './window-craft';
 import { televisionScreen } from './television-screen';
+import { createWallCutaways } from './wall-cutaway';
+import { attachSeats, createSeatScene, type SeatAnchors } from './seat-scene';
+import { seatById, seats } from './seat-data';
 import { buildHouse } from './house-rooms';
-import { rooms, roomForObject, type HouseView } from './house-data';
+import {
+  rooms,
+  roomAt,
+  houseBounds,
+  roomForObject,
+  type HouseView,
+} from './house-data';
 import type { Environment } from './environment-data';
 import { createWindowEnvironment, environmentLight } from './room-environment';
 import * as T from 'three';
@@ -19,6 +28,7 @@ import {
 import { localPbr } from './room-materials';
 
 type Options = {
+  onSeatSelect: (id: string) => void;
   onSelect: (id: ObjectId | null) => void;
   onHover: (id: ObjectId | null, x: number, y: number) => void;
   onReady: () => void;
@@ -58,14 +68,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   controls.maxDistance = 65;
   controls.minPolarAngle = Math.PI / 9;
   controls.maxPolarAngle = Math.PI / 2.15;
-  controls.minAzimuthAngle = -Math.PI / 2.4;
-  controls.maxAzimuthAngle = Math.PI / 2.1;
+  controls.minAzimuthAngle = -Infinity;
+  controls.maxAzimuthAngle = Infinity;
   controls.rotateSpeed = 0.6;
   controls.zoomSpeed = 0.65;
   const root = new T.Group();
   scene.add(root);
   const groups = new Map<ObjectId, T.Group>();
   const interactables: T.Object3D[] = [];
+  const seatAnchors: SeatAnchors = new Map();
   function group(id: ObjectId, x = 0, y = 0, z = 0) {
     const g = new T.Group();
     g.position.set(x, y, z);
@@ -527,6 +538,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     }
   // Sofa: feet, load-bearing rails, individually upholstered cushions, piping and soft throw.
   const bed = placed('bed');
+  attachSeats(seatAnchors, bed, ['study-sofa-1', 'study-sofa-2']);
   const bedding = textile('#929e7f'),
     seam = mat('#657454');
   for (const x of [-1.28, 1.28])
@@ -811,6 +823,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   box(pc, 0.035, 0.055, 0.003, 0.47, 0.38, -0.115, brass, 0.003);
   sphere(pc, 0.09, 0.56, 0.065, 0.46, cream, 0.7, 0.32, 1.2);
   const stool = placed('stool');
+  attachSeats(seatAnchors, stool, ['study-work']);
   const workSeat = textile('#79856c');
   for (const x of [-0.29, 0.29])
     for (const z of [-0.28, 0.28]) {
@@ -1004,6 +1017,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       0.6,
     );
   const chair = placed('chair');
+  attachSeats(seatAnchors, chair, ['study-reading']);
   const chairMat = mat('#dcaf86', 0.88);
   Object.assign(chairMat, leatherMaps);
   chairMat.normalScale.set(0.4, 0.4);
@@ -1085,6 +1099,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     mat('#d6ba7e'),
   );
   readingBook.rotation.y = -0.16;
+  readingBook.name = 'Seat reading book';
   const shelf = placed('shelf');
   for (const x of [-1.06, 1.06])
     for (const z of [-0.22, 0.22])
@@ -1749,7 +1764,22 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     patch.rotation.set(-Math.PI / 2, 0, -item.yaw);
     patch.castShadow = false;
   }
+  const cutaways = createWallCutaways();
+  const studyWest = new T.Group(),
+    studyNorth = new T.Group();
+  for (const child of wall.children.slice())
+    (child.position.x < -3.6 ? studyWest : studyNorth).add(child);
+  wall.add(studyWest, studyNorth);
+  cutaways.add([studyWest, frame], { x: -3.91, z: 0, nx: 1, nz: 0 }, ['study']);
+  cutaways.add([studyNorth, win], { x: 0, z: -3.31, nx: 0, nz: 1 }, ['study']);
+  const houseCenter = new T.Vector3(
+    (houseBounds.minX + houseBounds.maxX) / 2,
+    0,
+    (houseBounds.minZ + houseBounds.maxZ) / 2,
+  );
   const house = buildHouse({
+    seats: seatAnchors,
+    cutaways,
     landscape,
     onModelReady: () => refreshShadows(),
     scene,
@@ -1768,6 +1798,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     textile,
   });
   house.setView('study');
+  if (seatAnchors.size !== seats.length)
+    throw new Error('座位模型与座位目录不一致');
+  const visitors = createSeatScene(scene, seatAnchors, interactables, () =>
+    refreshShadows(),
+  );
   const tvScreen = televisionScreen(host, house.screen);
   const computerScreen = televisionScreen(host, computerPanel, {
     width: 1.13,
@@ -1806,9 +1841,13 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       return true;
     });
     if (!hit) return null;
+    const seatId = visitors.pick(hit);
+    if (seatId) return { seatId, id: null };
     let o: T.Object3D | null = hit.object;
     while (o && !o.userData.id) o = o.parent;
-    return (o?.userData.id as ObjectId) || null;
+    return o?.userData.id
+      ? { id: o.userData.id as ObjectId, seatId: null }
+      : null;
   };
   const pointerDown = (e: PointerEvent) => {
     if ((e.target as HTMLElement).closest('.tv-native-screen')) return;
@@ -1818,11 +1857,13 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     downY = e.clientY;
   };
   const pointerMove = (e: PointerEvent) => {
-    const id = pick(e);
-    host.style.cursor = id ? 'pointer' : 'grab';
-    options.onHover(id, e.clientX, e.clientY);
+    const hit = pick(e);
+    host.style.cursor = hit ? 'pointer' : 'grab';
+    visitors.hover(hit?.seatId || null);
+    options.onHover(hit?.id || null, e.clientX, e.clientY);
   };
   const pointerLeave = () => {
+    visitors.hover(null);
     options.onHover(null, 0, 0);
   };
   const pointerCancel = () => {
@@ -1851,30 +1892,20 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         new T.Plane(new T.Vector3(0, 1, 0), -0.08),
         new T.Vector3(),
       );
-      if (
-        point &&
-        point.x >= -4 &&
-        point.x <= 12 &&
-        point.z >= -3.4 &&
-        point.z <= 10.2
-      ) {
-        api.setView(
-          point.z < 3.4
-            ? point.x < 4
-              ? 'study'
-              : 'living'
-            : point.x < 4
-              ? 'bedroom'
-              : 'gallery',
-        );
+      const hitRoom = point ? roomAt(point.x, point.z) : undefined;
+      if (hitRoom) {
+        api.setView(hitRoom);
         options.onSelect(null);
       }
       return;
     }
-    const id = pick(e);
-    if (id) {
-      api.focus(id);
-      options.onSelect(id);
+    const hit = pick(e);
+    if (hit?.seatId) {
+      api.focusSeat(hit.seatId);
+      options.onSeatSelect(hit.seatId);
+    } else if (hit?.id) {
+      api.focus(hit.id);
+      options.onSelect(hit.id);
     }
   };
   host.addEventListener('pointerdown', pointerDown);
@@ -1889,7 +1920,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     targetTo: T.Vector3;
     start: number;
   } | null = null;
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = motionPreference.matches;
   function moveTo(to: T.Vector3, look: T.Vector3) {
     if (reduced) {
       camera.position.copy(to);
@@ -1965,6 +1997,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     );
     camera.updateProjectionMatrix();
     if (focusedObject === 'television') frameTelevision();
+    if (activeView === 'plan') queueMicrotask(() => api.setView('plan'));
   };
   const observer = new ResizeObserver(resize);
   observer.observe(host);
@@ -1997,7 +2030,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       if (p === 1) tween = null;
     }
     // Static views reuse the shadow map; animated furniture and lighting refresh it at 20 Hz.
-    if (now - lastShadow > (now < shadowsUntil ? 50 : 400)) {
+    if (now - lastShadow > (now < shadowsUntil || (!motionPreference.matches && visitors.hasVisibleVisitors()) ? 50 : 400)) {
       renderer.shadowMap.needsUpdate = true;
       lastShadow = now;
     }
@@ -2013,7 +2046,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     sun.intensity = T.MathUtils.lerp(sun.intensity, lightTarget.power, a);
     const centre =
       activeView === 'overview' || activeView === 'plan'
-        ? new T.Vector3(4, 0, 3.4)
+        ? houseCenter.clone()
         : new T.Vector3(rooms[activeView].x, 0, rooms[activeView].z);
     sun.target.position.lerp(centre, a);
     sun.position.lerp(lightTarget.position.clone().add(centre), a);
@@ -2026,7 +2059,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       a,
     );
     windowEnvironment.update(t, dt, reduced, camera);
-    house.update(t, dt, reduced, night, camera.position.x, camera);
+    house.update(t, dt, reduced, night, camera);
+    visitors.update(t, motionPreference.matches);
+    if (cutaways.update(activeView, camera.position)) refreshShadows();
     lampLight.intensity = T.MathUtils.lerp(
       lampLight.intensity,
       masterLight && lit ? (night ? 12 : 5) : 0,
@@ -2087,6 +2122,25 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     renderer.render(scene, camera);
   }
   const api: RoomApi = {
+    setVisitors: (people, me) => visitors.setVisitors(people, me),
+    focusSeat(id) {
+      const seat = seatById.get(id),
+        anchor = seatAnchors.get(id);
+      if (!seat || !anchor) return;
+      if (activeView !== seat.room) api.setView(seat.room);
+      focusedObject = null;
+      if (id === 'study-work') chairPulled = true;
+      house.setSeatFocus();
+      anchor.updateWorldMatrix(true, false);
+      const center = anchor
+        .getWorldPosition(new T.Vector3())
+        .add(new T.Vector3(0, 0.55, 0));
+      const angle = anchor.getWorldQuaternion(new T.Quaternion());
+      const offset = new T.Vector3(2.4, 1.8, 4.4).applyQuaternion(angle);
+      controls.minDistance = 1.2;
+      moveTo(center.clone().add(offset), center);
+      refreshShadows();
+    },
     setView(view) {
       refreshShadows();
       activeView = view;
@@ -2097,20 +2151,48 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       controls.minPolarAngle = view === 'plan' ? 0.001 : Math.PI / 9;
       controls.maxPolarAngle = view === 'plan' ? 0.001 : Math.PI / 2.15;
       controls.enableRotate = view !== 'plan';
-      controls.minAzimuthAngle = view === 'plan' ? -Infinity : -Math.PI / 2.4;
-      controls.maxAzimuthAngle = view === 'plan' ? Infinity : Math.PI / 2.1;
+      controls.minAzimuthAngle = -Infinity;
+      controls.maxAzimuthAngle = Infinity;
       controls.minDistance = all ? 18 : 5;
-      sun.shadow.camera.left = sun.shadow.camera.bottom = all ? -16 : -8;
-      sun.shadow.camera.right = sun.shadow.camera.top = all ? 16 : 8;
+      sun.shadow.camera.left = sun.shadow.camera.bottom = all
+        ? -23
+        : view === 'cafe'
+          ? -13
+          : -8;
+      sun.shadow.camera.right = sun.shadow.camera.top = all
+        ? 23
+        : view === 'cafe'
+          ? 13
+          : 8;
       sun.shadow.camera.updateProjectionMatrix();
-      if (view === 'plan')
-        moveTo(new T.Vector3(4, 32, 3.432), new T.Vector3(4, 0, 3.4));
-      else if (view === 'overview')
-        moveTo(new T.Vector3(20, 29, 26), new T.Vector3(4, 1, 3.4));
+      if (view === 'plan') {
+        const height =
+          (houseBounds.maxZ - houseBounds.minZ + 8.5) /
+          (2 * Math.tan(T.MathUtils.degToRad(camera.fov / 2)));
+        const width =
+          (houseBounds.maxX - houseBounds.minX + 2) /
+          (2 * Math.tan(T.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+        moveTo(
+          houseCenter
+            .clone()
+            .add(new T.Vector3(0, Math.max(height, width), 0.04)),
+          houseCenter.clone(),
+        );
+      } else if (view === 'overview')
+        moveTo(
+          houseCenter.clone().add(new T.Vector3(22, 33, 30)),
+          houseCenter.clone().add(new T.Vector3(0, 1, 0)),
+        );
       else {
         const offset = new T.Vector3(rooms[view].x, 0, rooms[view].z);
         const vantage =
-          view === 'bedroom' ? new T.Vector3(2, 9.2, 15.5) : initial.clone();
+          view === 'cafe'
+            ? new T.Vector3(10, 12, 21)
+            : view === 'bedroom'
+              ? new T.Vector3(2, 9.2, 15.5)
+              : initial.clone();
+
+        if (view === 'cafe' && camera.aspect < 1) vantage.multiplyScalar(1.12);
         moveTo(vantage.add(offset), target.clone().add(offset));
       }
     },
@@ -2147,6 +2229,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       const g = groups.get(id);
       if (!g) return;
       focusedObject = id;
+      house.setFocus(id);
       if (id === 'floor' || id === 'wall') {
         this.reset();
         return;
@@ -2186,23 +2269,52 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         return;
       }
       controls.maxPolarAngle = Math.PI / 2.15;
+      const smallDetail = [
+        'livingCup',
+        'livingRemote',
+        'bedroomClock',
+        'controller',
+      ].includes(id);
+      controls.minDistance = smallDetail ? 0.7 : 2.4;
       const bounds = new T.Box3().setFromObject(g);
       const center = bounds.getCenter(new T.Vector3());
+      if (smallDetail)
+        g.getWorldPosition(center).add(
+          new T.Vector3(
+            0,
+            id === 'bedroomClock' ? 0.21 : id === 'livingCup' ? 0.12 : 0.025,
+            0,
+          ),
+        );
       const dir = (
-        id === 'livingWindow' || id === 'galleryWindow'
-          ? new T.Vector3(-1, 0.5, 0.65)
-          : id === 'wardrobe'
-            ? new T.Vector3(-1, 0.5, 0.65)
-            : ['television', 'switch', 'console', 'mediaDrawer'].includes(id)
-              ? new T.Vector3(0, 0.38, 1)
-              : id === 'chair' || id === 'record' || id === 'sculpture'
-                ? new T.Vector3(-1, 0.72, 0.64)
-                : entering
-                  ? new T.Vector3(1, 0.85, 1.2)
-                  : camera.position.clone().sub(controls.target)
+        id === 'cafeEspresso'
+          ? new T.Vector3(0.6, 0.48, -1)
+          : id === 'cafePourOver'
+            ? new T.Vector3(0.45, 0.38, 1)
+            : id === 'livingWindow' || id === 'galleryWindow'
+              ? new T.Vector3(-1, 0.5, 0.65)
+              : id === 'wardrobe'
+                ? new T.Vector3(-1, 0.5, 0.65)
+                : [
+                      'television',
+                      'switch',
+                      'console',
+                      'mediaDrawer',
+                      'livingSpeakers',
+                      'bedroomClock',
+                    ].includes(id)
+                  ? new T.Vector3(0, 0.38, 1)
+                  : id === 'chair' || id === 'record' || id === 'sculpture'
+                    ? new T.Vector3(-1, 0.72, 0.64)
+                    : entering
+                      ? new T.Vector3(1, 0.85, 1.2)
+                      : camera.position.clone().sub(controls.target)
       ).normalize();
-      const distance =
-        id === 'frame'
+      const distance = smallDetail
+        ? id === 'bedroomClock'
+          ? 1.65
+          : 1.3
+        : id === 'frame'
           ? 9
           : Math.max(
               4.5,
@@ -2225,10 +2337,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     setMusic(value) {
       music = value;
+      house.setMusic(value);
     },
-    interact(id) {
+    interact(id, detail) {
       refreshShadows();
-      house.interact(id);
+      house.interact(id, detail);
       if (id === 'bed')
         bedding.color.set(['#74856b', '#b8816b', '#7b91a2'][++bedColor % 3]);
       if (id === 'chair')
@@ -2259,11 +2372,21 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       };
       Array.from({ length: 3 }, (_, i) => images[i] || '').forEach((url, i) => {
         const m = artMats[i];
+        if (m.userData.url === url) return;
         m.userData.url = url;
-        if (!url) {
-          m.map = artMaps[i];
+        const replaceMap = (next: T.Texture) => {
+          const previous = m.map;
+          m.map = next;
           m.needsUpdate = true;
           refreshScreen();
+          if (previous && previous !== artMaps[i] && previous !== next) {
+            const old = textures.indexOf(previous);
+            if (old >= 0) textures.splice(old, 1);
+            previous.dispose();
+          }
+        };
+        if (!url) {
+          replaceMap(artMaps[i]);
           return;
         }
         new T.TextureLoader().load(url, (t) => {
@@ -2274,9 +2397,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           t.colorSpace = T.SRGBColorSpace;
           t.anisotropy = 8;
           textures.push(t);
-          m.map = t;
-          m.needsUpdate = true;
-          refreshScreen();
+          replaceMap(t);
         });
       });
     },
@@ -2294,6 +2415,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       computerScreen.dispose();
       tvScreen.dispose();
       house.dispose();
+      visitors.dispose();
       landscape.dispose();
       const geometries = new Set<T.BufferGeometry>();
       scene.traverse((o) => {

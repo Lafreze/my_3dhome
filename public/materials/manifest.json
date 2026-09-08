@@ -106,5 +106,113 @@
     "bytes": 215155,
     "sha256": "f281f682e62fe322303dfeaa13dac18b5cb9e113617fe0aca43605b49161d82b",
     "license": "CC0-1.0"
+  },
+  {
+    "asset": "wood_table_001",
+    "map": "Diffuse",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_001/wood_table_001_diff_1k.jpg",
+    "path": "public/materials/wood_table_001/Diffuse.jpg",
+    "bytes": 215573,
+    "sha256": "460dd08d240f4a1f02982415048c3c5c200f385db212da18dc7e2df68bf4d0be",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "wood_table_001",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_001/wood_table_001_nor_gl_1k.jpg",
+    "path": "public/materials/wood_table_001/nor_gl.jpg",
+    "bytes": 51927,
+    "sha256": "9bf7ddf5721e225c20290f1772ae37f9bdfd49658f6d458259eb794e2149d3cf",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "wood_table_001",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_001/wood_table_001_rough_1k.jpg",
+    "path": "public/materials/wood_table_001/Rough.jpg",
+    "bytes": 237261,
+    "sha256": "a2ca9ae89dfe7b8e2e5e92f0aa43467845417de8a50205b5852ef0d57c7624f9",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "terrazzo_tiles",
+    "map": "Diffuse",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_diff_1k.jpg",
+    "path": "public/materials/terrazzo_tiles/Diffuse.jpg",
+    "bytes": 1166107,
+    "sha256": "462e3e719cda0472a33152523cf5ca2fc660e1c5869348be1609ba3dca12a2ef",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "terrazzo_tiles",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_nor_gl_1k.jpg",
+    "path": "public/materials/terrazzo_tiles/nor_gl.jpg",
+    "bytes": 77954,
+    "sha256": "56bbe2d960b47ddb2dc538be2953a1ad07083b017cdada1cdc7958421a6cfcd9",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "terrazzo_tiles",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_rough_1k.jpg",
+    "path": "public/materials/terrazzo_tiles/Rough.jpg",
+    "bytes": 459022,
+    "sha256": "cf0cb8525674adeb7da551ed1846c8c4edfd0377a35c6fe94d5f1cb2142c6152",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "leather_white",
+    "map": "Diffuse",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_diff_1k.jpg",
+    "path": "public/materials/leather_white/Diffuse.jpg",
+    "bytes": 728363,
+    "sha256": "4d916dfe89c9d2b88bf52e0c70c6a9798a5c29c8c2fcb6ba1ab7b7ded9ef3ed5",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "leather_white",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_nor_gl_1k.jpg",
+    "path": "public/materials/leather_white/nor_gl.jpg",
+    "bytes": 670610,
+    "sha256": "51bdac4b76da70dc54c288cffea4ecaf837ebb6ed9264664bf5c9a1fc79aa074",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "leather_white",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_rough_1k.jpg",
+    "path": "public/materials/leather_white/Rough.jpg",
+    "bytes": 675426,
+    "sha256": "dbae1aeb5f9a2a46f7fe758f38811beb6a109021848462032d9a3cd63f187a66",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "walnut_veneer_02",
+    "map": "Diffuse",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/walnut_veneer_02/walnut_veneer_02_diff_1k.jpg",
+    "path": "public/materials/walnut_veneer_02/Diffuse.jpg",
+    "bytes": 592833,
+    "sha256": "0e066c9876dc2517f2571f3d177e892b5631020d27b16cfd385a80a69493fdea",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "walnut_veneer_02",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/walnut_veneer_02/walnut_veneer_02_nor_gl_1k.jpg",
+    "path": "public/materials/walnut_veneer_02/nor_gl.jpg",
+    "bytes": 362888,
+    "sha256": "a54e8a4b23ab99d0029255bb7e36f56f71769a78bd236736819c5541b4829dc1",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "walnut_veneer_02",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/walnut_veneer_02/walnut_veneer_02_rough_1k.jpg",
+    "path": "public/materials/walnut_veneer_02/Rough.jpg",
+    "bytes": 743210,
+    "sha256": "a105351706d9d9e74a315309004bb38447eccf0ef13223be18f16530d2777d44",
+    "license": "CC0-1.0"
   }
 ]

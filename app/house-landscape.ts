@@ -9,6 +9,7 @@ export const windowViews = {
   study: { bearing: 0, name: '北 · 水岸花园', position: [1.12, 1.98, -3.28] },
   living: { bearing: 90, name: '东 · 街巷', position: [11.88, 1.98, 0] },
   bedroom: { bearing: 270, name: '西 · 庭院', position: [-3.88, 1.98, 6.8] },
+  cafe: { bearing: 180, name: '南 · 咖啡露台', position: [6, 1.98, 18.08] },
   gallery: { bearing: 90, name: '东 · 前庭', position: [11.88, 1.98, 6.8] },
 } as const;
 
@@ -699,6 +700,42 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
     box(scene, 0.43, 0.075, 0.43, 20.35, 3.64, z, metal);
     box(scene, 0.28, 0.3, 0.28, 20.35, 3.46, z, lampGlass);
   }
+  // The cafe faces south onto a paved courtyard, beyond the enlarged house footprint.
+  box(scene, 17, 0.045, 5.4, 4, 0.04, 21.1, stone);
+  for (let row = 0; row < 6; row++)
+    for (let col = 0; col < 17; col++)
+      box(
+        scene,
+        0.965,
+        0.023,
+        0.84,
+        -4 + col,
+        0.076,
+        18.85 + row * 0.88,
+        (row + col) % 3 === 0 ? ivory : gravel,
+      );
+  for (const x of [-3, 10.8]) {
+    box(scene, 0.9, 0.55, 4, x, 0.3, 21.3, wood);
+    for (let i = 0; i < 9; i++) bush(x, 19.7 + i * 0.4, 0.58, 250 + i);
+  }
+  for (const x of [0.3, 7]) {
+    box(scene, 2.1, 0.13, 0.62, x, 0.64, 22.5, wood);
+    box(scene, 2.1, 0.5, 0.08, x, 0.92, 22.77, wood);
+    for (const side of [-0.8, 0.8])
+      box(scene, 0.07, 0.65, 0.52, x + side, 0.34, 22.5, metal);
+  }
+  tree(-6.5, 22, 3.2, 260);
+  tree(14, 24, 3.7, 280);
+  box(scene, 16, 0.65, 0.24, 4, 0.35, 24.5, plaster);
+  for (let i = 0; i < 8; i++) bush(-3 + i * 2, 25.1, 0.7, 300 + i);
+  home(-3, 31, 7, Math.PI);
+  home(8, 32, 8, Math.PI);
+  for (const x of [-2, 10]) {
+    rod(scene, [x, 0.1, 22.8], [x, 2.3, 22.8], 0.035, metal);
+    box(scene, 0.34, 0.055, 0.34, x, 2.45, 22.8, metal);
+    box(scene, 0.19, 0.3, 0.19, x, 2.27, 22.8, lampGlass);
+    box(scene, 0.26, 0.035, 0.26, x, 2.1, 22.8, metal);
+  }
   const hemi = new T.HemisphereLight('#e7eff3', '#8b8770', 2.2);
   scene.add(hemi);
   const sun = new T.DirectionalLight('#ffeed5', 3.5);
@@ -763,6 +800,8 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
   foliage.clear();
   type View = {
     room: RoomId;
+    width: number;
+    height: number;
     parent: T.Group;
     target: T.WebGLRenderTarget;
     camera: T.PerspectiveCamera;
@@ -771,7 +810,8 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
   };
   const views: View[] = [];
   let revision = 0,
-    lastRender = -Infinity;
+    lastRender = -Infinity,
+    nextView = 0;
   let state: Environment = { time: 'afternoon', weather: 'clear' };
   function set(value: Environment) {
     state = value;
@@ -813,11 +853,11 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
   }
   set(state);
   return {
-    register(room: RoomId, parent: T.Group) {
+    register(room: RoomId, parent: T.Group, width = 3.22, height = 2.12) {
       const resolution = window.innerWidth < 760 ? 640 : 1024;
       const target = new T.WebGLRenderTarget(
         resolution,
-        Math.round((resolution * 2.12) / 3.22),
+        Math.round((resolution * height) / width),
         {
           samples: 2,
           minFilter: T.LinearFilter,
@@ -827,6 +867,8 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
       );
       const v = {
         room,
+        width,
+        height,
         parent,
         target,
         camera: new T.PerspectiveCamera(),
@@ -840,7 +882,9 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
     update(viewer: T.Camera, t: number) {
       if (t - lastRender < 0.14) return;
       // At most one changing aperture is rendered per frame; static views reuse their texture.
-      for (const v of views) {
+      for (let offset = 0; offset < views.length; offset++) {
+        const index = (nextView + offset) % views.length;
+        const v = views[index];
         let visible = true;
         for (let o: T.Object3D | null = v.parent; o; o = o.parent)
           if (!o.visible) visible = false;
@@ -862,10 +906,10 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
           v.parent.getWorldQuaternion(new T.Quaternion()),
         );
         v.camera.projectionMatrix.makePerspective(
-          -1.61 - local.x,
-          1.61 - local.x,
-          1.06 - local.y,
-          -1.06 - local.y,
+          -v.width / 2 - local.x,
+          v.width / 2 - local.x,
+          v.height / 2 - local.y,
+          -v.height / 2 - local.y,
           near,
           250,
         );
@@ -888,6 +932,7 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
         v.lastEye.copy(eye);
         v.revision = revision;
         lastRender = t;
+        nextView = (index + 1) % views.length;
         break;
       }
     },

@@ -1,0 +1,183 @@
+{
+  "defaults": {
+    "gender": "female",
+    "hairStyle": "braids",
+    "hairColor": "#443127",
+    "eyeColor": "#89664b",
+    "topColor": "#eee2ca",
+    "bottomColor": "#505849",
+    "bearHood": true,
+    "character": "bear"
+  },
+  "genders": [
+    {
+      "id": "female",
+      "label": "女生"
+    },
+    {
+      "id": "male",
+      "label": "男生"
+    }
+  ],
+  "hairStyles": [
+    {
+      "id": "braids",
+      "label": "双麻花"
+    },
+    {
+      "id": "bob",
+      "label": "波波头"
+    },
+    {
+      "id": "crop",
+      "label": "短碎发"
+    },
+    {
+      "id": "waves",
+      "label": "微卷长发"
+    }
+  ],
+  "colors": {
+    "hairColor": [
+      {
+        "value": "#443127",
+        "label": "栗棕"
+      },
+      {
+        "value": "#242323",
+        "label": "墨黑"
+      },
+      {
+        "value": "#935e3c",
+        "label": "焦糖"
+      },
+      {
+        "value": "#cba76c",
+        "label": "浅金"
+      },
+      {
+        "value": "#dce0e3",
+        "label": "银白"
+      },
+      {
+        "value": "#a77782",
+        "label": "玫瑰"
+      }
+    ],
+    "eyeColor": [
+      {
+        "value": "#89664b",
+        "label": "榛棕"
+      },
+      {
+        "value": "#426b87",
+        "label": "湖蓝"
+      },
+      {
+        "value": "#5d7956",
+        "label": "橄榄绿"
+      },
+      {
+        "value": "#c86f9d",
+        "label": "樱粉"
+      },
+      {
+        "value": "#b18b48",
+        "label": "琥珀"
+      },
+      {
+        "value": "#6d7374",
+        "label": "烟灰"
+      }
+    ],
+    "topColor": [
+      {
+        "value": "#eee2ca",
+        "label": "奶油"
+      },
+      {
+        "value": "#92a087",
+        "label": "鼠尾草"
+      },
+      {
+        "value": "#d2a8a5",
+        "label": "藕粉"
+      },
+      {
+        "value": "#94b0c0",
+        "label": "雾蓝"
+      },
+      {
+        "value": "#b97550",
+        "label": "陶土"
+      },
+      {
+        "value": "#485754",
+        "label": "深松绿"
+      }
+    ],
+    "bottomColor": [
+      {
+        "value": "#505849",
+        "label": "苔绿"
+      },
+      {
+        "value": "#514239",
+        "label": "咖啡"
+      },
+      {
+        "value": "#6b8292",
+        "label": "丹宁"
+      },
+      {
+        "value": "#9e8970",
+        "label": "卡其"
+      },
+      {
+        "value": "#c4bbae",
+        "label": "亚麻"
+      },
+      {
+        "value": "#383b3b",
+        "label": "炭灰"
+      }
+    ]
+  },
+  "characters": [
+    {
+      "id": "bear",
+      "label": "熊女孩",
+      "labelHeight": 0.98
+    },
+    {
+      "id": "cat",
+      "label": "猫女孩",
+      "labelHeight": 1.15
+    },
+    {
+      "id": "fox",
+      "label": "九尾狐",
+      "labelHeight": 1.0
+    }
+  ],
+  "characterColors": {
+    "bear": {
+      "hairColor": "#443127",
+      "eyeColor": "#89664b",
+      "topColor": "#eee2ca",
+      "bottomColor": "#505849"
+    },
+    "cat": {
+      "hairColor": "#dce0e3",
+      "eyeColor": "#c86f9d",
+      "topColor": "#e5e8e4",
+      "bottomColor": "#3a4650"
+    },
+    "fox": {
+      "hairColor": "#dce0e3",
+      "eyeColor": "#c86f9d",
+      "topColor": "#262329",
+      "bottomColor": "#29262d"
+    }
+  }
+}
