@@ -38,8 +38,13 @@ import {
   type AssetProgress,
 } from './asset-loading';
 import { releaseHiddenRoomGpu } from './room-resources';
+import type { LifeScene } from './life-scene';
+import type { ActorId, CollectionData } from './life-data';
+import type { Visitor } from './seat-data';
 
 type Options = {
+  onLifeBubble: (text: string) => void;
+  onCollections: (data: CollectionData, message: string) => void;
   onAssetProgress: (progress: AssetProgress) => void;
   onSeatSelect: (id: string) => void;
   onSelect: (id: ObjectId | null) => void;
@@ -57,7 +62,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     powerPreference: 'high-performance',
   });
   setAssetRenderer(renderer);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(
+    Math.min(
+      window.devicePixelRatio,
+      window.matchMedia('(pointer: coarse)').matches ? 1.5 : 2,
+    ),
+  );
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
@@ -79,7 +89,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   controls.target.copy(target);
   controls.enableDamping = true;
   controls.dampingFactor = 0.07;
-  controls.enablePan = false;
+  controls.enablePan = true;
+  controls.screenSpacePanning = true;
+  controls.panSpeed = 0.6;
+  controls.touches.TWO = T.TOUCH.DOLLY_PAN;
   controls.minDistance = 5;
   controls.maxDistance = 65;
   controls.minPolarAngle = Math.PI / 9;
@@ -1799,6 +1812,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     materials,
     textures,
   );
+  let life: LifeScene | undefined,
+    lifePaused = false,
+    lifeAudio: AudioContext | null = null,
+    lifeVisitors: Visitor[] = [];
   breeze.add(leafMat);
   house.setView('study');
   if (seatAnchors.size !== seats.length)
@@ -1852,6 +1869,14 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     const seatId = visitors.pick(hit);
     if (seatId) return { seatId, id: null };
     let o: T.Object3D | null = hit.object;
+    let actor: T.Object3D | null = hit.object;
+    while (actor && !actor.userData.actorId) actor = actor.parent;
+    if (actor?.userData.actorId)
+      return {
+        id: null,
+        seatId: null,
+        actorId: actor.userData.actorId as ActorId,
+      };
     while (o && !o.userData.id) o = o.parent;
     return o?.userData.id
       ? { id: o.userData.id as ObjectId, seatId: null }
@@ -1908,6 +1933,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       return;
     }
     const hit = pick(e);
+    if (hit && 'actorId' in hit && hit.actorId) {
+      life?.click(hit.actorId);
+      return;
+    }
     if (hit?.seatId) {
       api.focusSeat(hit.seatId);
       options.onSeatSelect(hit.seatId);
@@ -2102,6 +2131,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           (seat.scale.y - 1) * 0.115;
     });
     breeze.update(t, reduced);
+    life?.setView(activeView);
+    life?.setReduced(motionPreference.matches);
+    life?.update(dt, environment);
     atmosphere.setView(activeView);
     atmosphere.update(t, dt, reduced, environment);
     house.update(t, dt, reduced, night, camera);
@@ -2166,6 +2198,30 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     steamMat.opacity = reduced ? 0 : now < steamUntil ? 0.3 : 0.11;
     steam.position.y = reduced ? 0 : Math.sin(t * 0.8) * 0.025;
     controls.update();
+    // Keep panning bounded around the current room or whole house, preserving camera distance.
+    const panCenter =
+      activeView === 'overview' || activeView === 'plan'
+        ? houseCenter
+        : new T.Vector3(rooms[activeView].x, 0, rooms[activeView].z);
+    const panRange =
+      activeView === 'overview' || activeView === 'plan'
+        ? 22
+        : activeView === 'cafe'
+          ? 9
+          : 5;
+    const unclamped = controls.target.clone();
+    controls.target.x = T.MathUtils.clamp(
+      controls.target.x,
+      panCenter.x - panRange,
+      panCenter.x + panRange,
+    );
+    controls.target.z = T.MathUtils.clamp(
+      controls.target.z,
+      panCenter.z - panRange,
+      panCenter.z + panRange,
+    );
+    controls.target.y = T.MathUtils.clamp(controls.target.y, 0.15, 4.5);
+    camera.position.add(controls.target.clone().sub(unclamped));
     landscape.update(camera, t);
     tvScreen.update(camera);
     if (!tvScreen.sampleColor(televisionTint, t)) televisionTint.set('#a3bbc7');
@@ -2175,12 +2231,31 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   }
   const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
+    setCameraMode(mode) {
+      controls.mouseButtons.LEFT =
+        mode === 'pan' ? T.MOUSE.PAN : T.MOUSE.ROTATE;
+      controls.touches.ONE = mode === 'pan' ? T.TOUCH.PAN : T.TOUCH.ROTATE;
+    },
+    setLifePaused(paused) {
+      lifePaused = paused;
+      life?.setPaused(paused);
+    },
+    setLifeAudio(context) {
+      lifeAudio = context;
+      life?.setAudio(context);
+    },
+    greetResident() {
+      life?.click('resident');
+    },
+    lifeSnapshot: () => life?.snapshot(),
     setProjects: (projects) => house.setProjects(projects),
     retryAssets: () => {
       assets.retry();
       visitors.retry();
     },
     setVisitors: (people, me) => {
+      lifeVisitors = people;
+      life?.setVisitors(people);
       visitors.setVisitors(people, me);
       const ids = people.map((p) => p.seatId);
       house.setOccupied(ids);
@@ -2409,6 +2484,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     interact(id, detail) {
       refreshShadows();
+      if (['cafeEspresso', 'cafePourOver'].includes(id)) life?.claimCoffee();
       house.interact(id, detail);
       if (id === 'bed')
         bedding.color.set(['#74856b', '#b8816b', '#7b91a2'][++bedColor % 3]);
@@ -2472,6 +2548,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     dispose() {
       disposed = true;
+      life?.dispose();
       assets.dispose();
       setAssetRenderer(undefined);
       cancelAnimationFrame(frameId);
@@ -2506,5 +2583,32 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   frameId = requestAnimationFrame(animate);
   assets.activate('study');
   options.onReady();
+  // Let the basic room render first. This optional module never gates the house loading state.
+  setTimeout(() => {
+    if (disposed) return;
+    void import('./life-scene')
+      .then(({ createLifeScene }) => {
+        if (disposed) return;
+        life = createLifeScene({
+          renderer,
+          groups,
+          scene,
+          roots: house.roots,
+          camera,
+          interactables,
+          seats: seatAnchors,
+          cat: atmosphere,
+          coffee: () => house.interact('cafeEspresso'),
+          bubble: options.onLifeBubble,
+          collections: options.onCollections,
+        });
+        life.setPaused(lifePaused);
+        life.setAudio(lifeAudio);
+        life.setVisitors(lifeVisitors);
+      })
+      .catch(() =>
+        options.onLifeBubble('小屋伙伴暂时在休息，其余空间仍可探索。'),
+      );
+  }, 700);
   return api;
 }

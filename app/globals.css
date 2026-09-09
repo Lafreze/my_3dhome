@@ -1878,3 +1878,126 @@ a {
 .asset-credits p { margin:8px 0; font-size:12px; }
 .asset-credits a { text-decoration:underline; text-underline-offset:3px; }
 @media (max-width:600px) { .asset-loading-status { top:112px; } }
+
+/* Quiet, local-only encounters live outside the portfolio dialogs. */
+.life-bubble {
+  position: fixed;
+  z-index: 42;
+  top: 100px;
+  right: 30px;
+  max-width: 290px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid #c8c7b980;
+  border-radius: 18px 18px 4px 18px;
+  background: #fbf8efed;
+  color: #415344;
+  box-shadow: 0 5px 24px #2e392014;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.life-collection-toast {
+  position: fixed;
+  z-index: 60;
+  bottom: 115px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 18px;
+  border-radius: 24px;
+  background: #435b48;
+  color: #faf6e9;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.life-album > p,
+.model-note p,
+.model-note dd {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #667063;
+}
+.life-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+.life-card {
+  padding: 18px 13px;
+  border: 1px dashed #bbbdb2;
+  border-radius: 12px;
+  background: #f1efe6;
+  text-align: center;
+  min-height: 185px;
+}
+.life-card.collected {
+  border: 1px solid #a7b49b;
+  background: #f9f5e9;
+}
+.life-stamp {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 13px;
+  border: 1px solid #c3c6b9;
+  border-radius: 50%;
+  font: 26px serif;
+  color: #788971;
+}
+.collected .life-stamp {
+  outline: 1px solid #9ba98c;
+  outline-offset: 3px;
+  transform: rotate(-8deg);
+}
+.life-card:nth-child(3n + 2) .life-stamp {
+  border-radius: 10px;
+  color: #977258;
+}
+.life-card:nth-child(3n) .life-stamp {
+  color: #6d8491;
+}
+.life-card h3 {
+  font-size: 13px;
+  margin: 0 0 9px;
+}
+.life-card p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #798072;
+}
+.model-note dt {
+  margin-top: 22px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #435b48;
+}
+.model-note dd {
+  margin: 7px 0 0;
+}
+@media (max-width: 640px) {
+  .life-bubble {
+    top: 85px;
+    right: 16px;
+    max-width: 260px;
+    font-size: 12px;
+  }
+  .life-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .life-card {
+    padding: 14px 10px;
+  }
+  .life-collection-toast {
+    bottom: 102px;
+    max-width: 92vw;
+    white-space: normal;
+  }
+}

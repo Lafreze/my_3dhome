@@ -8,6 +8,7 @@ import { wallArt } from './wall-art-data';
 import { houseFinishes, galleryPrint, addOakFloor } from './house-finishes';
 import { houseLighting } from './house-lighting';
 import { createProjectGallery } from './project-gallery';
+import { loadGalleryModel } from './gallery-model';
 import type { RoomAssets } from './asset-loading';
 import type { HouseLandscape } from './house-landscape';
 import { addWindowCraft } from './window-craft';
@@ -1629,6 +1630,31 @@ export function buildHouse(k: Kit) {
     brass,
   });
   const galleryRug = group('gallery');
+  const rabbitPlinth = group('gallery', 'galleryRabbit', 2.65, 0, -2.15);
+  b(rabbitPlinth, 0.92, 0.86, 0.92, 0, 0.52, 0, cream, 0.025);
+  b(rabbitPlinth, 0.96, 0.055, 0.96, 0, 0.978, 0, oak, 0.018);
+  const rabbitMount = new T.Group();
+  rabbitMount.position.y = 1.01;
+  rabbitPlinth.add(rabbitMount);
+  rabbitMount.userData.modelStatus = 'loading';
+  const rabbitModel = loadGalleryModel(rabbitMount, k.onModelReady, k.assets);
+  const plaqueCanvas = document.createElement('canvas');
+  plaqueCanvas.width = 512;
+  plaqueCanvas.height = 144;
+  const plaqueContext = plaqueCanvas.getContext('2d')!;
+  plaqueContext.fillStyle = '#eee9dc';
+  plaqueContext.fillRect(0, 0, 512, 144);
+  plaqueContext.fillStyle = '#384039';
+  plaqueContext.font = '32px sans-serif';
+  plaqueContext.fillText('皇冠兔 / CROWNED RABBIT', 20, 52);
+  plaqueContext.font = '24px sans-serif';
+  plaqueContext.fillText('雕塑优化 · 材质细化 · 点击阅读', 20, 104);
+  const plaqueMap = new T.CanvasTexture(plaqueCanvas);
+  plaqueMap.colorSpace = T.SRGBColorSpace;
+  textures.push(plaqueMap);
+  const plaqueMaterial = mat('#ffffff');
+  plaqueMaterial.map = plaqueMap;
+  b(rabbitPlinth, 0.79, 0.22, 0.014, 0, 0.66, 0.47, plaqueMaterial, 0.003);
   b(
     galleryRug,
     6.9,
@@ -2278,6 +2304,7 @@ export function buildHouse(k: Kit) {
       disposed = true;
       pictureMaterials.forEach((entry) => entry.current?.dispose());
       projectGallery.dispose();
+      rabbitModel.dispose();
       windows.forEach((w) => w.dispose());
       cafe.dispose();
     },

@@ -2,7 +2,9 @@
 
 本仓库使用 **vinext 1.0.0-beta.5、Vite 8、React 19、Three.js 0.185**。`next.config.ts` 指定静态导出；`scripts/serve-local.mjs` 在 Railway 提供 `dist/client` 和原有座位 API，Dockerfile 构建镜像。本次没有引入 Next.js 图片服务器、资源代理或浏览器签名 URL。
 
-**当前发布状态：代码和本地迁移工具已实现；R2 上线仍待 Bucket、凭证、域名和模型权利确认。** 未设置公开资源变量时仍读取本地 `/assets`。本次没有删除原模型、原贴图、Blender 工程，未切换线上资源来源。
+**当前状态（2026-09-10）：`kuro-assets` 已创建，32 个对象已上传，桶限定的上传凭证已保存到 git-ignored `.env.r2.local`（0600，2026-10-09 到期），四个来源的 GET/HEAD CORS 已保存，r2.dev 保持关闭。** 7 个模型仍因公开分发权未确认而排除。`VITE_ASSET_BASE_URL=https://assets.kuro.cafe/kuro` 已准备在上传配置中，但没有启用到生产构建：`kuro.cafe` 当前权威 DNS 为 Name.com，Cloudflare 控制台拒绝绑定不在该账户 DNS 区域中的域名。域名接入、HTTPS、公共缓存与 Range/CORS 验收通过后才能切换。按用户选择，当前先保持主站直接读取 `/assets`、保留现有 DNS，不启用素材子域名或 r2.dev。原始资源没有删除。
+
+本次 R2 凭证已通过真实 S3 只读比对与上传验证；这不能代替尚未通过的公共域名验收。详见本机 `output/r2-verification.json`。
 
 ## 目录与清单
 
@@ -35,9 +37,9 @@ Cloudflare R2 / assets.kuro.cafe
 
 ## Cloudflare 控制台操作
 
-当前环境未提供 R2 凭证，以下账户配置需由有权限的用户完成。不同控制台语言下菜单名称可能略有区别。
+以下保留完整操作路径供复用；本次已完成 Bucket、CORS、凭证和上传，尚待域名接入。不同控制台语言下菜单名称可能略有区别。
 
-1. **账户 → Storage & databases → R2 object storage → Overview → Create bucket**。建议 Bucket 名 `kuro-assets`（尚未创建，不是既有资源名）；Default storage class 选择 **Standard**。只放生产资源，不与私有文件、上传数据或备份共用 Bucket。
+1. **账户 → Storage & databases → R2 object storage → Overview → Create bucket**。本项目 Bucket 名为 `kuro-assets`（已创建，APAC）；Default storage class 选择 **Standard**。只放生产资源，不与私有文件、上传数据或备份共用 Bucket。
 2. 进入 Bucket → **Settings → Custom Domains → Connect Domain**，填写 `assets.kuro.cafe`，确认 Cloudflare 将添加的 DNS 记录。`kuro.cafe` 域名区域须与 Bucket 属于同一 Cloudflare 账户。不要手工把 CNAME 指向 r2.dev。
 3. 等待 Custom Domain 状态成为 **Active**，确认 HTTPS 证书有效。启用域名时不需要同时启用 r2.dev。
 4. Bucket → **Settings → CORS Policy → Add / Edit CORS policy → JSON**，粘贴 `config/r2-cors.json` 的数组内容，然后 Save。它允许生产的 `https://kuro.cafe`、`https://www.kuro.cafe` 与开发的 `http://localhost:3000`、`http://localhost:5173`。不要误粘贴 Wrangler 的 `{rules: ...}` 格式，此文件使用控制台 / S3 规则字段格式。
@@ -117,7 +119,7 @@ npm run assets:upload -- --prune
 
 ## 资源大小和验收记录
 
-下表为生产 catalog 的归属统计上界，包含保留素材，并非当前页面必然下载量。室内改造取消了默认王冠兔、胡桃木／木桌／水磨石专用贴图以及未使用的细木色彩图请求，运行时仅加载已登记的当前房间任务。角色作为独立可见对象按需追加。
+下表为生产 catalog 的归属统计上界，包含保留素材，并非当前页面必然下载量。室内改造取消了胡桃木／木桌／水磨石专用贴图以及未使用的细木色彩图请求，运行时仅加载已登记的当前房间任务。角色作为独立可见对象按需追加。
 
 | 房间 | 独立进入时生产资源字节 | MiB | 文件数 |
 | --- | ---: | ---: | ---: |
@@ -127,6 +129,6 @@ npm run assets:upload -- --prune
 | 展示区 | 6,331,930 | 6.04 | 8 |
 | 咖啡厅 | 6,520,148 | 6.22 | 18 |
 
-从书房继续访问客厅 / 卧室无需额外必需静态资源（空闲时仍会预取相邻房间）；当前展示区不再追加王冠兔模型；咖啡厅只追加仍使用的皮革专用贴图。三个角色双姿势合计 20,960,672 字节：熊 7,188,488；猫 6,454,584；狐狸 7,317,600。解码器仅在模型声明压缩扩展时加载；现有模型未使用这些扩展。
+从书房继续访问客厅 / 卧室无需额外必需静态资源（空闲时仍会预取相邻房间）；本次新增独立皇冠兔展台后，展示区按需追加 3,572,096 B 的皇冠兔模型；咖啡厅只追加仍使用的皮革专用贴图。三个角色双姿势合计 20,960,672 字节：熊 7,188,488；猫 6,454,584；狐狸 7,317,600。解码器仅在模型声明压缩扩展时加载；现有模型未使用这些扩展。
 
 详细本地验收结果在 `docs/r2-assets-validation.md`，完整逐文件分类在 `docs/assets-inventory.json`。公网 R2 验收不能用本地测试通过替代。

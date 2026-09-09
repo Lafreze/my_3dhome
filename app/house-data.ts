@@ -61,6 +61,11 @@ export const houseBounds = {
   maxZ: Math.max(...roomIds.map((id) => rooms[id].z + rooms[id].depth / 2)),
 };
 export const newObjects = {
+  galleryRabbit: {
+    name: '皇冠兔 · 建模练习',
+    kind: '3D SCULPTURE',
+    action: '查看建模说明',
+  },
   cafeEspresso: {
     name: '双头意式咖啡机',
     kind: 'ESPRESSO',
@@ -115,6 +120,7 @@ export const newObjects = {
   galleryWindow: { name: '展厅东窗', kind: 'E · 前庭', action: '时间与天气' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
+  galleryRabbit: 'gallery',
   cafeEspresso: 'cafe',
   cafePastry: 'cafe',
   cafeMenu: 'cafe',
@@ -184,6 +190,7 @@ export const houseFurniture = {
     readingChair: { x: -2.92, z: 0.15, width: 1.04, depth: 1.08 },
   },
   gallery: {
+    crownedRabbit: { x: 2.65, z: -2.15, width: 0.92, depth: 0.92 },
     sculpture: { x: 0.1, z: -0.45, width: 1.0, depth: 1.0 },
     case: { x: 2.5, z: 0.2, width: 0.82, depth: 1.7 },
     bench: { x: -0.1, z: 2.1, width: 2.25, depth: 0.67 },

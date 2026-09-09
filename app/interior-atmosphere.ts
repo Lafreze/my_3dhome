@@ -2,6 +2,15 @@ import * as T from 'three';
 import type { Environment } from './environment-data';
 import type { ObjectId } from './room-data';
 import type { HouseView, RoomId } from './house-data';
+import type { ActorState, Point } from './life-data';
+export type CatDirective = {
+  position: Point;
+  rotation: number;
+  room: RoomId;
+  state: ActorState;
+  visible: boolean;
+  lookAt?: Point;
+};
 
 export function createBreeze() {
   const time = { value: 0 },
@@ -103,7 +112,8 @@ export function interiorAtmosphere(
   materials.push(fur, ear, eyes);
   const cat = new T.Group();
   cat.name = 'kuro/the-black-cat';
-  cat.scale.setScalar(0.8);
+  cat.userData.actorId = 'cat';
+  cat.scale.setScalar(0.6);
   const ball = (
     parent: T.Object3D,
     x: number,
@@ -118,13 +128,13 @@ export function interiorAtmosphere(
     mesh.position.set(x, y, z);
     mesh.scale.set(sx, sy, sz);
     mesh.castShadow = mesh.receiveShadow = true;
-    mesh.raycast = () => {};
     parent.add(mesh);
     return mesh;
   };
   const body = ball(cat, 0, 0.19, 0, 0.27, 0.2, 0.39);
   ball(cat, 0, 0.29, -0.27, 0.19, 0.21, 0.18);
   const head = new T.Group();
+  const ears: T.Mesh[] = [];
   head.position.set(0, 0.44, -0.3);
   cat.add(head);
   ball(head, 0, 0, 0, 0.18, 0.16, 0.15);
@@ -135,6 +145,7 @@ export function interiorAtmosphere(
     outer.castShadow = true;
     outer.raycast = () => {};
     head.add(outer);
+    ears.push(outer);
     ball(head, side * 0.12, 0.135, -0.036, 0.035, 0.065, 0.013, ear);
     ball(head, side * 0.073, 0.014, -0.134, 0.036, 0.019, 0.013, eyes);
     ball(head, side * 0.073, 0.014, -0.147, 0.009, 0.017, 0.003);
@@ -189,7 +200,20 @@ export function interiorAtmosphere(
     current = -1;
   const occupied = new Set<string>();
   const tint = new T.Color('#fff1d0');
+  let directive: CatDirective | null = null;
+  // The original cat owns its mesh and animation; the life scheduler only supplies goals/state.
+  const hit = new T.Mesh(
+    new T.SphereGeometry(0.44, 8, 6),
+    new T.MeshBasicMaterial({ visible: false }),
+  );
+  hit.position.y = 0.22;
+  cat.add(hit);
+  materials.push(hit.material);
   return {
+    cat,
+    setCatDirective(value: CatDirective | null) {
+      directive = value;
+    },
     setView(value: HouseView) {
       view = value;
     },
@@ -220,7 +244,10 @@ export function interiorAtmosphere(
         current >= 0 &&
         sites[current].seat &&
         occupied.has(sites[current].seat!);
-      if (lastView !== view || blocked || (!reduced && t > nextMove)) {
+      if (
+        !directive &&
+        (lastView !== view || blocked || (!reduced && t > nextMove))
+      ) {
         const candidates = sites
           .map((site, i) => ({ site, i }))
           .filter(
@@ -252,8 +279,65 @@ export function interiorAtmosphere(
         lastView = view;
         nextMove = t + 32 + Math.random() * 26;
       }
+      if (directive) {
+        const parent = roots[directive.room];
+        if (cat.parent !== parent) parent.add(cat);
+        const point = new T.Vector3(...directive.position);
+        parent.updateWorldMatrix(true, false);
+        parent.worldToLocal(point);
+        cat.position.copy(point);
+        cat.rotation.y = directive.rotation;
+        cat.visible = directive.visible;
+      }
       body.scale.y = 0.2 + (reduced ? 0 : Math.sin(t * 1.3) * 0.003);
+      body.scale.z = 0.39;
+      body.position.y = 0.19;
+      head.rotation.x = 0;
+      tail.rotation.y = 0;
       head.rotation.y = reduced ? 0 : Math.sin(t * 0.23) * 0.13;
+      ears.forEach(
+        (ear, i) =>
+          (ear.rotation.z =
+            (i ? 1 : -1) * -0.2 +
+            (reduced
+              ? 0
+              : Math.sin(t * 0.37 + i) *
+                Math.pow(Math.max(0, Math.sin(t * 0.19)), 12) *
+                0.12)),
+      );
+      if (directive) {
+        const state = directive.state;
+        if (state === 'walk' && !reduced) {
+          body.position.y += Math.sin(t * 5) * 0.009;
+          tail.rotation.y = Math.sin(t * 2) * 0.09;
+        }
+        if (state === 'groom') {
+          head.rotation.x = 0.6;
+          head.rotation.y = reduced ? 0 : Math.sin(t * 3) * 0.18;
+        }
+        if (state === 'stretch' && !reduced) {
+          body.scale.z = 0.39 + Math.sin(Math.min(t % 8, Math.PI)) * 0.05;
+          body.scale.y = 0.16;
+          head.rotation.x = -0.15;
+        }
+        if (['watchBird', 'watchRabbit', 'lookAround'].includes(state)) {
+          head.rotation.x = state === 'watchBird' ? -0.38 : 0;
+          head.rotation.y = reduced ? 0 : Math.sin(t * 0.55) * 0.2;
+        }
+        if (state === 'sleep') {
+          head.rotation.x = 0.13;
+          tail.rotation.y = reduced ? 0 : Math.sin(t * 0.31) * 0.018;
+        }
+        if (directive.lookAt) {
+          const local = new T.Vector3(...directive.lookAt);
+          cat.worldToLocal(local);
+          head.rotation.y = T.MathUtils.clamp(
+            Math.atan2(-local.x, -local.z),
+            -0.75,
+            0.75,
+          );
+        }
+      }
       tint.set(environment.time === 'night' ? '#91a2b4' : '#fff1d0');
       fur.color.lerp(tint.multiplyScalar(0.016), 1 - Math.exp(-dt));
     },

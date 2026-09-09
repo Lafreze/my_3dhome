@@ -73,6 +73,11 @@ export const defaultProfile: Profile = {
   photos: [],
 };
 export type RoomApi = {
+  setCameraMode: (mode: 'orbit' | 'pan') => void;
+  setLifePaused: (paused: boolean) => void;
+  setLifeAudio: (context: AudioContext | null) => void;
+  greetResident: () => void;
+  lifeSnapshot: () => unknown;
   retryAssets: () => void;
   setVisitors: (visitors: import('./seat-data').Visitor[], me: string) => void;
   focusSeat: (id: string) => void;

@@ -21,13 +21,14 @@ import {
   RotateCcw,
   Settings2,
   Upload,
-  UserRound,
   X,
   Download,
   Pencil,
   ArrowUp,
   ArrowDown,
   LocateFixed,
+  Move,
+  BookHeart,
 } from 'lucide-react';
 import {
   Dialog,
@@ -62,6 +63,12 @@ import VisitorSeats from './visitor-seats';
 import { usesRemoteAssets } from './asset-url';
 import type { AssetProgress } from './asset-loading';
 import assetCredits from './generated/asset-credits.json';
+import {
+  collectionCards,
+  lifeStorageKey,
+  type CollectionData,
+} from './life-data';
+import { readCollections } from './life-collections';
 type Modal =
   | 'computer'
   | 'wallArt'
@@ -73,6 +80,8 @@ type Modal =
   | 'settings'
   | 'help'
   | 'objects'
+  | 'rabbitModel'
+  | 'collections'
   | null;
 const safeUrl = (s: string) => {
   try {
@@ -124,6 +133,10 @@ export default function Home() {
   });
   useVisibleViewport();
   const [view, setView] = useState<HouseView>('study');
+  const [cameraMode, setCameraMode] = useState<'orbit' | 'pan'>('orbit');
+  const [lifeBubble, setLifeBubble] = useState('');
+  const [collectionData, setCollectionData] = useState<CollectionData>({});
+  const [collectionQueue, setCollectionQueue] = useState<string[]>([]);
   const [seatPanel, setSeatPanel] = useState(false),
     [seatSelected, setSeatSelected] = useState<string | null>(null),
     [visitorCount, setVisitorCount] = useState(0);
@@ -163,6 +176,33 @@ export default function Home() {
     } | null>(null);
   const projectIntro = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (!lifeBubble) return;
+    const id = setTimeout(() => setLifeBubble(''), 4500);
+    return () => clearTimeout(id);
+  }, [lifeBubble]);
+  useEffect(() => {
+    if (!collectionQueue.length) return;
+    const id = setTimeout(() => setCollectionQueue((q) => q.slice(1)), 1500);
+    return () => clearTimeout(id);
+  }, [collectionQueue]);
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (active) setCollectionData(readCollections());
+    });
+    const changed = (e: StorageEvent) => {
+      if (e.key === lifeStorageKey) setCollectionData(readCollections());
+    };
+    window.addEventListener('storage', changed);
+    return () => {
+      active = false;
+      window.removeEventListener('storage', changed);
+    };
+  }, []);
+  useEffect(() => {
+    api.current?.setLifePaused(!!modal || seatPanel);
+  }, [modal, seatPanel, ready]);
+  useEffect(() => {
     if (
       !selected ||
       !['gallerySculpture', 'galleryGame', 'galleryCase'].includes(selected)
@@ -188,6 +228,11 @@ export default function Home() {
         if (disposed || !host.current) return;
         try {
           api.current = createRoom(host.current, {
+            onLifeBubble: setLifeBubble,
+            onCollections: (data, message) => {
+              setCollectionData(data);
+              setCollectionQueue((q) => [...q, message]);
+            },
             onAssetProgress: setAssetProgress,
             onSeatSelect: (id) => {
               setSelected(null);
@@ -303,6 +348,7 @@ export default function Home() {
   );
   const toggleMusic = async () => {
     if (audio.current) {
+      api.current?.setLifeAudio(null);
       clearInterval(audio.current.timer);
       void audio.current.ctx.close();
       audio.current = null;
@@ -340,6 +386,7 @@ export default function Home() {
       };
       play();
       audio.current = { ctx, timer: setInterval(play, 1150) };
+      api.current?.setLifeAudio(ctx);
       setMusic(true);
     } catch {
       notify('声音未能开启，请再试一次。');
@@ -383,6 +430,10 @@ export default function Home() {
     api.current?.focus(id);
   };
   const action = (id: ObjectId) => {
+    if (id === 'galleryRabbit') {
+      setModal('rabbitModel');
+      return;
+    }
     const exhibit = { gallerySculpture: 0, galleryGame: 1, galleryCase: 2 }[
       id as 'gallerySculpture' | 'galleryGame' | 'galleryCase'
     ];
@@ -791,9 +842,29 @@ export default function Home() {
               </select>
               <ChevronDown size={13} aria-hidden="true" />
             </label>
-            <button aria-label="关于" onClick={() => setModal('about')}>
-              <UserRound size={16} />
-              <span>关于</span>
+            <button
+              aria-label="移动摄像机"
+              aria-pressed={cameraMode === 'pan'}
+              onClick={() => {
+                const next = cameraMode === 'pan' ? 'orbit' : 'pan';
+                setCameraMode(next);
+                api.current?.setCameraMode(next);
+                notify(
+                  next === 'pan'
+                    ? '拖动画面移动镜头，双指可缩放。'
+                    : '拖动画面旋转，右键或双指可平移。',
+                );
+              }}
+            >
+              <Move size={16} />
+              <span>平移</span>
+            </button>
+            <button
+              aria-label="小屋收藏册"
+              onClick={() => setModal('collections')}
+            >
+              <BookHeart size={17} />
+              <span>收藏</span>
             </button>
             <button
               aria-label="定位角色"
@@ -841,6 +912,24 @@ export default function Home() {
           <output className="toast">
             <Check size={15} />
             {toast}
+          </output>
+        )}
+        {lifeBubble && (
+          <output className="life-bubble" aria-live="polite">
+            <span>{lifeBubble}</span>
+            <button
+              className="icon-button"
+              aria-label="收起伙伴提示"
+              onClick={() => setLifeBubble('')}
+            >
+              <X size={13} />
+            </button>
+          </output>
+        )}
+        {collectionQueue.length > 0 && (
+          <output className="life-collection-toast" aria-live="polite">
+            <BookHeart size={16} />
+            {collectionQueue[0]}
           </output>
         )}
       </div>
@@ -915,6 +1004,8 @@ export default function Home() {
                   settings: projectsOnly ? '编辑我的作品' : '布置你的工作室',
                   help: '随意探索',
                   objects: '屋内物件',
+                  rabbitModel: '皇冠兔 · 建模手记',
+                  collections: '小屋收藏册',
                 } as Record<string, string>
               )[modal || '']
             }
@@ -932,6 +1023,55 @@ export default function Home() {
                       ? 'A LITTLE ABOUT ME'
                       : 'SATORI / PERSONAL COLLECTION'}
           </DialogDescription>
+          {modal === 'rabbitModel' && (
+            <div className="model-note">
+              <p>
+                保留原始皇冠兔的轮廓与表情，把高密度雕塑整理成适合网页展示的作品。
+              </p>
+              <dl>
+                <dt>轮廓优化</dt>
+                <dd>
+                  由约 200 万原始面优化为 116,828
+                  个三角面，重点保留耳朵、脸部与毛发层次。
+                </dd>
+                <dt>材质细化</dt>
+                <dd>
+                  象牙白绒毛、柔和的顶点颜色过渡和缎面金饰；眼睛沿用原始拓扑，避免浮在表面的叠片。
+                </dd>
+                <dt>网页呈现</dt>
+                <dd>
+                  独立 GLB 约 3.4
+                  MiB，进入展示区后按需加载。原始工程与源模型继续保留。
+                </dd>
+              </dl>
+            </div>
+          )}
+          {modal === 'collections' && (
+            <div className="life-album">
+              <p>在小屋里慢慢相遇。收藏仅记录在当前浏览器。</p>
+              <div className="life-card-grid">
+                {Object.entries(collectionCards).map(([id, card]) => {
+                  const record = collectionData[id as keyof CollectionData];
+                  return (
+                    <article
+                      key={id}
+                      className={record ? 'life-card collected' : 'life-card'}
+                    >
+                      <div className="life-stamp" aria-hidden="true">
+                        {record ? card.mark : '·'}
+                      </div>
+                      <h3>{record ? card.title : '尚未遇见'}</h3>
+                      <p>
+                        {record
+                          ? `${rooms[record.sourceRoom].name} · ${new Date(record.collectedAt).toLocaleDateString()}`
+                          : card.hint}
+                      </p>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {modal === 'works' && (
             <div className="project-layout">
               <div className="art-wrap">
