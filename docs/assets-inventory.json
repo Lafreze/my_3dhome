@@ -1,5 +1,5 @@
 {
-  "version": "7fd7bf6fdc52b368",
+  "version": "80e8a304ca2f80d2",
   "roomSizes": {
     "study": {
       "bytes": 4493340,
@@ -23,8 +23,8 @@
     }
   },
   "commonCharacters": {
-    "files": 6,
-    "bytes": 20960672
+    "files": 7,
+    "bytes": 22505240
   },
   "pending": [
     "character.bear.sit",
@@ -33,7 +33,8 @@
     "character.cat.rest",
     "character.fox.sit",
     "character.fox.rest",
-    "room.gallery.sculpture"
+    "room.gallery.sculpture",
+    "character.resident"
   ],
   "inventory": [
     {
@@ -174,6 +175,16 @@
     {
       "path": "public/models/gallery-figure.json",
       "bytes": 444,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/resident-hi3d.glb",
+      "bytes": 1544568,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/resident-hi3d.json",
+      "bytes": 499,
       "classification": "excluded-unused-or-documentation"
     },
     {

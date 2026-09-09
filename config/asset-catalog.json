@@ -688,6 +688,24 @@
       "licenseUrl": "https://github.com/zeux/meshoptimizer/blob/master/LICENSE.md",
       "modifications": "Unmodified official license notice",
       "approval": "approved"
+    },
+    {
+      "id": "character.resident",
+      "source": "public/models/resident-hi3d.glb",
+      "path": "models/characters/resident/hi3d.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied Hi3D model",
+      "sourceUrl": "",
+      "modifications": "50k triangles, 1K original PBR textures, normalized 1.65 scene units facing -Z; lightweight runtime body rig",
+      "approval": "pending"
     }
   ]
 }

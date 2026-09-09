@@ -1,0 +1,17 @@
+{
+  "source": "Hi3D_allparts.glb",
+  "sourceSha256": "3d870de851aa25b68360b6f9fb36feff7d6f791d8b2b9dbca76ec4ad546e057b",
+  "sourceBytes": 60222816,
+  "sourceTriangles": 2000000,
+  "triangles": 50000,
+  "bytes": 1544568,
+  "height": 1.65,
+  "forward": "-Z",
+  "sourceBones": 0,
+  "sourceAnimations": [],
+  "runtimeBones": 9,
+  "textures": "1024px, original PBR colors",
+  "gestures": "Procedural leg/spine/head poses; hands-in-pockets silhouette retained. No authored finger/hand animation clips.",
+  "runtimeScale": 1.15,
+  "runtimeHeight": 1.8975
+}

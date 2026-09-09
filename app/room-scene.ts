@@ -2590,6 +2590,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       .then(({ createLifeScene }) => {
         if (disposed) return;
         life = createLifeScene({
+          assets,
           renderer,
           groups,
           scene,

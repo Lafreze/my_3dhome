@@ -1,5 +1,7 @@
 import * as T from 'three';
 import { LifeEngine } from './life-engine';
+import { attachResident, residentAssetId } from './resident-model';
+import type { RoomAssets } from './asset-loading';
 import { createActorModel, type ActorModel } from './life-models';
 import { createCollectionStore } from './life-collections';
 import {
@@ -16,6 +18,7 @@ import type { interiorAtmosphere } from './interior-atmosphere';
 import type { ObjectId } from './room-data';
 
 type Options = {
+  assets: RoomAssets;
   renderer: T.WebGLRenderer;
   groups: Map<ObjectId, T.Group>;
   scene: T.Scene;
@@ -70,6 +73,9 @@ export function createLifeScene(k: Options) {
     paused = false,
     view: HouseView = 'study',
     reduced = false;
+  void k.assets.register('shared', residentAssetId, () =>
+    attachResident(models.get('resident')!, () => !disposed),
+  )();
   const tones = new Set<{ osc: OscillatorNode; gain: GainNode }>();
   const sound = (kind: string, point: Point) => {
     if (!audio || audio.state !== 'running' || paused || document.hidden)
@@ -183,10 +189,10 @@ export function createLifeScene(k: Options) {
         if (anchor) {
           anchor.updateWorldMatrix(true, false);
           anchor.getWorldPosition(position);
-          rotation =
-            new T.Euler().setFromQuaternion(
-              anchor.getWorldQuaternion(new T.Quaternion()),
-            ).y + Math.PI;
+          const forward = new T.Vector3(0, 0, 1).applyQuaternion(
+            anchor.getWorldQuaternion(new T.Quaternion()),
+          );
+          rotation = Math.atan2(forward.x, forward.z) + Math.PI;
         }
       }
       if (a.id === 'cat') {
@@ -348,7 +354,11 @@ export function createLifeScene(k: Options) {
       models: Object.fromEntries(
         [...models].map(([id, m]) => [
           id,
-          { triangles: m.triangles, downloadBytes: 0 },
+          {
+            triangles: m.triangles,
+            downloadBytes: m.root.userData.downloadBytes ?? 0,
+            bones: m.root.userData.bones ?? 0,
+          },
         ]),
       ),
     }),
