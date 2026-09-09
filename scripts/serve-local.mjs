@@ -17,10 +17,20 @@ const types = {
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json',
+  '.txt': 'text/plain',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.jpeg': 'image/jpeg',
+  '.ktx2': 'image/ktx2',
+  '.gltf': 'model/gltf+json',
+  '.bin': 'application/octet-stream',
+  '.hdr': 'application/octet-stream',
+  '.wasm': 'application/wasm',
+  '.ogg': 'audio/ogg',
+  '.mp3': 'audio/mpeg',
   '.woff2': 'font/woff2',
   '.rsc': 'text/x-component',
   '.glb': 'model/gltf-binary',
@@ -77,6 +87,17 @@ const server = createServer(async (req, res) => {
       'X-Content-Type-Options': 'nosniff',
       'Accept-Ranges': 'bytes',
     };
+    const contentHash = /\.([a-f0-9]{16})\.[a-z0-9]+$/.exec(file)?.[1];
+    if (path.startsWith('/assets/') && contentHash) {
+      headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+      headers.ETag = `"${contentHash}"`;
+    } else {
+      headers.ETag = `W/"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`;
+      if (path === '/assets/manifests/assets.json') headers['Cache-Control'] = 'public, max-age=300, must-revalidate';
+    }
+    if (req.headers['if-none-match']?.split(',').map((value) => value.trim()).includes(headers.ETag)) {
+      res.writeHead(304, headers); res.end(); return;
+    }
     let start = 0,
       end = info.size - 1,
       status = 200;

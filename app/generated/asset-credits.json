@@ -1,0 +1,369 @@
+[
+  {
+    "id": "texture.brown_leather.Diffuse",
+    "name": "Brown Leather",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/brown_leather",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.brown_leather.nor_gl",
+    "name": "Brown Leather",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/brown_leather",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.brown_leather.Rough",
+    "name": "Brown Leather",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/brown_leather",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.fabric_pattern_07.nor_gl",
+    "name": "Fabric Pattern 07",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/fabric_pattern_07",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.fabric_pattern_07.Rough",
+    "name": "Fabric Pattern 07",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/fabric_pattern_07",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.white_plaster_02.nor_gl",
+    "name": "White Plaster 02",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/white_plaster_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.white_plaster_02.Rough",
+    "name": "White Plaster 02",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/white_plaster_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.fine_grained_wood.Diffuse",
+    "name": "Fine Grained Wood",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/fine_grained_wood",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.fine_grained_wood.nor_gl",
+    "name": "Fine Grained Wood",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/fine_grained_wood",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.fine_grained_wood.Rough",
+    "name": "Fine Grained Wood",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/fine_grained_wood",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.wood_table_001.Diffuse",
+    "name": "Wood Table 001",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/wood_table_001",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.wood_table_001.nor_gl",
+    "name": "Wood Table 001",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/wood_table_001",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.wood_table_001.Rough",
+    "name": "Wood Table 001",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/wood_table_001",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.terrazzo_tiles.Diffuse",
+    "name": "Terrazzo Tiles",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/terrazzo_tiles",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.terrazzo_tiles.nor_gl",
+    "name": "Terrazzo Tiles",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/terrazzo_tiles",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.terrazzo_tiles.Rough",
+    "name": "Terrazzo Tiles",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/terrazzo_tiles",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.leather_white.nor_gl",
+    "name": "Leather White",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/leather_white",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.leather_white.Rough",
+    "name": "Leather White",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/leather_white",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.walnut_veneer_02.Diffuse",
+    "name": "Walnut Veneer 02",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/walnut_veneer_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.walnut_veneer_02.nor_gl",
+    "name": "Walnut Veneer 02",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/walnut_veneer_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.walnut_veneer_02.Rough",
+    "name": "Walnut Veneer 02",
+    "author": "Poly Haven contributors",
+    "sourceUrl": "https://polyhaven.com/a/walnut_veneer_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "1K runtime derivative: albedo WebP quality 85; normal/roughness lossless WebP only when smaller, otherwise original 1K JPG",
+    "rooms": [
+      "cafe"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "decoder.draco.draco_wasm_wrapper.js",
+    "name": "Draco",
+    "author": "Google Draco authors",
+    "sourceUrl": "https://github.com/google/draco",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://github.com/google/draco/blob/main/LICENSE",
+    "modifications": "Unmodified runtime distributed with Three.js",
+    "rooms": [],
+    "attributionRequired": false
+  },
+  {
+    "id": "decoder.draco.draco_decoder.wasm",
+    "name": "Draco",
+    "author": "Google Draco authors",
+    "sourceUrl": "https://github.com/google/draco",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://github.com/google/draco/blob/main/LICENSE",
+    "modifications": "Unmodified runtime distributed with Three.js",
+    "rooms": [],
+    "attributionRequired": false
+  },
+  {
+    "id": "decoder.draco.draco_decoder.js",
+    "name": "Draco",
+    "author": "Google Draco authors",
+    "sourceUrl": "https://github.com/google/draco",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://github.com/google/draco/blob/main/LICENSE",
+    "modifications": "Unmodified runtime distributed with Three.js",
+    "rooms": [],
+    "attributionRequired": false
+  },
+  {
+    "id": "decoder.basis.basis_transcoder.js",
+    "name": "Basis Universal",
+    "author": "Binomial LLC",
+    "sourceUrl": "https://github.com/BinomialLLC/basis_universal",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://github.com/BinomialLLC/basis_universal/blob/master/LICENSE",
+    "modifications": "Unmodified runtime distributed with Three.js",
+    "rooms": [],
+    "attributionRequired": false
+  },
+  {
+    "id": "decoder.basis.basis_transcoder.wasm",
+    "name": "Basis Universal",
+    "author": "Binomial LLC",
+    "sourceUrl": "https://github.com/BinomialLLC/basis_universal",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://github.com/BinomialLLC/basis_universal/blob/master/LICENSE",
+    "modifications": "Unmodified runtime distributed with Three.js",
+    "rooms": [],
+    "attributionRequired": false
+  },
+  {
+    "id": "decoder.meshopt",
+    "name": "Meshoptimizer",
+    "author": "Arseny Kapoulkine",
+    "sourceUrl": "https://github.com/zeux/meshoptimizer",
+    "license": "MIT",
+    "licenseUrl": "https://github.com/zeux/meshoptimizer/blob/master/LICENSE.md",
+    "modifications": "Unmodified runtime distributed with Three.js",
+    "rooms": [],
+    "attributionRequired": false
+  }
+]

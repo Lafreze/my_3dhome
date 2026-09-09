@@ -6,6 +6,7 @@ import { wallArt } from './wall-art-data';
 import { houseFinishes, galleryPrint } from './house-finishes';
 import { houseLighting } from './house-lighting';
 import { loadGalleryModel } from './gallery-model';
+import type { RoomAssets } from './asset-loading';
 import type { HouseLandscape } from './house-landscape';
 import { addWindowCraft } from './window-craft';
 import * as T from 'three';
@@ -27,6 +28,7 @@ import type { ObjectId } from './room-data';
 import type { Environment } from './environment-data';
 
 type Kit = {
+  assets: RoomAssets;
   seats: SeatAnchors;
   cutaways: WallCutaways;
   landscape: HouseLandscape;
@@ -1588,7 +1590,7 @@ export function buildHouse(k: Kit) {
   b(plinth, 1, 0.92, 1, 0, 0.55, 0, cream, 0.035);
   b(plinth, 1.05, 0.045, 1.05, 0, 1.03, 0, white, 0.012);
   const sculpture = child(plinth, 0, 1.06, 0);
-  const importedSculpture = loadGalleryModel(sculpture, k.onModelReady);
+  const importedSculpture = loadGalleryModel(sculpture, k.onModelReady, k.assets);
   label(plinth, '01 / CROWNED RABBIT', 0, 0.75, 0.506, 0.69);
   const caseGroup = group('gallery', 'galleryCase', 2.5, 0, 0.2);
   b(caseGroup, 0.82, 0.76, 1.7, 0, 0.48, 0, oak, 0.025);
@@ -1695,6 +1697,7 @@ export function buildHouse(k: Kit) {
   partition(0, 10.2, 8, 0, 2.65, ['bedroom', 'cafe'], terracottaWall);
   partition(8, 10.2, 8, 0, 1.6, ['gallery', 'cafe'], galleryWall);
   const cafe = buildCafe({
+    assets: k.assets,
     seats: k.seats,
     root: roots.cafe,
     materials,

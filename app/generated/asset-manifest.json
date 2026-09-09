@@ -1,0 +1,558 @@
+{
+  "schemaVersion": 1,
+  "version": "7fd7bf6fdc52b368",
+  "assets": {
+    "character.bear.rest": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/bear/rest.181c9688e736960a.glb",
+      "logicalPath": "models/characters/bear/rest.glb",
+      "size": 3598288,
+      "sha256": "181c9688e736960adf8ad9fca464c00b84e2838134f0115db06791b2490294af",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.bear.sit": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/bear/sit.4177e7e313840844.glb",
+      "logicalPath": "models/characters/bear/sit.glb",
+      "size": 3590200,
+      "sha256": "4177e7e313840844629a5fa26c2cf45dd52748d2da523a6b3d77c0e863923f8b",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.cat.rest": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/cat/rest.882de8d01cc51059.glb",
+      "logicalPath": "models/characters/cat/rest.glb",
+      "size": 3228264,
+      "sha256": "882de8d01cc51059ac001561f6a7afad6133225a9400fd5c1858627d163cd7f4",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.cat.sit": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/cat/sit.c3b4fbb492dd8cbc.glb",
+      "logicalPath": "models/characters/cat/sit.glb",
+      "size": 3226320,
+      "sha256": "c3b4fbb492dd8cbc2b931d6829027a083880bc793e98b132bb7e1fc9858b8d50",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.fox.rest": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/fox/rest.4ffa09dfbf7b1942.glb",
+      "logicalPath": "models/characters/fox/rest.glb",
+      "size": 3666740,
+      "sha256": "4ffa09dfbf7b1942d91d9d506c05e9935900340da02556fdf3e559be12d6ee3e",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.fox.sit": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/fox/sit.738c8b0ad4d0b6f0.glb",
+      "logicalPath": "models/characters/fox/sit.glb",
+      "size": 3650860,
+      "sha256": "738c8b0ad4d0b6f024c044c693baea35501e97f8690ca3ab958eb8add49c04bb",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "decoder.basis.basis_transcoder.js": {
+      "type": "decoder",
+      "room": "common",
+      "rooms": [],
+      "path": "decoders/basis/basis_transcoder.8478b5b6d6b74e7d.js",
+      "logicalPath": "decoders/basis/basis_transcoder.js",
+      "size": 57529,
+      "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1",
+      "contentType": "text/javascript",
+      "dependencies": [],
+      "publish": true
+    },
+    "decoder.basis.basis_transcoder.wasm": {
+      "type": "decoder",
+      "room": "common",
+      "rooms": [],
+      "path": "decoders/basis/basis_transcoder.6cf17dc889352c42.wasm",
+      "logicalPath": "decoders/basis/basis_transcoder.wasm",
+      "size": 527333,
+      "sha256": "6cf17dc889352c42e9acf8897107978d127005fe3386c36a0e3845e27967630a",
+      "contentType": "application/wasm",
+      "dependencies": [],
+      "publish": true
+    },
+    "decoder.draco.draco_decoder.js": {
+      "type": "decoder",
+      "room": "common",
+      "rooms": [],
+      "path": "decoders/draco/draco_decoder.8625489da79a805f.js",
+      "logicalPath": "decoders/draco/draco_decoder.js",
+      "size": 512465,
+      "sha256": "8625489da79a805f4f2a7d511c3e52d8b4085608a9d2a4d5f4f9de5db0aea04f",
+      "contentType": "text/javascript",
+      "dependencies": [],
+      "publish": true
+    },
+    "decoder.draco.draco_decoder.wasm": {
+      "type": "decoder",
+      "room": "common",
+      "rooms": [],
+      "path": "decoders/draco/draco_decoder.a680d927bed9cb86.wasm",
+      "logicalPath": "decoders/draco/draco_decoder.wasm",
+      "size": 192420,
+      "sha256": "a680d927bed9cb864ddbd63521868891af2bfbe755092761b4837487618df8ac",
+      "contentType": "application/wasm",
+      "dependencies": [],
+      "publish": true
+    },
+    "decoder.draco.draco_wasm_wrapper.js": {
+      "type": "decoder",
+      "room": "common",
+      "rooms": [],
+      "path": "decoders/draco/draco_wasm_wrapper.8bb2952d2ba7d67e.js",
+      "logicalPath": "decoders/draco/draco_wasm_wrapper.js",
+      "size": 58456,
+      "sha256": "8bb2952d2ba7d67e1414f8df819410cb0434a666be53f671fff75f68843d76f6",
+      "contentType": "text/javascript",
+      "dependencies": [],
+      "publish": true
+    },
+    "decoder.meshopt": {
+      "type": "decoder",
+      "room": "common",
+      "rooms": [],
+      "path": "decoders/meshopt/meshopt_decoder.module.d428e73a000057c6.js",
+      "logicalPath": "decoders/meshopt/meshopt_decoder.module.js",
+      "size": 29256,
+      "sha256": "d428e73a000057c6c94bfcedc3412d0c2dc14ca8800e88553aab05113ad2bf19",
+      "contentType": "text/javascript",
+      "dependencies": [],
+      "publish": true
+    },
+    "license.basis": {
+      "type": "license",
+      "room": "common",
+      "rooms": [],
+      "path": "licenses/basis.065fcf48d6af21c0.txt",
+      "logicalPath": "licenses/basis.txt",
+      "size": 11347,
+      "sha256": "065fcf48d6af21c0b75e23be5ed5753aee75c892e1c2cf178fa6736305614a5c",
+      "contentType": "text/plain",
+      "dependencies": [],
+      "publish": true
+    },
+    "license.draco": {
+      "type": "license",
+      "room": "common",
+      "rooms": [],
+      "path": "licenses/draco.d3709b0fb4b8a94b.txt",
+      "logicalPath": "licenses/draco.txt",
+      "size": 13898,
+      "sha256": "d3709b0fb4b8a94bbb1d02b8a2e484f258b0d9c5c5a01f940391f3fe662cd1a4",
+      "contentType": "text/plain",
+      "dependencies": [],
+      "publish": true
+    },
+    "license.meshopt": {
+      "type": "license",
+      "room": "common",
+      "rooms": [],
+      "path": "licenses/meshopt.f03037ca7bad1e3e.txt",
+      "logicalPath": "licenses/meshopt.txt",
+      "size": 1079,
+      "sha256": "f03037ca7bad1e3eb7f4a63fa6084a8baabd5ba30d3c239a9a7f35705d873e26",
+      "contentType": "text/plain",
+      "dependencies": [],
+      "publish": true
+    },
+    "room.gallery.sculpture": {
+      "type": "model",
+      "room": "gallery",
+      "rooms": [
+        "gallery"
+      ],
+      "path": "models/rooms/gallery/crowned-rabbit.3dadce5ba9020de9.glb",
+      "logicalPath": "models/rooms/gallery/crowned-rabbit.glb",
+      "size": 3572096,
+      "sha256": "3dadce5ba9020de9a1af7b4a077be64b40cb32680a3116a1e109998621eb5e13",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "texture.brown_leather.Diffuse": {
+      "type": "texture",
+      "room": "study",
+      "rooms": [
+        "study"
+      ],
+      "path": "textures/shared/brown_leather/Diffuse.1adbc03c95ef01a7.webp",
+      "logicalPath": "textures/shared/brown_leather/Diffuse.webp",
+      "size": 184084,
+      "sha256": "1adbc03c95ef01a70ca3c5582b39a2477390d9a9bbf5451d4ebe331cf9dbb1a5",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.brown_leather.nor_gl": {
+      "type": "texture",
+      "room": "study",
+      "rooms": [
+        "study"
+      ],
+      "path": "textures/shared/brown_leather/nor_gl.506a0b7650c2dea2.jpg",
+      "logicalPath": "textures/shared/brown_leather/nor_gl.webp",
+      "size": 863280,
+      "sha256": "506a0b7650c2dea285e247f26ed2d0d6ec38fc10dd584359f0d203e9c082236d",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.brown_leather.Rough": {
+      "type": "texture",
+      "room": "study",
+      "rooms": [
+        "study"
+      ],
+      "path": "textures/shared/brown_leather/Rough.f9739ef2da2e3d17.jpg",
+      "logicalPath": "textures/shared/brown_leather/Rough.webp",
+      "size": 686142,
+      "sha256": "f9739ef2da2e3d17b9ec253f5042f61b10dc10f3ae28f6cf6491650d3d1b0ca3",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.fabric_pattern_07.nor_gl": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "textures/shared/fabric_pattern_07/nor_gl.f6955bbdead9f023.jpg",
+      "logicalPath": "textures/shared/fabric_pattern_07/nor_gl.webp",
+      "size": 828071,
+      "sha256": "f6955bbdead9f023f2357f6f8808ed49627d10882cd2a3cb6b5a5ace155abc45",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.fabric_pattern_07.Rough": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "textures/shared/fabric_pattern_07/Rough.3d90ac40b5c32a15.jpg",
+      "logicalPath": "textures/shared/fabric_pattern_07/Rough.webp",
+      "size": 488744,
+      "sha256": "3d90ac40b5c32a15649cc8525b7eeed133ea46b63a0e3eae5e34911d5c967e3a",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.fine_grained_wood.Diffuse": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "textures/shared/fine_grained_wood/Diffuse.4ca6d8167b97f3e8.webp",
+      "logicalPath": "textures/shared/fine_grained_wood/Diffuse.webp",
+      "size": 86028,
+      "sha256": "4ca6d8167b97f3e8166d8361d792d6aaabf0db931f6dde0dfbddf0a8aae13eff",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.fine_grained_wood.nor_gl": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "textures/shared/fine_grained_wood/nor_gl.ba95eadc009818e1.jpg",
+      "logicalPath": "textures/shared/fine_grained_wood/nor_gl.webp",
+      "size": 193626,
+      "sha256": "ba95eadc009818e161d0f753191f1bacc3fc861e593be0bc6d82b437f9ec8044",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.fine_grained_wood.Rough": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "textures/shared/fine_grained_wood/Rough.f281f682e62fe322.jpg",
+      "logicalPath": "textures/shared/fine_grained_wood/Rough.webp",
+      "size": 215155,
+      "sha256": "f281f682e62fe322303dfeaa13dac18b5cb9e113617fe0aca43605b49161d82b",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.leather_white.nor_gl": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/leather_white/nor_gl.51bdac4b76da70dc.jpg",
+      "logicalPath": "textures/rooms/cafe/leather_white/nor_gl.webp",
+      "size": 670610,
+      "sha256": "51bdac4b76da70dc54c288cffea4ecaf837ebb6ed9264664bf5c9a1fc79aa074",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.leather_white.Rough": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/leather_white/Rough.3880b9bb57087258.webp",
+      "logicalPath": "textures/rooms/cafe/leather_white/Rough.webp",
+      "size": 628770,
+      "sha256": "3880b9bb57087258243c79851d9bb1807e32b2fc0124a30608b7acbc7f22a8c1",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.terrazzo_tiles.Diffuse": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/terrazzo_tiles/Diffuse.2c597f9316441920.webp",
+      "logicalPath": "textures/rooms/cafe/terrazzo_tiles/Diffuse.webp",
+      "size": 397452,
+      "sha256": "2c597f931644192002a25f2e4bd9d5eee039522665b785c6f12722188afcad14",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.terrazzo_tiles.nor_gl": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/terrazzo_tiles/nor_gl.56bbe2d960b47ddb.jpg",
+      "logicalPath": "textures/rooms/cafe/terrazzo_tiles/nor_gl.webp",
+      "size": 77954,
+      "sha256": "56bbe2d960b47ddb2dc538be2953a1ad07083b017cdada1cdc7958421a6cfcd9",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.terrazzo_tiles.Rough": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/terrazzo_tiles/Rough.725d667d0e3c265d.webp",
+      "logicalPath": "textures/rooms/cafe/terrazzo_tiles/Rough.webp",
+      "size": 450348,
+      "sha256": "725d667d0e3c265da6cd9e78a7da574bb46f5c79ff45c90192f48e6b62b27fc7",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.walnut_veneer_02.Diffuse": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/walnut_veneer_02/Diffuse.124768e0f53ce647.webp",
+      "logicalPath": "textures/rooms/cafe/walnut_veneer_02/Diffuse.webp",
+      "size": 86514,
+      "sha256": "124768e0f53ce64780634308b250cff99f0e7662f88de9280148f37c9851f997",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.walnut_veneer_02.nor_gl": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/walnut_veneer_02/nor_gl.a54e8a4b23ab99d0.jpg",
+      "logicalPath": "textures/rooms/cafe/walnut_veneer_02/nor_gl.webp",
+      "size": 362888,
+      "sha256": "a54e8a4b23ab99d0029255bb7e36f56f71769a78bd236736819c5541b4829dc1",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.walnut_veneer_02.Rough": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/walnut_veneer_02/Rough.dc3920547e46a997.webp",
+      "logicalPath": "textures/rooms/cafe/walnut_veneer_02/Rough.webp",
+      "size": 648844,
+      "sha256": "dc3920547e46a99758528672d583e858367b39d1c6072f6a43098570d951d6bb",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.white_plaster_02.nor_gl": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "textures/shared/white_plaster_02/nor_gl.eb572ca3630d5bfd.jpg",
+      "logicalPath": "textures/shared/white_plaster_02/nor_gl.webp",
+      "size": 652310,
+      "sha256": "eb572ca3630d5bfde72e2601b1f02412da23ca005cd19384dced8690be4cb783",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.white_plaster_02.Rough": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "textures/shared/white_plaster_02/Rough.4ff1fe957cd161b0.jpg",
+      "logicalPath": "textures/shared/white_plaster_02/Rough.webp",
+      "size": 295900,
+      "sha256": "4ff1fe957cd161b07f721fe6c28a9459c8c2e8ec65627a26c16e483a07c80d85",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.wood_table_001.Diffuse": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/wood_table_001/Diffuse.fc21a07a3098a367.webp",
+      "logicalPath": "textures/rooms/cafe/wood_table_001/Diffuse.webp",
+      "size": 147746,
+      "sha256": "fc21a07a3098a3673305e9797d87120ca6b120044ed61476bd6c0333409680e8",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.wood_table_001.nor_gl": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/wood_table_001/nor_gl.9bf7ddf5721e225c.jpg",
+      "logicalPath": "textures/rooms/cafe/wood_table_001/nor_gl.webp",
+      "size": 51927,
+      "sha256": "9bf7ddf5721e225c20290f1772ae37f9bdfd49658f6d458259eb794e2149d3cf",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.wood_table_001.Rough": {
+      "type": "texture",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "textures/rooms/cafe/wood_table_001/Rough.a2ca9ae89dfe7b8e.jpg",
+      "logicalPath": "textures/rooms/cafe/wood_table_001/Rough.webp",
+      "size": 237261,
+      "sha256": "a2ca9ae89dfe7b8e2e5e92f0aa43467845417de8a50205b5852ef0d57c7624f9",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    }
+  }
+}

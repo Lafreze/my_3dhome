@@ -1,4 +1,6 @@
 import * as T from 'three';
+import type { RoomAssets } from './asset-loading';
+import type { Character } from './visitor-appearance';
 import {
   acquireVisitorModel,
   partVisible,
@@ -40,6 +42,7 @@ export function createSeatScene(
   anchors: SeatAnchors,
   interactables: T.Object3D[],
   invalidate: () => void,
+  assets: RoomAssets,
 ) {
   let disposed = false,
     current: Visitor[] = [],
@@ -58,7 +61,9 @@ export function createSeatScene(
   const ownedMaterials: T.Material[] = [];
   const pickingGeometries: T.BufferGeometry[] = [];
   const states = new Map<string, { seed: number; value: T.Vector4 }>();
-  let releaseModel: (() => void) | undefined;
+  const releaseModels = new Map<Character, () => void>();
+  const loadingModels = new Map<Character, Promise<void>>();
+  const characterTasks = new Map<Character, (() => Promise<void>)[]>();
   const labels = new Map<string, { sprite: T.Sprite; signature: string }>();
   const reactions = new Map<
     string,
@@ -132,100 +137,135 @@ export function createSeatScene(
   const transform = new T.Matrix4(),
     local = new T.Matrix4(),
     position = new T.Vector3();
-  void acquireVisitorModel()
-    .then(({ parts, release }) => {
-      if (disposed) {
-        release();
-        return;
-      }
-      releaseModel = release;
-      for (const part of parts) {
-        // The lightweight geometry shell owns instance motion; vertex buffers remain shared.
-        const geometry = new T.BufferGeometry();
-        geometry.index = part.geometry.index;
-        for (const [name, attribute] of Object.entries(
-          part.geometry.attributes,
-        ))
-          geometry.setAttribute(name, attribute);
-        const motion = new T.InstancedBufferAttribute(
-          new Float32Array(seats.length * 4),
-          4,
-        );
-        motion.setUsage(T.DynamicDrawUsage);
-        geometry.setAttribute('visitorInstanceMotion', motion);
-        const rest = new T.InstancedBufferAttribute(
-          new Float32Array(seats.length),
-          1,
-        );
-        rest.setUsage(T.DynamicDrawUsage);
-        geometry.setAttribute('visitorInstanceRest', rest);
-        const material = Array.isArray(part.material)
-          ? part.material.map((m) => m.clone())
-          : part.material.clone();
-        const state = { value: new T.Vector4() };
-        for (const m of Array.isArray(material) ? material : [material]) {
-          if (part.tint) configureVisitorTint(m, part.character, part.tint);
-          configureVisitorMotion(m, part.character, state, true, part.eyelid);
-          ownedMaterials.push(m);
+  function ensureCharacter(character: Character): Promise<void> {
+    if (disposed || releaseModels.has(character)) return Promise.resolve();
+    const pending = loadingModels.get(character);
+    if (pending) return pending;
+    const work = acquireVisitorModel([character])
+      .then(({ parts, release }) => {
+        if (disposed) {
+          release();
+          return;
         }
-        const mesh = new T.InstancedMesh(geometry, material, seats.length);
-        const shadow = visitorShadowMaterials(
-          part.character,
-          state,
-          true,
-          !!part.eyelid,
-        );
-        mesh.customDepthMaterial = shadow.depth;
-        mesh.customDistanceMaterial = shadow.distance;
-        ownedMaterials.push(shadow.depth, shadow.distance);
-        mesh.name = `Visitors / ${part.name}`;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.frustumCulled = false;
-        mesh.boundingSphere = new T.Sphere(new T.Vector3(4, 1, 7.4), 24);
-        mesh.userData.visitorMesh = true;
-        // CPU hit testing must use the same resting silhouette as the GPU pose.
-        // Otherwise the invisible seated body intercepts clicks above the bed.
-        const restingGeometry = new T.BufferGeometry();
-        restingGeometry.index = geometry.index;
-        restingGeometry.setAttribute(
-          'position',
-          geometry.getAttribute('visitorRestPosition'),
-        );
-        if (geometry.hasAttribute('uv'))
-          restingGeometry.setAttribute('uv', geometry.getAttribute('uv'));
-        restingGeometry.computeBoundingSphere();
-        pickingGeometries.push(restingGeometry);
-        const pickingMesh = new T.Mesh(geometry, material);
-        const instanceWorld = new T.Matrix4();
-        mesh.raycast = (raycaster, hits) => {
-          const intersections: T.Intersection[] = [];
-          for (let i = 0; i < mesh.count; i++) {
-            mesh.getMatrixAt(i, instanceWorld);
-            pickingMesh.matrixWorld.multiplyMatrices(
-              mesh.matrixWorld,
-              instanceWorld,
-            );
-            pickingMesh.geometry =
-              rest.getX(i) > 0.5 ? restingGeometry : geometry;
-            pickingMesh.raycast(raycaster, intersections);
-            for (const hit of intersections)
-              hits.push({ ...hit, instanceId: i, object: mesh });
-            intersections.length = 0;
+        releaseModels.set(character, release);
+        for (const part of parts) {
+          // The lightweight geometry shell owns instance motion; vertex buffers remain shared.
+          const geometry = new T.BufferGeometry();
+          geometry.index = part.geometry.index;
+          for (const [name, attribute] of Object.entries(
+            part.geometry.attributes,
+          ))
+            geometry.setAttribute(name, attribute);
+          const motion = new T.InstancedBufferAttribute(
+            new Float32Array(seats.length * 4),
+            4,
+          );
+          motion.setUsage(T.DynamicDrawUsage);
+          geometry.setAttribute('visitorInstanceMotion', motion);
+          const rest = new T.InstancedBufferAttribute(
+            new Float32Array(seats.length),
+            1,
+          );
+          rest.setUsage(T.DynamicDrawUsage);
+          geometry.setAttribute('visitorInstanceRest', rest);
+          const material = Array.isArray(part.material)
+            ? part.material.map((m) => m.clone())
+            : part.material.clone();
+          const state = { value: new T.Vector4() };
+          for (const m of Array.isArray(material) ? material : [material]) {
+            if (part.tint) configureVisitorTint(m, part.character, part.tint);
+            configureVisitorMotion(m, part.character, state, true, part.eyelid);
+            ownedMaterials.push(m);
           }
-        };
-        const slotIds: string[] = [];
-        mesh.userData.seatSlots = slotIds;
-        mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
-        mesh.count = 0;
-        crowd.add(mesh);
-        interactables.push(mesh);
-        meshes.push({ mesh, part, slotIds, motion, rest });
+          const mesh = new T.InstancedMesh(geometry, material, seats.length);
+          const shadow = visitorShadowMaterials(
+            part.character,
+            state,
+            true,
+            !!part.eyelid,
+          );
+          mesh.customDepthMaterial = shadow.depth;
+          mesh.customDistanceMaterial = shadow.distance;
+          ownedMaterials.push(shadow.depth, shadow.distance);
+          mesh.name = `Visitors / ${part.name}`;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          mesh.frustumCulled = false;
+          mesh.boundingSphere = new T.Sphere(new T.Vector3(4, 1, 7.4), 24);
+          mesh.userData.visitorMesh = true;
+          // CPU hit testing must use the same resting silhouette as the GPU pose.
+          // Otherwise the invisible seated body intercepts clicks above the bed.
+          const restingGeometry = new T.BufferGeometry();
+          restingGeometry.index = geometry.index;
+          restingGeometry.setAttribute(
+            'position',
+            geometry.getAttribute('visitorRestPosition'),
+          );
+          if (geometry.hasAttribute('uv'))
+            restingGeometry.setAttribute('uv', geometry.getAttribute('uv'));
+          restingGeometry.computeBoundingSphere();
+          pickingGeometries.push(restingGeometry);
+          const pickingMesh = new T.Mesh(geometry, material);
+          const instanceWorld = new T.Matrix4();
+          mesh.raycast = (raycaster, hits) => {
+            const intersections: T.Intersection[] = [];
+            for (let i = 0; i < mesh.count; i++) {
+              mesh.getMatrixAt(i, instanceWorld);
+              pickingMesh.matrixWorld.multiplyMatrices(
+                mesh.matrixWorld,
+                instanceWorld,
+              );
+              pickingMesh.geometry =
+                rest.getX(i) > 0.5 ? restingGeometry : geometry;
+              pickingMesh.raycast(raycaster, intersections);
+              for (const hit of intersections)
+                hits.push({ ...hit, instanceId: i, object: mesh });
+              intersections.length = 0;
+            }
+          };
+          const slotIds: string[] = [];
+          mesh.userData.seatSlots = slotIds;
+          mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+          mesh.count = 0;
+          crowd.add(mesh);
+          interactables.push(mesh);
+          meshes.push({ mesh, part, slotIds, motion, rest });
+        }
+        update(0, true);
+        invalidate();
+      })
+      .finally(() => {
+        loadingModels.delete(character);
+      });
+    loadingModels.set(character, work);
+    return work;
+  }
+  function refreshVisible(retry = false) {
+    if (disposed) return;
+    const needed = new Set(
+      current
+        .filter((visitor) => {
+          const anchor = anchors.get(visitor.seatId);
+          return anchor && isVisible(anchor);
+        })
+        .map((visitor) => readAppearance(visitor.appearance).character),
+    );
+    for (const character of needed) {
+      let starters = characterTasks.get(character);
+      if (starters && !retry) continue;
+      if (!starters) {
+        starters = (['sit', 'rest'] as const).map((pose) =>
+          assets.register('shared', `character.${character}.${pose}`, () =>
+            ensureCharacter(character),
+          ),
+        );
+        characterTasks.set(character, starters);
       }
-      update(0, true);
-      invalidate();
-    })
-    .catch((error) => console.error('人物模型加载失败', error));
+      starters.forEach((start) => {
+        void start();
+      });
+    }
+  }
   function isVisible(o: T.Object3D) {
     for (let n: T.Object3D | null = o; n; n = n.parent)
       if (!n.visible) return false;
@@ -363,12 +403,15 @@ export function createSeatScene(
   }
 
   return {
+    refreshVisible,
+    retry: () => refreshVisible(true),
     update,
     hasVisibleVisitors: () =>
       meshes.some(({ mesh }) => mesh.visible && mesh.count > 0),
     setVisitors(visitors: Visitor[], ownId: string) {
       current = visitors;
       me = ownId;
+      refreshVisible();
       const identities = new Set(visitors.map((v) => v.id));
       for (const id of states.keys())
         if (!identities.has(id)) states.delete(id);
@@ -469,7 +512,8 @@ export function createSeatScene(
       ownedMaterials.forEach((material) => material.dispose());
       pickingGeometries.forEach((geometry) => geometry.dispose());
       for (const id of reactions.keys()) clearReaction(id);
-      releaseModel?.();
+      releaseModels.forEach((release) => release());
+      releaseModels.clear();
     },
   };
 }

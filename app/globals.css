@@ -1869,3 +1869,12 @@ a {
 .visitor-actions button:disabled { opacity:.45; cursor:default; }
 .visitor-person:hover,.visitor-actions button:not(:disabled):hover { background:#dce4d0; }
 @media (max-width:600px) { .visitor-dialog-atelier .visitor-portrait { min-height: 235px; } }
+.asset-loading-status { position:absolute; z-index:12; top:88px; left:50%; transform:translateX(-50%); width:max-content; max-width:calc(100% - 32px); display:grid; gap:8px; padding:12px 16px; border:1px solid #d8decd; border-radius:12px; background:#f7f8edf2; color:#4a5e43; font-size:12px; box-shadow:0 4px 20px #1a311815; }
+.asset-loading-status progress { width:100%; height:5px; accent-color:#78916b; }
+.asset-loading-status button { justify-self:end; padding:5px 10px; border-radius:6px; background:#e0e8d4; }
+.asset-loading-status button:disabled { opacity:.5; }
+.asset-credits { margin-top:24px; font-size:12px; }
+.asset-credits summary { cursor:pointer; }
+.asset-credits p { margin:8px 0; font-size:12px; }
+.asset-credits a { text-decoration:underline; text-underline-offset:3px; }
+@media (max-width:600px) { .asset-loading-status { top:112px; } }

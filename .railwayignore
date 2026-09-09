@@ -21,3 +21,6 @@ public/models/*-v4.glb
 public/models/studio-visitor.glb
 public/models/studio-visitor-v2.glb
 *.blend*
+
+# Generated from reviewed production inputs during the build
+public/assets

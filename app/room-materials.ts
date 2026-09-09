@@ -1,15 +1,19 @@
 import * as T from 'three';
-// Verified CC0 source and hashes are in public/materials/manifest.json.
-// Always served locally: no asset-CDN dependency at runtime.
+import { deferredTexture, type RoomAssets } from './asset-loading';
+import { assetManifest } from './asset-url';
+import type { RoomId } from './house-data';
+// Verified CC0 production derivatives are resolved through the versioned manifest.
 export function localPbr(
+  scope: RoomAssets,
   textures: T.Texture[],
   asset: string,
   repeat: T.Vector2,
   albedo = true,
 ) {
-  const loader = new T.TextureLoader();
   const load = (file: string, color = false) => {
-    const t = loader.load(`/materials/${asset}/${file}.jpg`);
+    const id = `texture.${asset}.${file}`;
+    const room = assetManifest.assets[id].room as RoomId | 'shared';
+    const t = deferredTexture(scope, room, id, file === 'nor_gl');
     t.colorSpace = color ? T.SRGBColorSpace : T.NoColorSpace;
     t.wrapS = t.wrapT = T.RepeatWrapping;
     t.repeat.copy(repeat);

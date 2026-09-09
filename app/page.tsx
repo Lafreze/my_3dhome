@@ -59,6 +59,9 @@ import { useLiveEnvironment } from './use-live-environment';
 import { useVisibleViewport } from './use-visible-viewport';
 import { readProfile, writeProfile } from './profile-storage';
 import VisitorSeats from './visitor-seats';
+import { usesRemoteAssets } from './asset-url';
+import type { AssetProgress } from './asset-loading';
+import assetCredits from './generated/asset-credits.json';
 type Modal =
   | 'computer'
   | 'wallArt'
@@ -111,6 +114,7 @@ function validProfile(value: unknown): value is Profile {
   );
 }
 export default function Home() {
+  const [assetProgress, setAssetProgress] = useState<AssetProgress>({ loaded: 0, total: 0, completed: 0, count: 0, busy: true, errors: [] });
   useVisibleViewport();
   const [view, setView] = useState<HouseView>('study');
   const [seatPanel, setSeatPanel] = useState(false),
@@ -162,6 +166,7 @@ export default function Home() {
         if (disposed || !host.current) return;
         try {
           api.current = createRoom(host.current, {
+            onAssetProgress: setAssetProgress,
             onSeatSelect: (id) => {
               setSelected(null);
               setModal(null);
@@ -595,6 +600,22 @@ export default function Home() {
             )}
           </output>
         )}
+        {ready && (assetProgress.busy || assetProgress.errors.length > 0) && (
+          <output className="asset-loading-status" aria-live="polite">
+            {assetProgress.errors.length > 0 ? (
+              <>
+                <span>{usesRemoteAssets() ? '资源服务暂时不可用，部分模型或纹理未能加载。' : '部分模型或纹理未能加载，请检查网络连接。'}</span>
+                <button disabled={assetProgress.busy} onClick={() => api.current?.retryAssets()}>重试资源</button>
+              </>
+            ) : (
+              <>
+                <span>正在布置{rooms[view as RoomId]?.name || '小屋'} · {(assetProgress.loaded / 1048576).toFixed(1)} / {(assetProgress.total / 1048576).toFixed(1)} MB</span>
+                <progress aria-label="房间资源下载进度" value={assetProgress.loaded} max={Math.max(1, assetProgress.total)} />
+                {assetProgress.loaded === assetProgress.total && <small>正在准备画面…</small>}
+              </>
+            )}
+          </output>
+        )}
         {hover && !selected && ready && (
           <div
             className="hover-label"
@@ -923,6 +944,17 @@ export default function Home() {
               <span className="studio-kicker">{profile.subtitle}</span>
               <h2>{profile.name}</h2>
               <p>{profile.about}</p>
+              <details className="asset-credits">
+                <summary>素材鸣谢</summary>
+                {[...new Map(assetCredits.map((credit) => [credit.attributionRequired ? credit.id : credit.sourceUrl, credit])).values()].map((credit) => (
+                  <p key={credit.id}>
+                    <a href={credit.sourceUrl} target="_blank" rel="noreferrer">{credit.name}</a>
+                    {' · '}{credit.author}
+                    {' · '}<a href={credit.licenseUrl} target="_blank" rel="noreferrer">{credit.license}</a>
+                    {credit.attributionRequired && <small>{credit.modifications}</small>}
+                  </p>
+                ))}
+              </details>
               <button className="text-button" onClick={() => setModal('works')}>
                 去看看我的作品
                 <ArrowRight size={16} />

@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
 import { createVisitorEyelids } from './visitor-eyelids';
 import { prepareRestGeometry } from './visitor-rest';
 import { prepareMotionGeometry } from './visitor-motion';
@@ -19,8 +19,10 @@ export type VisitorPart = {
   eyelid?: boolean;
   pose: 'sit' | 'rest';
 };
-let cache: Promise<VisitorPart[]> | undefined;
-let references = 0;
+const characterCache = new Map<
+  Character,
+  { promise: Promise<VisitorPart[]>; references: number }
+>();
 const tintKeys: Record<string, AppearanceColor> = {
   TintHair: 'hairColor',
   TintEyes: 'eyeColor',
@@ -99,12 +101,10 @@ function disposeParts(parts: VisitorPart[]) {
   }
   geometries.forEach((geometry) => geometry.dispose());
   materials.forEach((material) => material.dispose());
-  textures.forEach((texture) => texture.dispose());
+  textures.forEach(releaseAssetTexture);
 }
 async function loadPose(character: Character, pose: 'sit' | 'rest') {
-  const { scene } = await new GLTFLoader().loadAsync(
-    `/models/studio-visitor-${character}-${pose === 'rest' ? 'standing-v5' : 'v3'}.glb`,
-  );
+  const { scene } = await loadAssetGltf(`character.${character}.${pose}`);
   const parts: VisitorPart[] = [];
   scene.updateMatrixWorld(true);
   scene.traverse((object) => {
@@ -175,7 +175,7 @@ async function loadCharacter(character: Character) {
           material[field] = source[field];
         }
       }
-    redundant.forEach((texture) => texture.dispose());
+    redundant.forEach(releaseAssetTexture);
     return [...seated, ...standing];
   } catch (error) {
     disposeParts(seated);
@@ -183,45 +183,51 @@ async function loadCharacter(character: Character) {
   }
 }
 // Scene and editor share loaded geometry/textures; the editor owns only material clones.
-export async function acquireVisitorModel() {
-  references++;
-  cache ??= Promise.allSettled(
-    appearanceOptions.characters.map(({ id }) =>
-      loadCharacter(id as Character),
-    ),
-  )
-    .then((results) => {
-      const parts = results.flatMap((result) =>
-        result.status === 'fulfilled' ? result.value : [],
-      );
-      const failure = results.find((result) => result.status === 'rejected');
-      if (failure?.status === 'rejected') {
-        disposeParts(parts);
-        throw failure.reason;
+export async function acquireVisitorModel(
+  characters: Character[] = appearanceOptions.characters.map(
+    ({ id }) => id as Character,
+  ),
+) {
+  const acquired: { parts: VisitorPart[]; release: () => void }[] = [];
+  const results = await Promise.allSettled(
+    [...new Set(characters)].map(async (character) => {
+      let entry = characterCache.get(character);
+      if (!entry) {
+        entry = { promise: loadCharacter(character), references: 0 };
+        characterCache.set(character, entry);
       }
-      return parts;
-    })
-    .catch((error) => {
-      cache = undefined;
-      throw error;
-    });
-  let parts: VisitorPart[];
-  try {
-    parts = await cache;
-  } catch (error) {
-    references--;
-    throw error;
+      entry.references++;
+      let parts: VisitorPart[];
+      try {
+        parts = await entry.promise;
+      } catch (error) {
+        entry.references--;
+        if (characterCache.get(character) === entry)
+          characterCache.delete(character);
+        throw error;
+      }
+      let released = false;
+      acquired.push({
+        parts,
+        release() {
+          if (released) return;
+          released = true;
+          if (--entry.references === 0) {
+            disposeParts(parts);
+            if (characterCache.get(character) === entry)
+              characterCache.delete(character);
+          }
+        },
+      });
+    }),
+  );
+  const failure = results.find((r) => r.status === 'rejected');
+  if (failure?.status === 'rejected') {
+    acquired.forEach((entry) => entry.release());
+    throw failure.reason;
   }
-  let released = false;
   return {
-    parts,
-    release: () => {
-      if (released) return;
-      released = true;
-      if (--references === 0) {
-        disposeParts(parts);
-        cache = undefined;
-      }
-    },
+    parts: acquired.flatMap((entry) => entry.parts),
+    release: () => acquired.forEach((entry) => entry.release()),
   };
 }

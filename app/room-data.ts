@@ -71,6 +71,7 @@ export const defaultProfile: Profile = {
   photos: [],
 };
 export type RoomApi = {
+  retryAssets: () => void;
   setVisitors: (visitors: import('./seat-data').Visitor[], me: string) => void;
   focusSeat: (id: string) => void;
   setView: (view: import('./house-data').HouseView) => void;

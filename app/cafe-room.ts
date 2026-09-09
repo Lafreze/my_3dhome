@@ -7,6 +7,7 @@ import type { HouseLandscape } from './house-landscape';
 import type { Environment } from './environment-data';
 import { createWindowEnvironment } from './room-environment';
 import { localPbr } from './room-materials';
+import type { RoomAssets } from './asset-loading';
 import {
   cafeLayout,
   cafeBistroTables,
@@ -17,6 +18,7 @@ import { addCafeBotany } from './cafe-botany';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 
 type Kit = {
+  assets: RoomAssets;
   seats: SeatAnchors;
   root: T.Group;
   materials: T.Material[];
@@ -41,23 +43,23 @@ export function buildCafe(k: Kit) {
     tan = mat('#ac7350', 0.64);
   Object.assign(
     wood,
-    localPbr(textures, 'walnut_veneer_02', new T.Vector2(1, 1)),
+    localPbr(k.assets, textures, 'walnut_veneer_02', new T.Vector2(1, 1)),
   );
   Object.assign(
     darkWood,
-    localPbr(textures, 'wood_table_001', new T.Vector2(0.6, 1)),
+    localPbr(k.assets, textures, 'wood_table_001', new T.Vector2(0.6, 1)),
   );
   for (const m of [leather, tan]) {
     Object.assign(
       m,
-      localPbr(textures, 'leather_white', new T.Vector2(2, 2), false),
+      localPbr(k.assets, textures, 'leather_white', new T.Vector2(2, 2), false),
     );
     m.normalScale.set(0.3, 0.3);
   }
   const floor = mat('#e4ddd0', 0.72);
   Object.assign(
     floor,
-    localPbr(textures, 'terrazzo_tiles', new T.Vector2(3, 1.5)),
+    localPbr(k.assets, textures, 'terrazzo_tiles', new T.Vector2(3, 1.5)),
   );
   floor.normalScale.set(0.2, 0.2);
   const green = mat('#204b3c', 0.8),

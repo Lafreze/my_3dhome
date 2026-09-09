@@ -189,3 +189,9 @@ YouTube 在线播放受网络、浏览器播放规则与影片嵌入权限影响
 - `scripts/export-standing-visitors.py` 在本机 Blender 中读取 v3 工程保存的原始站姿，导出 `public/models/studio-visitor-{bear,cat,fox}-standing-v5.glb`（约 3.2–3.7 MB、101k 三角面）。不反推坐姿、不局部拉伸。`assets/models/studio-standing-rest-v5.blend` 保留三套可编辑表面；旧 `scripts/pose-rest-visitors.py` 入口转到新导出流程。
 - `app/visitor-rest-poses.json` 统一管理整个人物的平躺角度和床面高度；`app/visitor-rest.ts` 的刚性矩阵同时用于主画面、阴影、衣橱与拾取。坐姿和站姿共享相同 GPU 纹理，配色保持同步。枕头增加圆润填充、压痕、边缘褶皱和细缝边，衣橱休息预览使用相同枕头表面。
 - `node scripts/check-visitor-rest.mjs` 校验原始站姿完整性、全身刚性变换、未拉伸的边长、闭眼位置、共享纹理、UV、单位法线、九尾完整宽度和双床位边界。`node scripts/check-seats.mjs` 另验证床位冲突、起身、跨座移动、休息免打扰、互动冷却与过期，以及本地和 Railway 身份识别。
+
+## Cloudflare R2 资源部署（2026-09-09）
+
+新增审核式生产资源生成、内容哈希清单、受限 R2 上传、房间按需资源加载、进度与重试。生产切换入口只有构建变量 `VITE_ASSET_BASE_URL`，默认留空继续本地运行；尚未配置 / 验证 R2 时不要修改线上变量。原有模型和贴图保留，Blender 工程不会上传。
+
+执行 `npm run assets:prepare`、`npm run assets:upload -- --dry-run`，查看 [部署操作、环境变量、上传与回滚](docs/r2-assets-deployment.md)、[资源分类与体积](docs/assets-inventory.json)、[授权记录模板](docs/third-party-model-license-template.md)、[验收记录](docs/r2-assets-validation.md)。用户提供的 7 个衍生模型目前排除在公开 R2 上传清单之外，等待明确公开分发授权。

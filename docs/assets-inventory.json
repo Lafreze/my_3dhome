@@ -1,0 +1,280 @@
+{
+  "version": "7fd7bf6fdc52b368",
+  "roomSizes": {
+    "study": {
+      "bytes": 4493340,
+      "files": 10
+    },
+    "living": {
+      "bytes": 2759834,
+      "files": 7
+    },
+    "bedroom": {
+      "bytes": 2759834,
+      "files": 7
+    },
+    "gallery": {
+      "bytes": 6331930,
+      "files": 8
+    },
+    "cafe": {
+      "bytes": 6520148,
+      "files": 18
+    }
+  },
+  "commonCharacters": {
+    "files": 6,
+    "bytes": 20960672
+  },
+  "pending": [
+    "character.bear.sit",
+    "character.bear.rest",
+    "character.cat.sit",
+    "character.cat.rest",
+    "character.fox.sit",
+    "character.fox.rest",
+    "room.gallery.sculpture"
+  ],
+  "inventory": [
+    {
+      "path": "public/favicon.svg",
+      "bytes": 233,
+      "classification": "entry-asset-retained-on-railway"
+    },
+    {
+      "path": "public/materials/brown_leather/Diffuse.jpg",
+      "bytes": 503348,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/brown_leather/Rough.jpg",
+      "bytes": 686142,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/brown_leather/nor_gl.jpg",
+      "bytes": 863280,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/fabric_pattern_07/Rough.jpg",
+      "bytes": 488744,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/fabric_pattern_07/col_1.jpg",
+      "bytes": 788593,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/materials/fabric_pattern_07/nor_gl.jpg",
+      "bytes": 828071,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/fine_grained_wood/Diffuse.jpg",
+      "bytes": 336305,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/fine_grained_wood/Rough.jpg",
+      "bytes": 215155,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/fine_grained_wood/nor_gl.jpg",
+      "bytes": 193626,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/leather_white/Diffuse.jpg",
+      "bytes": 728363,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/materials/leather_white/Rough.jpg",
+      "bytes": 675426,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/leather_white/nor_gl.jpg",
+      "bytes": 670610,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/manifest.json",
+      "bytes": 8808,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/materials/terrazzo_tiles/Diffuse.jpg",
+      "bytes": 1166107,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/terrazzo_tiles/Rough.jpg",
+      "bytes": 459022,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/terrazzo_tiles/nor_gl.jpg",
+      "bytes": 77954,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/walnut_veneer_02/Diffuse.jpg",
+      "bytes": 592833,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/walnut_veneer_02/Rough.jpg",
+      "bytes": 743210,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/walnut_veneer_02/nor_gl.jpg",
+      "bytes": 362888,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/white_plaster_02/Diffuse.jpg",
+      "bytes": 527219,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/materials/white_plaster_02/Rough.jpg",
+      "bytes": 295900,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/white_plaster_02/nor_gl.jpg",
+      "bytes": 652310,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/wood_table_001/Diffuse.jpg",
+      "bytes": 215573,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/wood_table_001/Rough.jpg",
+      "bytes": 237261,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/wood_table_001/nor_gl.jpg",
+      "bytes": 51927,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/gallery-figure.glb",
+      "bytes": 3572096,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/gallery-figure.json",
+      "bytes": 444,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/studio-visitor-bear-standing-v5.glb",
+      "bytes": 3598288,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-bear-v3.glb",
+      "bytes": 3590200,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-bear-v4.glb",
+      "bytes": 5432764,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/studio-visitor-cat-standing-v5.glb",
+      "bytes": 3228264,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-cat-v3.glb",
+      "bytes": 3226320,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-cat-v4.glb",
+      "bytes": 4909756,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/studio-visitor-fox-standing-v5.glb",
+      "bytes": 3666740,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-fox-v3.glb",
+      "bytes": 3650860,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-fox-v4.glb",
+      "bytes": 5669608,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/studio-visitor-v2.glb",
+      "bytes": 4307744,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/studio-visitor.glb",
+      "bytes": 1477064,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "assets/models/studio-standing-rest-v5.blend",
+      "bytes": 34040532,
+      "classification": "forbidden-source"
+    },
+    {
+      "path": "assets/models/studio-standing-rest-v5.blend1",
+      "bytes": 34040721,
+      "classification": "forbidden-source"
+    },
+    {
+      "path": "assets/models/studio-visitor-fox-v3.blend",
+      "bytes": 32348216,
+      "classification": "forbidden-source"
+    },
+    {
+      "path": "assets/models/studio-visitor-v2.blend",
+      "bytes": 49867584,
+      "classification": "forbidden-source"
+    },
+    {
+      "path": "assets/models/studio-visitor.blend",
+      "bytes": 1325758,
+      "classification": "forbidden-source"
+    },
+    {
+      "path": "assets/models/studio-visitor.blend1",
+      "bytes": 1337275,
+      "classification": "forbidden-source"
+    },
+    {
+      "path": "assets/models/studio-visitors-rest-v4.blend",
+      "bytes": 20307342,
+      "classification": "forbidden-source"
+    },
+    {
+      "path": "assets/models/studio-visitors-rest-v4.blend1",
+      "bytes": 20306294,
+      "classification": "forbidden-source"
+    },
+    {
+      "path": "assets/models/studio-visitors-v3.blend",
+      "bytes": 70527827,
+      "classification": "forbidden-source"
+    }
+  ]
+}

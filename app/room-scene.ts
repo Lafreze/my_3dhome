@@ -26,8 +26,11 @@ import {
   type PlacedId,
 } from './room-layout';
 import { localPbr } from './room-materials';
+import { createRoomAssets, setAssetRenderer, type AssetProgress } from './asset-loading';
+import { releaseHiddenRoomGpu } from './room-resources';
 
 type Options = {
+  onAssetProgress: (progress: AssetProgress) => void;
   onSeatSelect: (id: string) => void;
   onSelect: (id: ObjectId | null) => void;
   onHover: (id: ObjectId | null, x: number, y: number) => void;
@@ -35,12 +38,14 @@ type Options = {
   onView: (view: HouseView) => void;
 };
 export function createRoom(host: HTMLElement, options: Options): RoomApi {
+  const assets = createRoomAssets(options.onAssetProgress);
   const scene = new T.Scene();
   const renderer = new T.WebGLRenderer({
     antialias: true,
     alpha: true,
     powerPreference: 'high-performance',
   });
+  setAssetRenderer(renderer);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.autoUpdate = false;
@@ -134,6 +139,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     return m;
   };
   const walnutMaps = localPbr(
+    assets,
     textures,
     'fine_grained_wood',
     new T.Vector2(0.8, 0.65),
@@ -148,17 +154,20 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   paleWood.color.setRGB(1.8, 1.73, 1.6);
   darkWood.color.setRGB(0.95, 0.9, 0.8);
   const clothMaps = localPbr(
+    assets,
     textures,
     'fabric_pattern_07',
     new T.Vector2(2.4, 2.4),
     false,
   );
   const leatherMaps = localPbr(
+    assets,
     textures,
     'brown_leather',
     new T.Vector2(1.7, 1.7),
   );
   const wallMaps = localPbr(
+    assets,
     textures,
     'white_plaster_02',
     new T.Vector2(3, 2),
@@ -1778,6 +1787,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     (houseBounds.minZ + houseBounds.maxZ) / 2,
   );
   const house = buildHouse({
+    assets,
     seats: seatAnchors,
     cutaways,
     landscape,
@@ -1801,7 +1811,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   if (seatAnchors.size !== seats.length)
     throw new Error('座位模型与座位目录不一致');
   const visitors = createSeatScene(scene, seatAnchors, interactables, () =>
-    refreshShadows(),
+    refreshShadows(), assets,
   );
   const tvScreen = televisionScreen(host, house.screen);
   const computerScreen = televisionScreen(host, computerPanel, {
@@ -2122,6 +2132,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     renderer.render(scene, camera);
   }
   const api: RoomApi = {
+    retryAssets: () => { assets.retry(); visitors.retry(); },
     setVisitors: (people, me) => visitors.setVisitors(people, me),
     focusSeat(id) {
       const seat = seatById.get(id),
@@ -2146,6 +2157,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       activeView = view;
       focusedObject = null;
       house.setView(view);
+      assets.activate(view);
+      visitors.refreshVisible();
+      releaseHiddenRoomGpu(scene);
       options.onView(view);
       const all = view === 'overview' || view === 'plan';
       controls.minPolarAngle = view === 'plan' ? 0.001 : Math.PI / 9;
@@ -2389,6 +2403,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           replaceMap(artMaps[i]);
           return;
         }
+        // Private user artwork stays on its data/blob URL and never enters the public catalog.
         new T.TextureLoader().load(url, (t) => {
           if (disposed || m.userData.url !== url) {
             t.dispose();
@@ -2403,6 +2418,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     dispose() {
       disposed = true;
+      assets.dispose();
+      setAssetRenderer(undefined);
       cancelAnimationFrame(frameId);
       observer.disconnect();
       controls.dispose();
@@ -2432,6 +2449,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   controls.update();
   renderer.render(scene, camera);
   frameId = requestAnimationFrame(animate);
+  assets.activate('study');
   options.onReady();
   return api;
 }
