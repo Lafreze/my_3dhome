@@ -17,7 +17,7 @@ coverage
 
 # Native authoring assets are unnecessary in the web container
 assets
-public/models/*-v3.glb
+public/models/*-v4.glb
 public/models/studio-visitor.glb
 public/models/studio-visitor-v2.glb
 *.blend*

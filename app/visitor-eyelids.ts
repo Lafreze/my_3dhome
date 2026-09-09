@@ -364,22 +364,6 @@ export function createVisitorEyelids(
   );
   geometry.setIndex(indices);
   prepareMotionGeometry(geometry, character);
-  // The face is rigid in the Blender Rest shape: rotate onto the pillow with it.
-  const lift = character === 'cat' ? 0.335 : 0.295;
-  for (const [source, target] of [
-    ['position', 'visitorRestPosition'],
-    ['visitorLidOpen', 'visitorRestLidOpen'],
-    ['normal', 'visitorRestNormal'],
-  ] as const) {
-    const a = geometry.getAttribute(source),
-      values = new Float32Array(a.count * 3);
-    for (let i = 0; i < a.count; i++) {
-      values[i * 3] = a.getX(i);
-      values[i * 3 + 1] = a.getZ(i) + (source === 'normal' ? 0 : lift);
-      values[i * 3 + 2] = -a.getY(i);
-    }
-    geometry.setAttribute(target, new T.BufferAttribute(values, 3));
-  }
   geometry.computeBoundingSphere();
   const material = new T.MeshStandardMaterial({
     vertexColors: true,
@@ -395,5 +379,6 @@ export function createVisitorEyelids(
     name: `${character} eyelids`,
     character,
     eyelid: true,
+    pose: parts[0].pose,
   };
 }

@@ -1,0 +1,23 @@
+{
+  "bear": {
+    "scale": 1.0,
+    "pitch": 0.32,
+    "lift": 0.2208105,
+    "lengthOffset": 0,
+    "labelHeight": 0.78
+  },
+  "cat": {
+    "scale": 1.0,
+    "pitch": 0.3,
+    "lift": 0.2070627,
+    "lengthOffset": 0,
+    "labelHeight": 0.82
+  },
+  "fox": {
+    "scale": 1.0,
+    "pitch": 0.0,
+    "lift": 0.3476844,
+    "lengthOffset": 0,
+    "labelHeight": 0.82
+  }
+}

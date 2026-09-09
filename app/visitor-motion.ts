@@ -1,5 +1,6 @@
 import * as T from 'three';
 import type { Character } from './visitor-appearance';
+import { visitorRestMatrix } from './visitor-rest.ts';
 
 // Metres in the seated model's coordinate system; the cushion is y = 0.
 export const motionRig = {
@@ -112,21 +113,22 @@ export function configureVisitorMotion(
   const previous = material.onBeforeCompile.bind(material);
   const previousKey = material.customProgramCacheKey();
   const rig = motionRig[character];
+  const restTransform = { value: visitorRestMatrix(character) };
   material.customProgramCacheKey = () =>
-    `${previousKey}/idle-v1/${character}/${instanced}/${eyelid}`;
+    `${previousKey}/idle-v3/${character}/${instanced}/${eyelid}`;
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
     shader.uniforms.visitorMotion = state;
     shader.uniforms.visitorRest = resting;
+    shader.uniforms.visitorRestTransform = restTransform;
     shader.vertexShader =
       `
       attribute vec2 visitorWeights;
       attribute vec3 visitorBlinkDelta;
-      attribute vec3 visitorRestPosition;
-      attribute vec3 visitorRestNormal;
+      uniform mat4 visitorRestTransform;
       ${instanced ? 'attribute float visitorInstanceRest;' : 'uniform float visitorRest;'}
       ${instanced ? 'attribute vec4 visitorInstanceMotion;' : 'uniform vec4 visitorMotion;'}
-      ${eyelid ? 'attribute vec3 visitorLidOpen; attribute vec3 visitorRestLidOpen;' : ''}
+      ${eyelid ? 'attribute vec3 visitorLidOpen;' : ''}
       vec4 visitorState() { return ${instanced ? 'visitorInstanceMotion' : 'visitorMotion'}; }
       float visitorResting() {return ${instanced ? 'visitorInstanceRest' : 'visitorRest'};}
       mat3 visitorTurn(float yaw, float pitch) {
@@ -136,7 +138,8 @@ export function configureVisitorMotion(
       vec3 visitorPose(vec3 p) {
         vec4 state = visitorState();
         if(visitorResting() > .5) {
-          ${eyelid ? 'p = mix(visitorRestLidOpen, visitorRestPosition, state.x);' : 'p = visitorRestPosition + vec3(visitorBlinkDelta.x, visitorBlinkDelta.z, -visitorBlinkDelta.y)*state.x;'}
+          ${eyelid ? 'p = mix(visitorLidOpen, p, state.x);' : 'p += visitorBlinkDelta * state.x;'}
+          p = (visitorRestTransform * vec4(p, 1.)).xyz;
           p.y += state.z * visitorWeights.y * (1. - visitorWeights.x);
           return p;
         }
@@ -163,11 +166,11 @@ export function configureVisitorMotion(
         '#include <beginnormal_vertex>',
         `#include <beginnormal_vertex>
         vec4 visitorNormalState = visitorState();
-        objectNormal = visitorResting() > .5 ? visitorRestNormal : visitorTurn(visitorNormalState.y * visitorWeights.x,
-          visitorNormalState.w * visitorWeights.x) * objectNormal;
+        mat3 visitorNormalTransform = visitorResting() > .5 ? mat3(visitorRestTransform) : visitorTurn(visitorNormalState.y * visitorWeights.x,
+          visitorNormalState.w * visitorWeights.x);
+        objectNormal = normalize(visitorNormalTransform * objectNormal);
         #ifdef USE_TANGENT
-          objectTangent = visitorTurn(visitorNormalState.y * visitorWeights.x,
-            visitorNormalState.w * visitorWeights.x) * objectTangent;
+          objectTangent = normalize(visitorNormalTransform * objectTangent);
         #endif`,
       );
   };

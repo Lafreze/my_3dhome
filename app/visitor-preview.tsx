@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import * as T from 'three';
+import { pillowGeometry } from './bed-linen';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
   acquireVisitorModel,
@@ -28,6 +29,7 @@ export default function VisitorPreview({
   const latestPosture = useRef(posture);
   useEffect(() => {
     latestPosture.current = posture;
+    apply.current?.(latest.current);
   }, [posture]);
   const [status, setStatus] = useState('正在整理衣橱…');
   useEffect(() => {
@@ -37,6 +39,7 @@ export default function VisitorPreview({
   useEffect(() => {
     const element = host.current;
     if (!element) return;
+    let renderedPosture: 'sit' | 'rest' | undefined;
     let stopped = false,
       release: (() => void) | undefined,
       frame = 0;
@@ -107,9 +110,8 @@ export default function VisitorPreview({
     bed.position.set(0, -0.05, -0.12);
     scene.add(bed);
     bed.visible = false;
-    const pillowGeometry = new T.SphereGeometry(1, 32, 16);
-    const pillow = new T.Mesh(pillowGeometry, bedMaterial);
-    pillow.scale.set(0.46, 0.1, 0.29);
+    const previewPillowGeometry = pillowGeometry(0.9, 0.16, 0.51);
+    const pillow = new T.Mesh(previewPillowGeometry, bedMaterial);
     pillow.position.set(0, 0.14, -0.62);
     bed.add(pillow);
     function render() {
@@ -126,6 +128,12 @@ export default function VisitorPreview({
         motion.value,
       );
       resting.value = latestPosture.current === 'rest' ? 1 : 0;
+      if (renderedPosture !== latestPosture.current) {
+        renderedPosture = latestPosture.current;
+        if (resting.value) camera.position.set(1.3, 1.65, 2.7);
+        else camera.position.set(1.1, 0.8, 2.2);
+        controls.minPolarAngle = resting.value ? 0.18 : 0.75;
+      }
       support.visible = !resting.value;
       bed.visible = !!resting.value;
       if (resting.value)
@@ -154,7 +162,7 @@ export default function VisitorPreview({
     controls.addEventListener('change', render);
     apply.current = (a) => {
       for (const { mesh, part } of meshes) {
-        mesh.visible = partVisible(part, a);
+        mesh.visible = partVisible(part, a, latestPosture.current);
         const mats = Array.isArray(mesh.material)
           ? mesh.material
           : [mesh.material];
@@ -196,6 +204,7 @@ export default function VisitorPreview({
             ...(Array.isArray(material) ? material : [material]),
           );
           const mesh = new T.Mesh(part.geometry, material);
+          mesh.frustumCulled = false;
           mesh.matrixAutoUpdate = false;
           mesh.matrix.copy(part.matrix);
           mesh.name = part.name;
@@ -223,7 +232,7 @@ export default function VisitorPreview({
       legGeometry.dispose();
       stoolMaterial.dispose();
       bedGeometry.dispose();
-      pillowGeometry.dispose();
+      previewPillowGeometry.dispose();
       bedMaterial.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

@@ -1,3 +1,4 @@
+import { pillowGeometry, pillowPiping } from './bed-linen';
 import type { WallCutaways } from './wall-cutaway';
 import { buildCafe } from './cafe-room';
 import { attachSeats, type SeatAnchors } from './seat-scene';
@@ -1236,7 +1237,7 @@ export function buildHouse(k: Kit) {
   // BEDROOM. Bed axis points toward the foot bench; both sides and the wardrobe remain reachable.
   const bf = houseFurniture.bedroom;
   const bed = group('bedroom', 'sleepBed', bf.bed.x, 0, bf.bed.z);
-  attachSeats(k.seats,bed,['bedroom-bed-left','bedroom-bed-right']);
+  attachSeats(k.seats, bed, ['bedroom-bed-left', 'bedroom-bed-right']);
   feet(bed, 2.56, 3.14, 0.27);
   b(bed, 2.9, 0.26, 3.65, 0, 0.4, 0, oak, 0.085);
   b(bed, 3.02, 1.02, 0.16, 0, 0.94, -1.74, oak, 0.09);
@@ -1245,10 +1246,27 @@ export function buildHouse(k: Kit) {
   cushion(bed, 2.79, 0.32, 3.43, 0, 0.68, 0.02, bedCloth);
   cushion(bed, 2.77, 0.12, 2.29, 0, 0.898, 0.59, bedCloth);
   for (const x of [-0.72, 0.72]) {
-    const p = cushion(bed, 1.16, 0.2, 0.66, x, 0.952, -1.05, bedCloth);
-    p.rotation.y = x * 0.06;
-    const q = cushion(bed, 0.9, 0.17, 0.51, x, 0.98, -0.72, ivoryCloth);
-    q.rotation.y = -x * 0.05;
+    for (const [w, h, d, y, z, angle, material] of [
+      [1.16, 0.2, 0.66, 0.952, -1.05, x * 0.06, bedCloth],
+      [0.9, 0.17, 0.51, 0.98, -0.72, -x * 0.05, ivoryCloth],
+    ] as const) {
+      const pillow = child(bed, x, y, z);
+      pillow.rotation.y = angle;
+      mesh(pillow, pillowGeometry(w, h, d), material, 0, 0, 0);
+      mesh(pillow, pillowPiping(w, d), ivoryCloth, 0, 0, 0);
+      // Small stitched edge label tucked into the pillowcase seam.
+      b(
+        pillow,
+        0.046,
+        0.002,
+        0.024,
+        w * 0.45,
+        0.001,
+        d * 0.17,
+        bedCloth,
+        0.001,
+      );
+    }
   }
   // Woven runner bends over the foot, with raised seams and fringe.
   b(bed, 2.83, 0.045, 0.68, 0, 0.985, 1.02, blanketCloth, 0.03);

@@ -5,6 +5,7 @@ import {
   configureVisitorTint,
   type VisitorPart,
 } from './visitor-model';
+import restPoses from './visitor-rest-poses.json';
 import { appearanceOptions, readAppearance } from './visitor-appearance';
 import { seats, seatById, type Visitor } from './seat-data';
 import {
@@ -274,7 +275,8 @@ export function createSeatScene(
     sprite.position.y = appearanceOptions.characters.find(
       (option) => option.id === character,
     )!.labelHeight;
-    if (visitor.posture === 'rest') sprite.position.set(0, 0.69, -0.59);
+    if (visitor.posture === 'rest')
+      sprite.position.set(0, restPoses[character].labelHeight, -0.59);
     sprite.userData.seatId = visitor.seatId;
     anchor.add(sprite);
     labels.set(visitor.seatId, { sprite, signature });
@@ -339,7 +341,7 @@ export function createSeatScene(
       slotIds.length = 0;
       for (let i = 0; i < visibleSeats.length; i++) {
         const { seat, anchor, appearance, visitor } = visibleSeats[i];
-        if (!partVisible(part, appearance)) continue;
+        if (!partVisible(part, appearance, visitor.posture || 'sit')) continue;
         const index = slotIds.length;
         slotIds.push(seat.id);
         local.copy(part.matrix);

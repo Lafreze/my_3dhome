@@ -170,21 +170,22 @@ YouTube 在线播放受网络、浏览器播放规则与影片嵌入权限影响
 - 本地服务器仍只监听 `127.0.0.1`。因此同一台电脑不同浏览器、无痕窗口或标签页使用相同 IP，会共享同一个小人；这不是按浏览器存储生成的多个用户。
 - 使用 `npm start` 或 `npm run dev` 都包含 `/api/presence` 服务。直接用其他静态文件服务器打开导出的页面时，座位功能会提示正在连接，不会伪造占座成功。
 - 当前提供熊女孩、猫女孩、九尾狐三套完整原模型，均来自用户提供的 GLB，在本机 Blender MCP 中改制。保留完整脸部、头发、服装与配饰，沿原网格连续弯曲髋部和膝盖，单独修整裙摆；不再使用外露球形关节、拼接脸部或随椅高拉长小腿。原始下载文件未修改。
-- 坐姿源工程为 `assets/models/studio-visitors-v3.blend`，躺姿工程为 `assets/models/studio-visitors-rest-v4.blend`。网页加载 `public/models/studio-visitor-bear-v4.glb`（约 5.4 MB、101,788 三角面）和 `public/models/studio-visitor-cat-v4.glb`（约 4.9 MB、101,998 三角面），使用 2048 px 本地纹理。多人共享几何与纹理，每个人的配色和姿态独立。
-- 九尾狐使用 `public/models/studio-visitor-fox-v4.glb`（约 5.7 MB、100,799 三角面）。完整保留脸部、花饰、和服、九尾和 UV 纹理；坐姿双腿连续前弯，尾扇收拢并抬高下缘，避免占用邻座和穿入坐垫。坐姿宽约 0.60 单位，适配最窄的 0.637 单位卡座间距。黑色和服改色时保留金色刺绣；尾巴保持原来的白毛颜色。
-- 九尾狐的坐姿源文件为 `assets/models/studio-visitor-fox-v3.blend`，包含参考、坐姿和网页副本。`scripts/pose-fox-visitor.py` 可在 Blender 的独立初始工程中重建，支持 `STUDIO_FOX_REFERENCE` 指定原始文件。三套 v3 模型保留为 v4 的输入，原坐姿保持不变。
+- 坐姿源工程为 `assets/models/studio-visitors-v3.blend`，原始站姿及平躺工程为 `assets/models/studio-standing-rest-v5.blend`。坐姿加载 `public/models/studio-visitor-bear-v3.glb` 和 `public/models/studio-visitor-cat-v3.glb`（各约 102k 三角面），使用 2048 px 本地纹理。多人共享几何与纹理，每个人的配色和姿态独立。
+- 九尾狐使用 `public/models/studio-visitor-fox-v3.glb`（约 3.7 MB、100,799 三角面）。完整保留脸部、花饰、和服、九尾和 UV 纹理；坐姿双腿连续前弯，尾扇收拢并抬高下缘，避免占用邻座和穿入坐垫。坐姿宽约 0.60 单位，适配最窄的 0.637 单位卡座间距。黑色和服改色时保留金色刺绣；尾巴保持原来的白毛颜色。
+- 九尾狐的坐姿源文件为 `assets/models/studio-visitor-fox-v3.blend`，包含参考、坐姿和网页副本。`scripts/pose-fox-visitor.py` 可在 Blender 的独立初始工程中重建，支持 `STUDIO_FOX_REFERENCE` 指定原始文件。三套 v3 坐姿继续独立使用，原坐姿保持不变。
 - 衣橱可选择三套原始角色，并调整发色、虹膜、上衣和下装颜色，支持一键恢复当前角色的原配色。原配色直接显示源贴图；改色保留纹理明暗。为保持原模型完整，当前保留各角色原有的发型、服装和配饰，不再提供旧版拼装发型/性别开关。旧版偏好仍兼容读取，未指定角色的访客使用熊女孩。
 - 预览可拖动旋转和缩放；保存后才提交，取消不影响已保存形象。换座、改名不会重置形象；抢座失败不会部分更新外观。
 - 三种角色均有自然眨眼（偶尔连眨）、轻微呼吸和间歇转头观望。动作按访客身份错开节奏，换座与同步不会重新计时；头发、耳朵和饰品跟随头部，臀部与脚保持原有接触位置，九尾狐的后方尾扇不随头部扭动。衣橱预览使用相同动作。
 - `app/visitor-motion.ts` 维护局部动作与实例状态；`app/visitor-eyelids.ts` 依据三套原脸的独立轮廓生成眼睑，沿原贴图采样肤色，原 GLB 和 Blender 工程未被改写。网页隐藏时停止绘制，系统「减少动态效果」开启时人物静止；颜色、深度和点光源阴影使用相同变形。
-- `app/visitor-appearance.json` 维护共享选项；`app/visitor-model.ts` 管理角色目录中的模型和保留纹理的改色；`app/visitor-preview.tsx` 与场景共用资源。建模流程在 `scripts/pose-source-visitors.py`；旧版 v1/v2 工程与模型仅保留在本机，不由网页加载或包含在本次发布中。仓库包含 v3 源工程、v3 输入模型和当前 v4 工程与模型；自动备份不提交。
+- `app/visitor-appearance.json` 维护共享选项；`app/visitor-model.ts` 管理角色目录中的模型和保留纹理的改色；`app/visitor-preview.tsx` 与场景共用资源。建模流程在 `scripts/pose-source-visitors.py`；旧版 v1/v2 工程与模型仅保留在本机，不由网页加载或包含在本次发布中。网页与部署包使用 v3 坐姿及 v5 原始站姿模型。旧 v4 仅留作历史归档，不再加载或打包；自动备份不提交。
 - `app/seat-catalog.json` 是前端和服务端共用的座位目录；添加新椅子时增加目录项，并用 `attachSeats` 将其绑定到家具。`app/seat-scene.ts` 管理模型实例、姓名牌、朝向和拾取；`scripts/seat-presence.mjs` 管理占座规则。
 - 验证：`node scripts/check-seats.mjs` 检查唯一 IP、并发抢座、换座、改名、满座、续期和过期；`node scripts/check-visitor-model.mjs` 检查三套模型的体积、面数、完整 UV/法线、座面接触、前伸鞋子和 29 个座位的地面余量。`node scripts/check-appearance.mjs` 检查外观保存、换座/冲突时的数据完整性、颜色验证与旧客户端兼容。
 - `node scripts/check-visitor-motion.mjs` 检查 29 个独立节奏在两分钟内的眨眼频率、转头连续性、减少动态效果，以及极限动作下三种角色的座位宽度、座面接触、脚与后方尾扇稳定性。
 
 ### 休息和互动
 
-- 点击床的左侧或右侧即可「躺下休息」。角色展开双腿，头靠枕头，持续闭眼并轻微呼吸；「醒来，坐一会儿」使角色坐到对应床沿并恢复眨眼和观望。离开后立即释放床位。床品颜色和床头灯仍可直接调整。
+- 点击床的左侧或右侧即可「躺下休息」。角色直接使用完整原始站姿整体平躺，保留原身体、衣物和尾巴形状，持续闭眼并轻微呼吸；「醒来，坐一会儿」使角色坐到对应床沿并恢复眨眼和观望。离开后立即释放床位。床品颜色和床头灯仍可直接调整。
 - 「定位」显示自己的位置与其他在线角色；点击角色卡可进入其房间。点头致意和送个心意会同步短暂的场景气泡，发起者有轻微点头动作；每次互动间隔至少 2.5 秒，6.5 秒后气泡消失。自己或对方正在休息时不能互动。
-- `scripts/pose-rest-visitors.py` 在本机 Blender 中由完整的原始表面恢复躺姿，保留 v3 的坐姿顶点和 UV。`assets/models/studio-visitors-rest-v4.blend` 包含 Basis / Rest 形态；该脚本由仓库内 v3 工程与 GLB 重建 v4。保持完整连续的身体，不添加外露关节。
-- `node scripts/check-visitor-rest.mjs` 校验原坐姿保持、Rest 形态、UV、单位法线、体积和双床位边界。`node scripts/check-seats.mjs` 另验证床位冲突、起身、跨座移动、休息免打扰、互动冷却与过期，以及本地和 Railway 身份识别。
+- `scripts/export-standing-visitors.py` 在本机 Blender 中读取 v3 工程保存的原始站姿，导出 `public/models/studio-visitor-{bear,cat,fox}-standing-v5.glb`（约 3.2–3.7 MB、101k 三角面）。不反推坐姿、不局部拉伸。`assets/models/studio-standing-rest-v5.blend` 保留三套可编辑表面；旧 `scripts/pose-rest-visitors.py` 入口转到新导出流程。
+- `app/visitor-rest-poses.json` 统一管理整个人物的平躺角度和床面高度；`app/visitor-rest.ts` 的刚性矩阵同时用于主画面、阴影、衣橱与拾取。坐姿和站姿共享相同 GPU 纹理，配色保持同步。枕头增加圆润填充、压痕、边缘褶皱和细缝边，衣橱休息预览使用相同枕头表面。
+- `node scripts/check-visitor-rest.mjs` 校验原始站姿完整性、全身刚性变换、未拉伸的边长、闭眼位置、共享纹理、UV、单位法线、九尾完整宽度和双床位边界。`node scripts/check-seats.mjs` 另验证床位冲突、起身、跨座移动、休息免打扰、互动冷却与过期，以及本地和 Railway 身份识别。

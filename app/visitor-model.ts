@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createVisitorEyelids } from './visitor-eyelids';
+import { prepareRestGeometry } from './visitor-rest';
 import { prepareMotionGeometry } from './visitor-motion';
 import {
   appearanceOptions,
@@ -16,6 +17,7 @@ export type VisitorPart = {
   character: Character;
   tint?: AppearanceColor;
   eyelid?: boolean;
+  pose: 'sit' | 'rest';
 };
 let cache: Promise<VisitorPart[]> | undefined;
 let references = 0;
@@ -25,8 +27,12 @@ const tintKeys: Record<string, AppearanceColor> = {
   TintTop: 'topColor',
   TintBottom: 'bottomColor',
 };
-export function partVisible(part: VisitorPart, appearance: Appearance) {
-  return part.character === appearance.character;
+export function partVisible(
+  part: VisitorPart,
+  appearance: Appearance,
+  posture: 'sit' | 'rest' = 'sit',
+) {
+  return part.character === appearance.character && part.pose === posture;
 }
 
 // Original colors bypass recoloring entirely, preserving the artist's painted texture.
@@ -95,9 +101,9 @@ function disposeParts(parts: VisitorPart[]) {
   materials.forEach((material) => material.dispose());
   textures.forEach((texture) => texture.dispose());
 }
-async function loadCharacter(character: Character) {
+async function loadPose(character: Character, pose: 'sit' | 'rest') {
   const { scene } = await new GLTFLoader().loadAsync(
-    `/models/studio-visitor-${character}-v4.glb`,
+    `/models/studio-visitor-${character}-${pose === 'rest' ? 'standing-v5' : 'v3'}.glb`,
   );
   const parts: VisitorPart[] = [];
   scene.updateMatrixWorld(true);
@@ -105,24 +111,6 @@ async function loadCharacter(character: Character) {
     if (!(object instanceof T.Mesh)) return;
     // A single model-space rig also applies to accessories and the eyelid surfaces.
     object.geometry.applyMatrix4(object.matrixWorld);
-    const geometry = object.geometry;
-    for (const [kind, target] of [
-      ['position', 'visitorRestPosition'],
-      ['normal', 'visitorRestNormal'],
-    ] as const) {
-      const base = geometry.getAttribute(kind),
-        morph = geometry.morphAttributes[kind]?.[0];
-      if (!morph) throw new Error(`Missing ${character} rest shape`);
-      const data = new Float32Array(base.count * 3);
-      for (let i = 0; i < base.count; i++)
-        for (let j = 0; j < 3; j++)
-          data[i * 3 + j] =
-            morph.getComponent(i, j) +
-            (geometry.morphTargetsRelative ? base.getComponent(i, j) : 0);
-      geometry.setAttribute(target, new T.BufferAttribute(data, 3));
-    }
-    // Instancing uses our per-person pose attributes, not the global glTF morph weight.
-    geometry.morphAttributes = {};
     prepareMotionGeometry(object.geometry, character);
     const part: VisitorPart = {
       geometry: object.geometry,
@@ -130,6 +118,7 @@ async function loadCharacter(character: Character) {
       matrix: new T.Matrix4(),
       name: object.name,
       character,
+      pose,
     };
     for (const material of Array.isArray(object.material)
       ? object.material
@@ -147,7 +136,51 @@ async function loadCharacter(character: Character) {
     parts.push(part);
   });
   parts.push(createVisitorEyelids(parts, character));
+  parts.forEach((part) => prepareRestGeometry(part.geometry, character));
   return parts;
+}
+async function loadCharacter(character: Character) {
+  const seated = await loadPose(character, 'sit');
+  try {
+    const standing = await loadPose(character, 'rest');
+    // Both exports use byte-identical source artwork (checked by check-visitor-rest).
+    // Share GPU textures while keeping each pose's independent mesh and tint materials.
+    const key = (name: string) => name.replace(/\.\d+$/, '');
+    const sources = new Map(
+      seated.flatMap((part) =>
+        (Array.isArray(part.material) ? part.material : [part.material]).map(
+          (material) => [key(material.name), material] as const,
+        ),
+      ),
+    );
+    const redundant = new Set<T.Texture>();
+    for (const part of standing)
+      for (const material of Array.isArray(part.material)
+        ? part.material
+        : [part.material]) {
+        const source = sources.get(key(material.name));
+        if (
+          !(material instanceof T.MeshStandardMaterial) ||
+          !(source instanceof T.MeshStandardMaterial)
+        )
+          continue;
+        for (const field of [
+          'map',
+          'normalMap',
+          'roughnessMap',
+          'metalnessMap',
+        ] as const) {
+          if (!material[field] || !source[field]) continue;
+          redundant.add(material[field]);
+          material[field] = source[field];
+        }
+      }
+    redundant.forEach((texture) => texture.dispose());
+    return [...seated, ...standing];
+  } catch (error) {
+    disposeParts(seated);
+    throw error;
+  }
 }
 // Scene and editor share loaded geometry/textures; the editor owns only material clones.
 export async function acquireVisitorModel() {

@@ -1,119 +1,179 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { Box3, Vector3 } from 'three';
+import { createHash } from 'node:crypto';
+import { BufferGeometry, Float32BufferAttribute, Box3, Vector3 } from 'three';
+import { visitorRestMatrix, prepareRestGeometry } from '../app/visitor-rest.ts';
 import seats from '../app/seat-catalog.json' with { type: 'json' };
-function load(character, version) {
-  const buffer = readFileSync(
+import poses from '../app/visitor-rest-poses.json' with { type: 'json' };
+const point = new Vector3(),
+  other = new Vector3();
+for (const character of ['bear', 'cat', 'fox']) {
+  const data = readFileSync(
     new URL(
-      `../public/models/studio-visitor-${character}-v${version}.glb`,
+      `../public/models/studio-visitor-${character}-standing-v5.glb`,
       import.meta.url,
     ),
   );
-  const length = buffer.readUInt32LE(12);
-  const json = JSON.parse(buffer.toString('utf8', 20, 20 + length));
+  const length = data.readUInt32LE(12),
+    json = JSON.parse(data.toString('utf8', 20, 20 + length));
   const start = 28 + length;
-  function values(index) {
+  function attribute(index) {
     const a = json.accessors[index],
-      view = json.bufferViews[a.bufferView];
-    assert.equal(a.componentType, 5126);
+      v = json.bufferViews[a.bufferView];
     const size = { VEC2: 2, VEC3: 3 }[a.type];
-    assert(size);
-    return Array.from({ length: a.count }, (_, i) =>
-      Array.from({ length: size }, (_, j) =>
-        buffer.readFloatLE(
+    assert.equal(a.componentType, 5126);
+    const result = new Float32Array(a.count * size);
+    for (let i = 0; i < a.count; i++)
+      for (let j = 0; j < size; j++)
+        result[i * size + j] = data.readFloatLE(
           start +
-            (view.byteOffset || 0) +
+            (v.byteOffset || 0) +
             (a.byteOffset || 0) +
-            i * (view.byteStride || size * 4) +
+            i * (v.byteStride || size * 4) +
             j * 4,
-        ),
-      ),
-    );
+        );
+    return new Float32BufferAttribute(result, size);
   }
-  return { buffer, json, values };
-}
-const point = new Vector3();
-for (const character of ['bear', 'cat', 'fox']) {
-  const source = load(character, 3),
-    model = load(character, 4);
-  assert(
-    model.buffer.length < 6_000_000,
-    'Rest shapes must stay within the per-character web budget',
+  const imageHashes = (buffer) => {
+    const n = buffer.readUInt32LE(12),
+      j = JSON.parse(buffer.toString('utf8', 20, 20 + n));
+    return j.images
+      .map((image) => {
+        const view = j.bufferViews[image.bufferView];
+        return createHash('sha256')
+          .update(
+            buffer.subarray(
+              28 + n + (view.byteOffset || 0),
+              28 + n + (view.byteOffset || 0) + view.byteLength,
+            ),
+          )
+          .digest('hex');
+      })
+      .sort();
+  };
+  const seatedFile = readFileSync(
+    new URL(
+      `../public/models/studio-visitor-${character}-v3.glb`,
+      import.meta.url,
+    ),
   );
-  const basis = new Box3(),
-    rest = new Box3();
+  assert.deepEqual(
+    imageHashes(data),
+    imageHashes(seatedFile),
+    'Texture sharing requires byte-identical artwork and normal maps',
+  );
+  assert(
+    data.length < 4_500_000,
+    'Detailed standing asset fits the web budget',
+  );
+  assert(
+    !json.animations && !json.skins,
+    'Rest must not use an inverse seated rig',
+  );
+  assert(
+    json.nodes.every(
+      (n) =>
+        !n.extras ||
+        !('standingEdgeError' in n.extras) ||
+        n.extras.standingEdgeError < 1e-6,
+    ),
+  );
+  const standing = new Box3(),
+    resting = new Box3();
   let triangles = 0;
-  const sourceParts = source.json.meshes.flatMap((m) => m.primitives);
-  for (const p of model.json.meshes.flatMap((m) => m.primitives)) {
-    assert.equal(p.targets.length, 1);
-    const material = model.json.materials[p.material].name;
-    const old = sourceParts.find(
-      (p) => source.json.materials[p.material].name === material,
-    );
+  for (const primitive of json.meshes.flatMap((m) => m.primitives)) {
     assert(
-      old,
-      'Keep every original material and its independently editable colors',
+      !primitive.targets,
+      'No reconstructed Rest morphs: render the intact standing body',
     );
-    const originals = source.values(old.attributes.POSITION);
-    // Exporting a morph splits a few vertices at sharp normal seams; topology positions stay intact.
-    const key = (v) => v.map((n) => n.toFixed(5)).join(',');
-    const sourceVertices = new Set(originals.map(key));
-    const positions = model.values(p.attributes.POSITION),
-      delta = model.values(p.targets[0].POSITION);
-    const normals = model.values(p.attributes.NORMAL),
-      normalDelta = model.values(p.targets[0].NORMAL);
+    const geometry = new BufferGeometry();
+    const positions = attribute(primitive.attributes.POSITION),
+      normals = attribute(primitive.attributes.NORMAL);
     assert.equal(
-      model.values(p.attributes.TEXCOORD_0).length,
-      positions.length,
+      attribute(primitive.attributes.TEXCOORD_0).count,
+      positions.count,
     );
-    assert.equal(delta.length, positions.length);
-    assert.equal(normals.length, positions.length);
-    triangles += model.json.accessors[p.indices].count / 3;
-    for (let i = 0; i < positions.length; i++) {
-      const v = positions[i];
+    assert.equal(normals.count, positions.count);
+    geometry.setAttribute('position', positions);
+    geometry.setAttribute('normal', normals);
+    const blink = new Float32Array(positions.count * 3);
+    blink[2] = -0.016;
+    geometry.setAttribute(
+      'visitorBlinkDelta',
+      new Float32BufferAttribute(blink, 3),
+    );
+    prepareRestGeometry(geometry, character);
+    const rest = geometry.getAttribute('visitorRestPosition'),
+      normal = geometry.getAttribute('visitorRestNormal');
+    const matrix = visitorRestMatrix(character);
+    triangles += json.accessors[primitive.indices].count / 3;
+    for (let i = 0; i < positions.count; i++) {
+      point.fromBufferAttribute(positions, i);
+      standing.expandByPoint(point);
+      other.fromBufferAttribute(rest, i);
+      resting.expandByPoint(other);
+      assert(other.toArray().every(Number.isFinite));
       assert(
-        sourceVertices.has(key(v)),
-        `Approved seated body changed for ${character}`,
+        point.applyMatrix4(matrix).distanceTo(other) < 1e-6,
+        'Every body point must follow exactly the same rigid transform',
       );
-      basis.expandByPoint(point.fromArray(v));
-      const sleeping = v.map((n, axis) => n + delta[i][axis]);
-      assert(sleeping.every(Number.isFinite));
-      rest.expandByPoint(point.fromArray(sleeping));
-      const normalLength = Math.hypot(
-        ...normals[i].map((n, axis) => n + normalDelta[i][axis]),
-      );
-      assert(
-        Number.isFinite(normalLength) &&
-          normalLength > 0.98 &&
-          normalLength < 1.02,
-        'Resting surface normals must remain unit length',
-      );
+      point.fromBufferAttribute(normal, i);
+      assert(Math.abs(point.length() - 1) < 1e-5);
+      if (i) {
+        const d1 = point
+          .fromBufferAttribute(positions, i)
+          .distanceTo(other.fromBufferAttribute(positions, i - 1));
+        const d2 = point
+          .fromBufferAttribute(rest, i)
+          .distanceTo(other.fromBufferAttribute(rest, i - 1));
+        assert(
+          Math.abs(d2 - d1 * poses[character].scale) < 1e-6,
+          'Neck, clothes and tail connections cannot stretch',
+        );
+      }
     }
+    // A closed eye follows exactly the same frame as the original face.
+    point
+      .fromBufferAttribute(positions, 0)
+      .add(new Vector3(0, 0, -0.016))
+      .applyMatrix4(matrix);
+    other
+      .fromBufferAttribute(rest, 0)
+      .add(
+        new Vector3().fromBufferAttribute(
+          geometry.getAttribute('visitorRestBlinkDelta'),
+          0,
+        ),
+      );
+    assert(point.distanceTo(other) < 1e-6);
+    geometry.dispose();
   }
-  assert(triangles > 80_000 && triangles < 110_000);
+  assert(triangles > 95_000 && triangles < 110_000);
   assert(
-    basis.max.x - basis.min.x < 0.61,
-    'Sitting still fits the narrowest chair',
+    resting.min.y >= 0.009 && resting.max.y < 0.8,
+    'Body clears mattress and remains lying down',
   );
   assert(
-    rest.min.y >= 0.017 && rest.max.y < 0.65,
-    'Resting body clears the mattress and stays lying down',
+    standing.max.y - standing.min.y > 1.1,
+    'Keep the original complete standing body',
   );
-  assert(
-    rest.max.z - rest.min.z > 1.2,
-    'Legs unfold into a full resting silhouette',
-  );
+  if (character === 'fox')
+    assert(
+      standing.max.x - standing.min.x > 1,
+      'Original nine tails stay full-width',
+    );
   for (const bed of seats.filter((s) => s.kind === 'bed')) {
     assert(
-      bed.offset[0] + rest.min.x > -1.395 && bed.offset[0] + rest.max.x < 1.395,
-      'Body stays on its half of the bed',
+      bed.offset[0] + resting.min.x > -1.395 &&
+        bed.offset[0] + resting.max.x < 1.395,
+      'Both full figures fit their bed halves',
     );
     assert(
-      bed.offset[2] + rest.min.z > -1.715 && bed.offset[2] + rest.max.z < 1.715,
-      'Head and feet stay on the mattress',
+      bed.offset[2] + resting.min.z > -1.715 &&
+        bed.offset[2] + resting.max.z < 1.715,
     );
   }
   console.log(
-    `${character}: preserved seated shape, complete Rest morph/UV/normals, both bed slots fit, ${triangles} triangles, ${(model.buffer.length / 1e6).toFixed(2)} MB`,
+    `${character}: original standing body, rigid rest, complete UV/normals, aligned closed eyes, both beds fit; ${triangles} triangles`,
   );
 }

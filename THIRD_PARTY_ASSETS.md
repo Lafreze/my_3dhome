@@ -68,8 +68,12 @@ Editable source: `assets/models/studio-visitors-v3.blend`; reproducible authorin
 
 The seated derivative contains 100,799 triangles and 2048 px local texture copies, about 3.7 MB. The optional kimono tint protects the warm gold embroidery; tails retain their original white material. Editable source: `assets/models/studio-visitor-fox-v3.blend`. Reproducible authoring: `scripts/pose-fox-visitor.py`. No independent public redistribution license is asserted; the user authorized this project's GitHub/Railway publication on 2026-09-08.
 
-### Studio visitors v4 — resting poses
+### Studio visitors v4 — retired resting derivative
 
-Current web assets: `public/models/studio-visitor-{bear,cat,fox}-v4.glb`. They derive from the user-supplied models above. Local Blender authoring adds a continuous supine Rest shape while retaining the approved v3 seated Basis, original UV artwork and material regions. Procedural live eyelids provide closed eyes, and shared vertex animation provides gentle breathing. No external model processing service was used.
+The earlier inverse-pose derivatives and `assets/models/studio-visitors-rest-v4.blend` remain historical artifacts. They are no longer loaded or included in the deployment package, because reconstructing standing limbs from the seated surfaces distorted clothing.
 
-Editable source: `assets/models/studio-visitors-rest-v4.blend`. Rebuild: `scripts/pose-rest-visitors.py`, using the included v3 source projects and GLBs. Current authoring files and derivatives are included under the user's explicit publication request; no independent third-party redistribution license is asserted. Historical v1/v2 files and automatic Blender backups remain local and are excluded from publication.
+### Studio visitors v5 — original standing bodies laid down rigidly
+
+`public/models/studio-visitor-{bear,cat,fox}-standing-v5.glb` derive from the original standing surfaces saved in the v3 Blender projects, themselves derivatives of the three user-supplied files listed above. Local Blender exports preserve the complete body, clothing, accessories, tails and original UV artwork, with approximately 101k triangles and 2048 px textures. Each entire figure is rotated and translated onto its back without an inverse seated deformation or added joints. Original v3 seated models remain in use separately. The matching texture images share GPU resources. Live procedural eyelids and a small chest movement supply closed eyes and breathing.
+
+Editable source: `assets/models/studio-standing-rest-v5.blend`. Rebuild with local Blender: `scripts/export-standing-visitors.py`; the older `scripts/pose-rest-visitors.py` entry point now forwards to it. No external model processing service was used. Original downloads and existing source projects were not overwritten. These project derivatives are included under the user's explicit publication authorization; no independent third-party redistribution license is asserted.
