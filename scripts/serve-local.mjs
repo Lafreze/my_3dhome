@@ -4,6 +4,7 @@ import { stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createPresenceHandler } from './seat-presence.mjs';
+import { createHouseHandler } from './house-settings.mjs';
 
 const root = fileURLToPath(new URL('../dist/client/', import.meta.url));
 const port = Number(process.env.PORT || process.env.KOMORI_PORT || 3000);
@@ -48,7 +49,13 @@ const handlePresence = createPresenceHandler({
     process.env.RAILWAY_PROJECT_ID && process.env.RAILWAY_ENVIRONMENT_ID
   ),
 });
+const handleHouse = await createHouseHandler({
+  trustRailwayProxy: !!(
+    process.env.RAILWAY_PROJECT_ID && process.env.RAILWAY_ENVIRONMENT_ID
+  ),
+});
 const server = createServer(async (req, res) => {
+  if (await handleHouse(req, res)) return;
   if (await handlePresence(req, res)) return;
   if (!['GET', 'HEAD'].includes(req.method)) {
     res.writeHead(405);
@@ -93,10 +100,18 @@ const server = createServer(async (req, res) => {
       headers.ETag = `"${contentHash}"`;
     } else {
       headers.ETag = `W/"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`;
-      if (path === '/assets/manifests/assets.json') headers['Cache-Control'] = 'public, max-age=300, must-revalidate';
+      if (path === '/assets/manifests/assets.json')
+        headers['Cache-Control'] = 'public, max-age=300, must-revalidate';
     }
-    if (req.headers['if-none-match']?.split(',').map((value) => value.trim()).includes(headers.ETag)) {
-      res.writeHead(304, headers); res.end(); return;
+    if (
+      req.headers['if-none-match']
+        ?.split(',')
+        .map((value) => value.trim())
+        .includes(headers.ETag)
+    ) {
+      res.writeHead(304, headers);
+      res.end();
+      return;
     }
     let start = 0,
       end = info.size - 1,

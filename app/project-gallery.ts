@@ -69,8 +69,8 @@ export function createProjectGallery(k: Kit) {
     );
   const specs = [
     { id: 'gallerySculpture' as const, x: 0.1, z: -0.45, w: 1, d: 1, h: 1.02 },
-    { id: 'galleryGame' as const, x: -2.9, z: -0.15, w: 0.8, d: 0.7, h: 1.03 },
-    { id: 'galleryCase' as const, x: 2.5, z: 0.2, w: 0.82, d: 1.7, h: 0.9 },
+    { id: 'galleryGame' as const, x: -2.9, z: -0.15, w: 1, d: 1, h: 1.02 },
+    { id: 'galleryCase' as const, x: 2.5, z: 0.2, w: 1, d: 1, h: 1.02 },
   ];
   const covers = specs.map((spec, index) => {
     const canvas = document.createElement('canvas');

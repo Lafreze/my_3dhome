@@ -1,3 +1,4 @@
+import houseDefaults from '../config/house-defaults.json';
 import { newObjects } from './house-data';
 export const objects = {
   ...newObjects,
@@ -39,40 +40,9 @@ export type Profile = {
   projects: Project[];
   photos: string[];
 };
-export const defaultProfile: Profile = {
-  name: 'SATORI',
-  subtitle: 'STUDIO',
-  about:
-    '我可以帮你把任何想法变成产品。从一个模糊的念头，到设计、开发与落地，让灵感成为可以使用的真实作品。',
-  projects: [
-    {
-      title: 'AI / 半导体',
-      category: 'FEATURED · 01',
-      description:
-        '中央展位为最重要的 AI 或半导体项目预留。可在「编辑作品」中填写项目名称、问题、实现过程与成果，并上传真实截图。',
-      url: '',
-      image: '',
-    },
-    {
-      title: 'Petoria / Web 游戏',
-      category: 'PLAY · 02',
-      description:
-        '互动作品展位。这里可展示 Petoria 或 Web 游戏的玩法、界面与可体验链接；当前封面为概念示意。',
-      url: '',
-      image: '',
-    },
-    {
-      title: 'Tarot / Cyberpunk Bartender',
-      category: 'GENERATIVE · 03',
-      description:
-        '生成式项目展位。可填写 Tarot、Cyberpunk Bartender 的实际介绍，上传视觉作品并添加项目链接；当前封面为概念示意。',
-      url: '',
-      image: '',
-    },
-  ],
-  photos: [],
-};
+export const defaultProfile: Profile = houseDefaults.profile;
 export type RoomApi = {
+  setAppearance: (value: import('./studio-settings').Appearance) => void;
   setCameraMode: (mode: 'orbit' | 'pan') => void;
   setLifePaused: (paused: boolean) => void;
   setLifeAudio: (context: AudioContext | null) => void;

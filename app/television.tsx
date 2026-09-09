@@ -1,7 +1,7 @@
 'use client';
 /* Saved sources reconnect on room entry; manual power-off persists across visits. */
 import { useEffect, useRef, useState } from 'react';
-import { readDevice, saveDevice, tvSettingsKey } from './device-settings';
+import { useStudio } from './studio-settings';
 import { createPortal } from 'react-dom';
 import { ArrowUpRight, Play, Power, Upload, X, Pause } from 'lucide-react';
 import { parseVideoSource, type VideoSource } from './video-source';
@@ -53,6 +53,8 @@ export default function Television({
   active: boolean;
   onClose: () => void;
 }) {
+  const studio = useStudio();
+  const stored = studio.settings.devices.tv;
   const [url, setUrl] = useState('');
   const [source, setSource] = useState<
     VideoSource | { kind: 'local'; url: string; name: string } | null
@@ -80,25 +82,19 @@ export default function Television({
   const captionUrl = useRef('');
   const closeButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    let active = true;
+    let live = true;
     queueMicrotask(() => {
-      if (!active) return;
-      const stored = readDevice(tvSettingsKey);
-      if (stored) {
+      if (live) {
         setPowered(stored.enabled);
-        const parsed = parseVideoSource(stored.url);
-        if (parsed) {
-          setSource(parsed);
-          setUrl(stored.url);
-          setPowered(stored.enabled);
-        }
+        setSource(parseVideoSource(stored.url));
+        setUrl(stored.url);
+        setLoaded(studio.ready);
       }
-      setLoaded(true);
     });
     return () => {
-      active = false;
+      live = false;
     };
-  }, []);
+  }, [stored.url, stored.enabled, studio.ready]);
   useEffect(() => {
     if (open) closeButton.current?.focus({ preventScroll: true });
   }, [open]);
@@ -178,37 +174,35 @@ export default function Television({
       host.replaceChildren();
     };
   }, [source, playing]);
-  const submit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const submit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!studio.admin) return;
     const next = parseVideoSource(url);
-    if (!next) {
-      setError('请输入 YouTube 链接，或 MP4 / WebM 视频直链。');
+    if (url.trim() && !next) {
+      setError('请输入完整网页网址、YouTube 链接或视频直链。');
       return;
     }
     try {
-      saveDevice(tvSettingsKey, url.trim(), true);
-    } catch {
-      setError('浏览器无法保存地址，请检查存储空间。');
+      await studio.save({
+        devices: { tv: { url: url.trim(), enabled: true } },
+      });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '保存失败。');
       return;
     }
     setError('');
     setSaved(true);
     setPowered(true);
     setSource(next);
-    onPower(true, next.kind === 'youtube' ? 'YouTube' : 'Video');
+    onPower(true, next?.kind === 'youtube' ? 'YouTube' : 'Video');
   };
-  const toggle = () => {
+  const toggle = async () => {
     const next = !powered;
     try {
-      saveDevice(
-        tvSettingsKey,
-        source && source.kind !== 'local'
-          ? source.kind === 'youtube'
-            ? `${source.original}&t=${source.start}s`
-            : source.url
-          : readDevice(tvSettingsKey)?.url || '',
-        next,
-      );
+      if (studio.admin)
+        await studio.save({
+          devices: { tv: { url: stored.url, enabled: next } },
+        });
     } catch {
       setError('电源状态无法保存。');
     }
@@ -224,6 +218,14 @@ export default function Television({
         playing && source ? (
           source.kind === 'youtube' ? (
             <div className="youtube-host" ref={youtubeHost} />
+          ) : source.kind === 'website' ? (
+            <iframe
+              src={source.url}
+              title="电视网页"
+              sandbox="allow-scripts allow-forms allow-popups"
+              allow="fullscreen"
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
           ) : (
             <video
               key={source.url}
@@ -262,52 +264,57 @@ export default function Television({
             <X size={16} />
           </button>
         </div>
-        <form className="tv-source-form" onSubmit={submit}>
-          <input
-            aria-label="视频链接"
-            value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-              setSaved(false);
-            }}
-            placeholder="YouTube 链接 / 视频直链"
-            type="url"
-          />
-          <button
-            type="submit"
-            className="tv-play"
-            aria-label="保存并播放视频"
-            title="保存并播放"
-          >
-            <Play size={16} fill="currentColor" />
-          </button>
-        </form>
+        {studio.admin && (
+          <form className="tv-source-form" onSubmit={submit}>
+            <input
+              aria-label="视频链接"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setSaved(false);
+              }}
+              placeholder="网页 / YouTube / 视频直链"
+              type="url"
+            />
+            <button
+              type="submit"
+              className="tv-play"
+              aria-label="保存并播放视频"
+              title="保存并播放"
+            >
+              <Play size={16} fill="currentColor" />
+            </button>
+          </form>
+        )}
         {saved && (
-          <output className="device-saved">
-            已保存 · 进入客厅自动静音播放
-          </output>
+          <output className="device-saved">已保存 · 所有访客均可观看</output>
         )}
         <div className="tv-toolbar">
-          {powered && source && source.kind !== 'youtube' && (
-            <button
-              type="button"
-              aria-label={paused ? '继续播放' : '暂停视频'}
-              onClick={() => {
-                if (video.current?.paused)
-                  void video.current
-                    .play()
-                    .catch(() => setError('请在电视屏幕上点击播放。'));
-                else video.current?.pause();
-              }}
-            >
-              {paused ? <Play size={14} /> : <Pause size={14} />}
+          {powered &&
+            source &&
+            source.kind !== 'youtube' &&
+            source.kind !== 'website' && (
+              <button
+                type="button"
+                aria-label={paused ? '继续播放' : '暂停视频'}
+                onClick={() => {
+                  if (video.current?.paused)
+                    void video.current
+                      .play()
+                      .catch(() => setError('请在电视屏幕上点击播放。'));
+                  else video.current?.pause();
+                }}
+              >
+                {paused ? <Play size={14} /> : <Pause size={14} />}
+              </button>
+            )}
+
+          {studio.admin && (
+            <button type="button" onClick={() => file.current?.click()}>
+              <Upload size={14} />
+              本地预览
             </button>
           )}
-
-          <button type="button" onClick={() => file.current?.click()}>
-            <Upload size={14} />
-            本地视频
-          </button>
           <input
             ref={file}
             hidden
@@ -316,7 +323,7 @@ export default function Television({
             aria-label="选择本地视频"
             onChange={(e) => {
               const selected = e.target.files?.[0];
-              if (!selected) return;
+              if (!selected || !studio.admin) return;
               if (!/\.(mp4|webm|ogv|ogg)$/i.test(selected.name)) {
                 setError('请选择 MP4、WebM 或 Ogg 视频。');
                 return;
@@ -335,35 +342,38 @@ export default function Television({
               e.target.value = '';
             }}
           />
-          {source && source.kind !== 'youtube' && (
-            <>
-              <button
-                type="button"
-                onClick={() => captionInput.current?.click()}
-              >
-                字幕
-              </button>
-              <input
-                ref={captionInput}
-                type="file"
-                hidden
-                accept=".vtt,text/vtt"
-                aria-label="选择 VTT 字幕"
-                onChange={(e) => {
-                  const chosen = e.target.files?.[0];
-                  if (!chosen) return;
-                  if (!chosen.name.toLowerCase().endsWith('.vtt')) {
-                    setError('字幕请选择 VTT 格式。');
-                    return;
-                  }
-                  if (captionUrl.current)
-                    URL.revokeObjectURL(captionUrl.current);
-                  captionUrl.current = URL.createObjectURL(chosen);
-                  setCaptions(captionUrl.current);
-                }}
-              />
-            </>
-          )}
+          {source &&
+            source.kind !== 'youtube' &&
+            source.kind !== 'website' &&
+            studio.admin && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => captionInput.current?.click()}
+                >
+                  字幕
+                </button>
+                <input
+                  ref={captionInput}
+                  type="file"
+                  hidden
+                  accept=".vtt,text/vtt"
+                  aria-label="选择 VTT 字幕"
+                  onChange={(e) => {
+                    const chosen = e.target.files?.[0];
+                    if (!chosen) return;
+                    if (!chosen.name.toLowerCase().endsWith('.vtt')) {
+                      setError('字幕请选择 VTT 格式。');
+                      return;
+                    }
+                    if (captionUrl.current)
+                      URL.revokeObjectURL(captionUrl.current);
+                    captionUrl.current = URL.createObjectURL(chosen);
+                    setCaptions(captionUrl.current);
+                  }}
+                />
+              </>
+            )}
           {source && source.kind !== 'local' && (
             <a href={source.original} target="_blank" rel="noreferrer">
               原网页
@@ -385,6 +395,9 @@ export default function Television({
             {error}
           </p>
         )}
+        <p className="device-note">
+          网址由管理者设置。部分网站限制嵌入，未显示时可在原网页打开；本地预览不会发布。
+        </p>
       </section>
     </>
   );

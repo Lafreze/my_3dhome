@@ -35,9 +35,9 @@ for(const [room,routes]of Object.entries(paths))for(const route of routes)for(le
    for(const [id,f]of Object.entries(houseFurniture[room])){const r=bounds(f);const dx=Math.max(r.x0-x,0,x-r.x1),dz=Math.max(r.z0-z,0,z-r.z1);assert(Math.hypot(dx,dz)>=.42,`${room} route blocked by ${id} at ${x},${z}`);}
  }
 }
-const valid=[['https://www.youtube.com/watch?v=M7lc1UVf-VE&t=1m20s','youtube',80],['https://youtu.be/M7lc1UVf-VE?t=9','youtube',9],['https://www.youtube.com/shorts/M7lc1UVf-VE','youtube',0],['https://www.youtube-nocookie.com/embed/M7lc1UVf-VE','youtube',0],['https://example.com/movie.mp4?token=abc','video',undefined]];
+const valid=[['https://www.youtube.com/watch?v=M7lc1UVf-VE&t=1m20s','youtube',80],['https://youtu.be/M7lc1UVf-VE?t=9','youtube',9],['https://www.youtube.com/shorts/M7lc1UVf-VE','youtube',0],['https://www.youtube-nocookie.com/embed/M7lc1UVf-VE','youtube',0],['https://example.com/movie.mp4?token=abc','video',undefined],['https://example.com/','website',undefined],['https://youtube.com.evil.test/watch?v=M7lc1UVf-VE','website',undefined]];
 for(const [url,kind,start]of valid){const source=parseVideoSource(url);assert.equal(source?.kind,kind);if(kind==='youtube')assert.equal(source.start,start);}
-for(const url of ['javascript:alert(1)','https://youtube.com.evil.test/watch?v=M7lc1UVf-VE','https://youtube.com/watch?v=bad','https://example.com/','file:///private/video.mp4','https://user:pass@example.com/video.mp4'])assert.equal(parseVideoSource(url),null);
+for(const url of ['javascript:alert(1)','https://youtube.com/watch?v=bad','file:///private/video.mp4','https://user:pass@example.com/video.mp4'])assert.equal(parseVideoSource(url),null);
 await mkdir('output/playwright',{recursive:true});
 await writeFile('output/playwright/house-layout-check.json',JSON.stringify({grid:'2x2',checks,doorWidthMetres:.875,minRouteRadiusMetres:.2625,wardrobeDoors:'clear',tvSofa:'aligned',videoParsing:'11 cases passed'},null,2));
 console.log('2×2 house: furniture bounds, collisions, walking routes, wardrobe swing and 11 video URL cases passed.');

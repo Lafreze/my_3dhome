@@ -44,6 +44,7 @@ import type { Visitor } from './seat-data';
 
 type Options = {
   onLifeBubble: (text: string) => void;
+  onResidentSelect: () => void;
   onCollections: (data: CollectionData, message: string) => void;
   onAssetProgress: (progress: AssetProgress) => void;
   onSeatSelect: (id: string) => void;
@@ -1935,6 +1936,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     const hit = pick(e);
     if (hit && 'actorId' in hit && hit.actorId) {
       life?.click(hit.actorId);
+      if (hit.actorId === 'resident') options.onResidentSelect();
       return;
     }
     if (hit?.seatId) {
@@ -2246,6 +2248,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     greetResident() {
       life?.click('resident');
+      options.onResidentSelect();
     },
     lifeSnapshot: () => life?.snapshot(),
     setProjects: (projects) => house.setProjects(projects),
@@ -2481,6 +2484,16 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     setMusic(value) {
       music = value;
       house.setMusic(value);
+    },
+    setAppearance(value) {
+      bedColor = value.bed;
+      chairColor = value.chair;
+      rugColor = value.rug;
+      bedding.color.set(['#74856b', '#b8816b', '#7b91a2'][bedColor]);
+      chairMat.color.set(['#cf966a', '#7f9479', '#9d8287'][chairColor]);
+      rugMat.color.set(['#e5d8b8', '#b1bdac', '#d7bda4'][rugColor]);
+      house.setAppearance(value);
+      refreshShadows();
     },
     interact(id, detail) {
       refreshShadows();

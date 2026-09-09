@@ -14,8 +14,12 @@ ENV STUDIO_HOST=0.0.0.0
 COPY --from=build --chown=node:node /app/dist/client ./dist/client
 COPY --from=build --chown=node:node /app/scripts/serve-local.mjs ./scripts/serve-local.mjs
 COPY --from=build --chown=node:node /app/scripts/seat-presence.mjs ./scripts/seat-presence.mjs
+COPY --from=build --chown=node:node /app/scripts/house-settings.mjs ./scripts/house-settings.mjs
+COPY --from=build --chown=node:node /app/config/house-defaults.json ./config/house-defaults.json
+COPY --from=build /app/scripts/start-server.sh ./scripts/start-server.sh
 COPY --from=build --chown=node:node /app/app/seat-catalog.json ./app/seat-catalog.json
 COPY --from=build --chown=node:node /app/app/visitor-appearance.json ./app/visitor-appearance.json
-USER node
+ENV STUDIO_DATA_DIR=/data
+RUN command -v runuser
 EXPOSE 3000
-CMD ["node", "scripts/serve-local.mjs"]
+CMD ["sh", "scripts/start-server.sh"]

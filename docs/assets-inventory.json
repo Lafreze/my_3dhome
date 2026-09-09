@@ -184,7 +184,7 @@
     },
     {
       "path": "public/models/resident-hi3d.json",
-      "bytes": 499,
+      "bytes": 550,
       "classification": "excluded-unused-or-documentation"
     },
     {

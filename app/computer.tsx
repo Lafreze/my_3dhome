@@ -2,12 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Power, Save, X, ArrowUpRight } from 'lucide-react';
-import {
-  computerSettingsKey,
-  readDevice,
-  saveDevice,
-  websiteURL,
-} from './device-settings';
+import { websiteURL } from './device-settings';
+import { useStudio } from './studio-settings';
 export default function Computer({
   active,
   open,
@@ -21,6 +17,8 @@ export default function Computer({
   onScreen: (element: HTMLElement | null) => void;
   onPower: (on: boolean) => void;
 }) {
+  const studio = useStudio();
+  const stored = studio.settings.devices.computer;
   const [url, setUrl] = useState(''),
     [source, setSource] = useState(''),
     [enabled, setEnabled] = useState(true),
@@ -35,25 +33,19 @@ export default function Computer({
     return el;
   });
   useEffect(() => {
-    let active = true;
+    let live = true;
     queueMicrotask(() => {
-      if (!active) return;
-      const stored = readDevice(computerSettingsKey);
-      if (stored) {
+      if (live) {
         setEnabled(stored.enabled);
-        const valid = websiteURL(stored.url);
-        if (valid) {
-          setUrl(valid);
-          setSource(valid);
-          setEnabled(stored.enabled);
-        }
+        setSource(stored.url);
+        setUrl(stored.url);
+        setLoaded(studio.ready);
       }
-      setLoaded(true);
     });
     return () => {
-      active = false;
+      live = false;
     };
-  }, []);
+  }, [stored.url, stored.enabled, studio.ready]);
   const running = loaded && active && enabled;
   useEffect(() => {
     onPower(running);
@@ -69,26 +61,32 @@ export default function Computer({
     window.addEventListener('keydown', escape);
     return () => window.removeEventListener('keydown', escape);
   }, [open, onClose]);
-  const save = (event: React.SyntheticEvent<HTMLFormElement>) => {
+  const save = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const valid = websiteURL(url);
-    if (!valid) {
+    if (!studio.admin) return;
+    const valid = url.trim() ? websiteURL(url) : '';
+    if (valid === null) {
       setMessage('请输入完整的 HTTP / HTTPS 网址。');
       return;
     }
     try {
-      saveDevice(computerSettingsKey, valid, true);
+      await studio.save({
+        devices: { computer: { url: valid, enabled: true } },
+      });
       setSource(valid);
       setEnabled(true);
-      setMessage('已保存 · 进入书房自动显示');
-    } catch {
-      setMessage('浏览器无法保存网址。');
+      setMessage('已保存 · 所有访客进入书房均可观看');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '保存失败。');
     }
   };
-  const toggle = () => {
+  const toggle = async () => {
     const next = !enabled;
     try {
-      saveDevice(computerSettingsKey, source, next);
+      if (studio.admin)
+        await studio.save({
+          devices: { computer: { url: source, enabled: next } },
+        });
       setEnabled(next);
     } catch {
       setMessage('电源状态无法保存。');
@@ -102,7 +100,7 @@ export default function Computer({
             key={source}
             src={source}
             title="工作站网页"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            sandbox="allow-scripts allow-forms allow-popups"
             allow="fullscreen"
             referrerPolicy="strict-origin-when-cross-origin"
           />
@@ -121,18 +119,20 @@ export default function Computer({
             <X size={16} />
           </button>
         </div>
-        <form className="tv-source-form" onSubmit={save}>
-          <input
-            aria-label="电脑网址"
-            type="url"
-            placeholder="https://…"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <button type="submit" className="tv-play" aria-label="保存电脑网址">
-            <Save size={16} />
-          </button>
-        </form>
+        {studio.admin && (
+          <form className="tv-source-form" onSubmit={save}>
+            <input
+              aria-label="电脑网址"
+              type="url"
+              placeholder="https://…"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            <button type="submit" className="tv-play" aria-label="保存电脑网址">
+              <Save size={16} />
+            </button>
+          </form>
+        )}
         {message && <output className="device-saved">{message}</output>}
         <div className="tv-toolbar">
           {source && (
@@ -151,7 +151,9 @@ export default function Computer({
             <Power size={15} />
           </button>
         </div>
-        <p className="device-note">部分网站限制嵌入，若未显示可独立打开。</p>
+        <p className="device-note">
+          部分网站限制嵌入，若未显示可独立打开。网址由管理者设置。
+        </p>
       </section>
     </>
   );

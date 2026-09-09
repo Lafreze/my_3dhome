@@ -2105,6 +2105,20 @@ export function buildHouse(k: Kit) {
     setTelevision(on: boolean, source = '') {
       paintTV(on, source);
     },
+    setAppearance(value: import('./studio-settings').Appearance) {
+      sofaIndex = value.livingSofa;
+      bedIndex = value.sleepBed;
+      padIndex = value.controller;
+      sofaCloth.color.set(['#d4c9b7', '#b7836e', '#7b929a'][sofaIndex]);
+      padMat.color.set(['#d0c8b2', '#899d93', '#bf8d7e'][padIndex]);
+      const colors = [
+        ['#8495a6', '#566773'],
+        ['#e1c7b3', '#a57d6d'],
+        ['#c7d2d3', '#788b9d'],
+      ][bedIndex];
+      bedCloth.color.set(colors[0]);
+      blanketCloth.color.set(colors[1]);
+    },
     interact(id: ObjectId, detail?: 'appearance') {
       cafe.interact(id);
       if (id === 'livingCup') cupUntil = now + 7;

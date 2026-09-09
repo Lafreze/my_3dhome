@@ -58,7 +58,14 @@ import EnvironmentPicker from './environment-picker';
 import { times, weathers } from './environment-data';
 import { useLiveEnvironment } from './use-live-environment';
 import { useVisibleViewport } from './use-visible-viewport';
-import { readProfile, writeProfile } from './profile-storage';
+import { readProfile } from './profile-storage';
+import {
+  StudioProvider,
+  useStudio,
+  appearanceLabels,
+  type Appearance,
+} from './studio-settings';
+import AdminPanel from './admin-panel';
 import VisitorSeats from './visitor-seats';
 import { usesRemoteAssets } from './asset-url';
 import type { AssetProgress } from './asset-loading';
@@ -70,6 +77,7 @@ import {
 } from './life-data';
 import { readCollections } from './life-collections';
 type Modal =
+  | 'admin'
   | 'computer'
   | 'wallArt'
   | 'tv'
@@ -123,6 +131,18 @@ function validProfile(value: unknown): value is Profile {
   );
 }
 export default function Home() {
+  return (
+    <StudioProvider>
+      <StudioHome />
+    </StudioProvider>
+  );
+}
+function StudioHome() {
+  const studio = useStudio();
+  const profile = studio.settings.profile,
+    note = studio.settings.note;
+  const [residentMenu, setResidentMenu] = useState(false);
+  const draftRevision = useRef(-1);
   const [assetProgress, setAssetProgress] = useState<AssetProgress>({
     loaded: 0,
     total: 0,
@@ -158,15 +178,14 @@ export default function Home() {
     [project, setProject] = useState(0),
     [photo, setPhoto] = useState(0),
     [page, setPage] = useState(0);
+  const closeModal = useCallback(() => setModal(null), []);
   const [projectsOnly, setProjectsOnly] = useState(false),
     [editingProject, setEditingProject] = useState(0),
     [saving, setSaving] = useState(false),
     [quiet, setQuiet] = useState(false);
   const quickAction = useRef<(id: ObjectId) => void>(() => {});
   const editorSession = useRef(0);
-  const [profile, setProfile] = useState<Profile>(defaultProfile),
-    [draft, setDraft] = useState<Profile>(defaultProfile),
-    [note, setNote] = useState(''),
+  const [draft, setDraft] = useState<Profile>(defaultProfile),
     [toast, setToast] = useState(''),
     [savingImage, setSavingImage] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
@@ -176,10 +195,10 @@ export default function Home() {
     } | null>(null);
   const projectIntro = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!lifeBubble) return;
+    if (!lifeBubble || residentMenu) return;
     const id = setTimeout(() => setLifeBubble(''), 4500);
     return () => clearTimeout(id);
-  }, [lifeBubble]);
+  }, [lifeBubble, residentMenu]);
   useEffect(() => {
     if (!collectionQueue.length) return;
     const id = setTimeout(() => setCollectionQueue((q) => q.slice(1)), 1500);
@@ -228,6 +247,7 @@ export default function Home() {
         if (disposed || !host.current) return;
         try {
           api.current = createRoom(host.current, {
+            onResidentSelect: () => setResidentMenu(true),
             onLifeBubble: setLifeBubble,
             onCollections: (data, message) => {
               setCollectionData(data);
@@ -272,37 +292,17 @@ export default function Home() {
     };
   }, []);
   useEffect(() => {
-    let active = true;
-    void (async () => {
-      if (!active) return;
-      try {
-        const p = await readProfile();
-        if (!active) return;
-        if (p) {
-          if (validProfile(p))
-            setProfile({
-              ...p,
-              about:
-                p.about === '在这里，收藏创作、观察，以及日常的灵感。'
-                  ? defaultProfile.about
-                  : p.about,
-              subtitle: /^personal\s+studio$/i.test(p.subtitle.trim())
-                ? 'STUDIO'
-                : p.subtitle,
-            });
-        }
-        setNote(
-          localStorage.getItem('satori-studio-note') ||
-            '光落在桌上的时候，\n新的想法也刚好出现。',
-        );
-      } catch {
-        notify('无法读取本地内容，已打开默认布置。');
-      }
-    })();
+    api.current?.setAppearance(studio.settings.appearance);
+  }, [studio.settings.appearance, ready]);
+  useEffect(() => {
+    let live = true;
+    queueMicrotask(() => {
+      if (live && studio.error) notify(studio.error);
+    });
     return () => {
-      active = false;
+      live = false;
     };
-  }, [notify]);
+  }, [studio.error, notify]);
   useEffect(() => {
     if (!ready || modal || selected || environmentOpen || seatPanel) return;
     let active = true;
@@ -440,6 +440,11 @@ export default function Home() {
     if (exhibit !== undefined) {
       if (projectIntro.current) clearTimeout(projectIntro.current);
       if (!profile.projects[exhibit]) {
+        if (!studio.admin) {
+          notify('这个展位还在准备中。');
+          return;
+        }
+        draftRevision.current = studio.revision;
         editorSession.current++;
         setProjectsOnly(true);
         setDraft(structuredClone(profile));
@@ -495,6 +500,20 @@ export default function Home() {
       reset();
       return;
     }
+    if (id !== 'controller' && id in appearanceLabels) {
+      if (!studio.admin) {
+        setModal('admin');
+        return;
+      }
+      const key = id as keyof Appearance;
+      void studio
+        .save({
+          appearance: { [key]: (studio.settings.appearance[key] + 1) % 3 },
+        })
+        .then(() => notify('配色已保存。'))
+        .catch((e) => notify(e.message));
+      return;
+    }
     api.current?.interact(id);
     if (id === 'plant' || id === 'deskPlant' || id === 'shelfPlant')
       notify('给绿意一点水。');
@@ -506,6 +525,11 @@ export default function Home() {
     quickAction.current = action;
   });
   const openEditor = () => {
+    if (!studio.admin) {
+      setModal('admin');
+      return;
+    }
+    draftRevision.current = studio.revision;
     editorSession.current++;
     setProjectsOnly(false);
     setEditingProject(0);
@@ -513,6 +537,11 @@ export default function Home() {
     setModal('settings');
   };
   const editProjects = () => {
+    if (!studio.admin) {
+      setModal('admin');
+      return;
+    }
+    draftRevision.current = studio.revision;
     editorSession.current++;
     setProjectsOnly(true);
     setEditingProject(project);
@@ -528,7 +557,7 @@ export default function Home() {
     setEditingProject(to);
   };
   const save = async () => {
-    if (saving || savingImage) return;
+    if (saving || savingImage || !studio.admin) return;
     if (!draft.name.trim()) {
       notify('请填写展示名称。');
       return;
@@ -543,15 +572,14 @@ export default function Home() {
     }
     setSaving(true);
     try {
-      await writeProfile(draft);
-      setProfile(structuredClone(draft));
+      await studio.save({ profile: draft }, draftRevision.current);
       setProject(
         Math.max(0, Math.min(editingProject, draft.projects.length - 1)),
       );
       setModal(projectsOnly ? 'works' : null);
-      notify('已保存到本机。');
-    } catch {
-      notify('本地空间不足，请减少图片后再保存。');
+      notify('已保存，所有访客都能看到。');
+    } catch (error) {
+      notify(error instanceof Error ? error.message : '保存失败，请重试。');
     } finally {
       setSaving(false);
     }
@@ -668,8 +696,8 @@ export default function Home() {
             />
             <button
               className="icon-button"
-              aria-label="编辑工作室"
-              onClick={openEditor}
+              aria-label="管理小屋"
+              onClick={() => setModal('admin')}
             >
               <Settings2 size={18} />
             </button>
@@ -774,11 +802,18 @@ export default function Home() {
                   : objects[selected].action}
               <ArrowUpRight size={16} />
             </button>
-            {selected === 'controller' && (
+            {selected === 'controller' && studio.admin && (
               <button
                 className="text-button"
                 onClick={() =>
-                  api.current?.interact('controller', 'appearance')
+                  void studio
+                    .save({
+                      appearance: {
+                        controller:
+                          (studio.settings.appearance.controller + 1) % 3,
+                      },
+                    })
+                    .catch((e) => notify(e.message))
                 }
               >
                 更换手柄配色
@@ -914,13 +949,28 @@ export default function Home() {
             {toast}
           </output>
         )}
-        {lifeBubble && (
+        {(lifeBubble || residentMenu) && (
           <output className="life-bubble" aria-live="polite">
-            <span>{lifeBubble}</span>
+            <span>{lifeBubble || '欢迎来坐坐。'}</span>
+            {residentMenu && (
+              <button
+                className="text-button"
+                onClick={() => {
+                  setResidentMenu(false);
+                  setLifeBubble('');
+                  setModal('admin');
+                }}
+              >
+                {studio.admin ? '管理小屋' : '输入管理暗号'}
+              </button>
+            )}
             <button
               className="icon-button"
               aria-label="收起伙伴提示"
-              onClick={() => setLifeBubble('')}
+              onClick={() => {
+                setLifeBubble('');
+                setResidentMenu(false);
+              }}
             >
               <X size={13} />
             </button>
@@ -950,7 +1000,7 @@ export default function Home() {
         <Television
           open={modal === 'tv'}
           active={view === 'living'}
-          onClose={() => setModal(null)}
+          onClose={closeModal}
           onPower={tvPower}
           onScreen={tvScreen}
         />
@@ -960,14 +1010,14 @@ export default function Home() {
           <Computer
             active={view === 'study'}
             open={modal === 'computer'}
-            onClose={() => setModal(null)}
+            onClose={closeModal}
             onScreen={computerScreen}
             onPower={computerPower}
           />
           <WallArtEditor
             selected={selected}
             open={modal === 'wallArt'}
-            onClose={() => setModal(null)}
+            onClose={closeModal}
             onChange={wallPictures}
             onFrame={(id) => {
               api.current?.focus(id);
@@ -1006,6 +1056,7 @@ export default function Home() {
                   objects: '屋内物件',
                   rabbitModel: '皇冠兔 · 建模手记',
                   collections: '小屋收藏册',
+                  admin: '主理人的钥匙',
                 } as Record<string, string>
               )[modal || '']
             }
@@ -1014,7 +1065,7 @@ export default function Home() {
             {modal === 'tv'
               ? 'SATORI / HOME CINEMA'
               : modal === 'settings'
-                ? '内容与图片仅保存在当前浏览器。'
+                ? '保存到小屋，向所有访客展示。'
                 : modal === 'works'
                   ? 'SELECTED WORK'
                   : modal === 'photos'
@@ -1023,6 +1074,21 @@ export default function Home() {
                       ? 'A LITTLE ABOUT ME'
                       : 'SATORI / PERSONAL COLLECTION'}
           </DialogDescription>
+          {modal === 'admin' && (
+            <AdminPanel
+              key={studio.admin ? 'manager' : 'guest'}
+              onProfile={openEditor}
+              onDevice={(id) => {
+                visit(id === 'computer' ? 'study' : 'living');
+                setModal(id);
+              }}
+              onArt={() => {
+                visit('gallery');
+                setSelected('galleryArt1');
+                setModal('wallArt');
+              }}
+            />
+          )}
           {modal === 'rabbitModel' && (
             <div className="model-note">
               <p>
@@ -1086,13 +1152,15 @@ export default function Home() {
                 <h2>{current.title}</h2>
                 <p>{current.description}</p>
                 <div className="project-actions">
-                  <button
-                    className="text-button edit-work"
-                    onClick={editProjects}
-                  >
-                    <Pencil size={14} />
-                    编辑作品
-                  </button>
+                  {studio.admin && (
+                    <button
+                      className="text-button edit-work"
+                      onClick={editProjects}
+                    >
+                      <Pencil size={14} />
+                      编辑作品
+                    </button>
+                  )}
                   {safeUrl(current.url) && (
                     <a
                       className="dark-button"
@@ -1251,26 +1319,18 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  <label className="sr-only" htmlFor="notebook">
-                    我的随记
-                  </label>
-                  <textarea
-                    id="notebook"
-                    maxLength={5000}
-                    value={note}
-                    onChange={(e) => {
-                      setNote(e.target.value);
-                      try {
-                        localStorage.setItem(
-                          'satori-studio-note',
-                          e.target.value,
-                        );
-                      } catch {
-                        notify('随记未能保存，本地存储空间不足。');
-                      }
-                    }}
-                  />
-                  <small>仅保存在此浏览器 · {note.length}/5000</small>
+                  <article className="published-note" aria-label="主理人的随笔">
+                    {note || '这里还留着一页空白。'}
+                  </article>
+                  <small>主理人的公开随笔</small>
+                  {studio.admin && (
+                    <button
+                      className="text-button"
+                      onClick={() => setModal('admin')}
+                    >
+                      编辑随笔
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -1306,19 +1366,19 @@ export default function Home() {
                 底部菜单切换房间或整屋全景，选择「房屋俯瞰图」查看完整平面布局。拖动空白处环顾，滚轮或双指缩放。
               </p>
               <p>
-                点击物件靠近，再使用物件卡上的按钮：打开抽屉、转动雕塑、浇水、换布料，或浏览作品。
+                点击物件靠近，再使用物件卡上的按钮：打开抽屉、转动雕塑、浇水，或浏览作品。管理者可修改家具配色。
               </p>
               <p>
-                右上角选择时间与天气，或编辑个人内容。底部可开灯、播放原创合成旋律，或回到全景。
+                右上角选择时间与天气；点击主理人输入暗号后，可编辑个人内容。底部可开灯、播放原创合成旋律，或回到全景。
               </p>
               <p>
                 客厅电视可播放
-                YouTube、视频直链或本地视频。播放在线内容时需要网络，关闭播放器会停止播放。本地视频不会上传。
+                网页、YouTube、视频直链或管理者的本地预览。播放在线内容时需要网络，关闭播放器会停止播放。本地视频不会上传。
               </p>
               <p>键盘可从「探索」访问当前房间物件。弹窗按 Esc 关闭。</p>
             </div>
           )}
-          {modal === 'settings' && (
+          {modal === 'settings' && studio.admin && (
             <div className="editor">
               <fieldset
                 className="editor-body"
@@ -1586,6 +1646,21 @@ export default function Home() {
                     onClick={exportProfile}
                   >
                     <Download size={17} />
+                  </button>
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      void readProfile()
+                        .then((p) => {
+                          if (validProfile(p)) {
+                            setDraft(p);
+                            notify('已载入旧内容，点击保存后公开。');
+                          } else notify('此浏览器没有旧的个人内容。');
+                        })
+                        .catch(() => notify('旧内容读取失败。'));
+                    }}
+                  >
+                    导入本机旧内容
                   </button>
                   <label
                     className="icon-button"

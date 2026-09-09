@@ -192,8 +192,8 @@ export const houseFurniture = {
   gallery: {
     crownedRabbit: { x: 2.65, z: -2.15, width: 0.92, depth: 0.92 },
     sculpture: { x: 0.1, z: -0.45, width: 1.0, depth: 1.0 },
-    case: { x: 2.5, z: 0.2, width: 0.82, depth: 1.7 },
+    case: { x: 2.5, z: 0.2, width: 1, depth: 1 },
     bench: { x: -0.1, z: 2.1, width: 2.25, depth: 0.67 },
-    catalogue: { x: -2.9, z: -0.15, width: 0.92, depth: 0.83 },
+    catalogue: { x: -2.9, z: -0.15, width: 1, depth: 1 },
   },
 } as const;

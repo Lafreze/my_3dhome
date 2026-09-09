@@ -1,6 +1,7 @@
 export type VideoSource =
   | { kind: 'youtube'; id: string; start: number; original: string }
-  | { kind: 'video'; url: string; original: string };
+  | { kind: 'video'; url: string; original: string }
+  | { kind: 'website'; url: string; original: string };
 export function parseVideoSource(input: string): VideoSource | null {
   try {
     const url = new URL(input.trim());
@@ -52,7 +53,7 @@ export function parseVideoSource(input: string): VideoSource | null {
     }
     if (/\.(mp4|webm|ogv|ogg)$/i.test(url.pathname))
       return { kind: 'video', url: url.href, original: url.href };
-    return null;
+    return { kind: 'website', url: url.href, original: url.href };
   } catch {
     return null;
   }

@@ -2001,3 +2001,109 @@ a {
     white-space: normal;
   }
 }
+
+/* Shared house management */
+.admin-login,
+.admin-panel {
+  display: grid;
+  gap: 20px;
+}
+.admin-login label,
+.admin-panel label {
+  display: grid;
+  gap: 9px;
+  color: #485348;
+}
+.admin-login input,
+.admin-panel textarea {
+  width: 100%;
+  background: #fffcf5;
+  border: 1px solid #a9b19e;
+  border-radius: 12px;
+  padding: 13px;
+  font: inherit;
+}
+.admin-panel textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+.admin-login p,
+.admin-panel p {
+  line-height: 1.8;
+}
+.admin-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.admin-links button {
+  background: #e8e8db;
+  border-radius: 12px;
+  padding: 18px;
+  text-align: left;
+}
+.admin-links span {
+  display: block;
+  font-size: 12px;
+  color: #657360;
+  margin-top: 7px;
+}
+.admin-panel fieldset {
+  border: 1px solid #ccd0c0;
+  border-radius: 12px;
+  padding: 16px;
+}
+.admin-panel legend {
+  padding: 0 8px;
+}
+.admin-colors {
+  display: grid;
+  gap: 14px;
+}
+.admin-colors > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.admin-colors > div > div {
+  display: flex;
+  gap: 12px;
+}
+.admin-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  outline: 1px solid #bac1b4;
+}
+.admin-swatch[aria-pressed='true'] {
+  border-color: #f9f7ed;
+  outline: 2px solid #38523c;
+}
+.admin-panel form {
+  display: grid;
+  gap: 12px;
+}
+.admin-panel small {
+  color: #67725f;
+}
+.published-note {
+  white-space: pre-wrap;
+  line-height: 2;
+  padding: 30px 12px;
+  min-height: 240px;
+  overflow-wrap: anywhere;
+}
+.life-bubble .text-button {
+  white-space: nowrap;
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .admin-links {
+    grid-template-columns: 1fr;
+  }
+  .life-bubble {
+    flex-wrap: wrap;
+  }
+}
