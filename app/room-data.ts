@@ -46,24 +46,26 @@ export const defaultProfile: Profile = {
     '我可以帮你把任何想法变成产品。从一个模糊的念头，到设计、开发与落地，让灵感成为可以使用的真实作品。',
   projects: [
     {
-      title: '静山之间',
-      category: 'SPATIAL STUDY · 01',
+      title: 'AI / 半导体',
+      category: 'FEATURED · 01',
       description:
-        '关于空间、光线与安静的习作。以自然的层次，寻找恰到好处的留白。',
+        '中央展位为最重要的 AI 或半导体项目预留。可在「编辑作品」中填写项目名称、问题、实现过程与成果，并上传真实截图。',
       url: '',
       image: '',
     },
     {
-      title: '形与秩序',
-      category: 'VISUAL STUDY · 02',
-      description: '圆、线与平面之间的关系。一组探索节奏与平衡的视觉实验。',
+      title: 'Petoria / Web 游戏',
+      category: 'PLAY · 02',
+      description:
+        '互动作品展位。这里可展示 Petoria 或 Web 游戏的玩法、界面与可体验链接；当前封面为概念示意。',
       url: '',
       image: '',
     },
     {
-      title: '日常切片',
-      category: 'FIELD NOTES · 03',
-      description: '把走过的地方、遇见的颜色，收进日常的观察笔记。',
+      title: 'Tarot / Cyberpunk Bartender',
+      category: 'GENERATIVE · 03',
+      description:
+        '生成式项目展位。可填写 Tarot、Cyberpunk Bartender 的实际介绍，上传视觉作品并添加项目链接；当前封面为概念示意。',
       url: '',
       image: '',
     },
@@ -87,6 +89,7 @@ export type RoomApi = {
   setLamp: (value: boolean) => void;
   setMusic: (value: boolean) => void;
   setArtwork: (images: string[]) => void;
+  setProjects: (projects: Project[]) => void;
   interact: (id: ObjectId, detail?: 'appearance') => void;
   dispose: () => void;
 };

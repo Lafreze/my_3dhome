@@ -1,8 +1,7 @@
 import * as T from 'three';
-import type { RoomId } from './house-data';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-// Each room owns a different authored surface, including its height and roughness maps.
-// The seeds and periodic grain avoid both cloned room textures and visible tile seams.
+// Shared, deterministic surfaces keep the entire house in one material family.
 type Surface =
   | 'smoked-oak'
   | 'ash'
@@ -45,7 +44,7 @@ function makeSurface(kind: Surface, textures: T.Texture[]) {
           (random() > 0.984 ? -50 : 0);
       if (kind === 'boucle')
         n += Math.sin(u * 85) * Math.sin(v * 85) * 24 + noise * 14;
-      if (kind === 'cotton') n += (x % 4 < 2 ? 7 : -7) + (y % 6 < 3 ? 6 : -6);
+      if (kind === 'cotton') n += (x % 4 < 2 ? 2 : -2) + (y % 6 < 3 ? 2 : -2);
       if (kind === 'suede') n += Math.sin(u * 120 + v * 90) * 4 + noise * 18;
       if (['lime', 'clay', 'mineral'].includes(kind))
         n +=
@@ -74,48 +73,104 @@ function makeSurface(kind: Surface, textures: T.Texture[]) {
     bumpMap,
     normalMap: null,
     roughnessMap: bumpMap,
-    bumpScale: kind === 'boucle' ? 0.014 : 0.006,
+    bumpScale: kind === 'boucle' ? 0.006 : 0.003,
   };
 }
-export function houseFinishes(materials: T.Material[], textures: T.Texture[]) {
-  const make = (
-    color: string,
-    kind: Surface,
-    room: RoomId,
-    roughness = 0.85,
-  ) => {
-    const m = new T.MeshStandardMaterial({
+export function houseFinishes(
+  materials: T.Material[],
+  textures: T.Texture[],
+  base: {
+    oak: T.MeshStandardMaterial;
+    paleWood: T.MeshStandardMaterial;
+    darkWood: T.MeshStandardMaterial;
+    cream: T.MeshStandardMaterial;
+  },
+) {
+  const surfaces = new Map<Surface, ReturnType<typeof makeSurface>>();
+  const cloth = (color: string, kind: Surface) => {
+    if (!surfaces.has(kind)) surfaces.set(kind, makeSurface(kind, textures));
+    const material = new T.MeshStandardMaterial({
       color,
-      ...makeSurface(kind, textures),
-      roughness,
+      ...surfaces.get(kind),
+      roughness: 0.94,
     });
-    m.name = `${room}/${kind}`;
-    materials.push(m);
-    return m;
+    material.name = `interior/${kind}`;
+    materials.push(material);
+    return material;
+  };
+  const joinery = {
+    wood: base.oak,
+    pale: base.paleWood,
+    dark: base.darkWood,
+    wall: base.cream,
   };
   return {
-    living: {
-      wood: make('#856c52', 'smoked-oak', 'living'),
-      pale: make('#b49870', 'smoked-oak', 'living'),
-      dark: make('#514836', 'smoked-oak', 'living'),
-      wall: make('#e2d9c8', 'lime', 'living'),
-      cloth: make('#d4c8af', 'boucle', 'living'),
-    },
-    bedroom: {
-      wood: make('#c7ac85', 'ash', 'bedroom'),
-      pale: make('#d8c6a4', 'ash', 'bedroom'),
-      dark: make('#8b7255', 'ash', 'bedroom'),
-      wall: make('#cba18a', 'clay', 'bedroom'),
-      cloth: make('#eadfc9', 'cotton', 'bedroom'),
-    },
-    gallery: {
-      wood: make('#c5b8a0', 'travertine', 'gallery'),
-      pale: make('#d5ccba', 'travertine', 'gallery'),
-      dark: make('#645c50', 'travertine', 'gallery'),
-      wall: make('#e8e2d4', 'mineral', 'gallery'),
-      cloth: make('#b5a994', 'suede', 'gallery'),
-    },
+    living: { ...joinery, cloth: cloth('#ddd2bf', 'boucle') },
+    bedroom: { ...joinery, cloth: cloth('#8394a2', 'cotton') },
+    gallery: { ...joinery, cloth: cloth('#c8bda7', 'suede') },
   };
+}
+
+/** One oak specification for every room, with quiet board-to-board variation. */
+export function oakFloorMaterials(
+  materials: T.Material[],
+  textures: T.Texture[],
+) {
+  const surface = makeSurface('smoked-oak', textures);
+  return ['#b89568', '#c3a073', '#bc986e', '#b59065', '#c1a079'].map(
+    (color) => {
+      const material = new T.MeshStandardMaterial({
+        color,
+        ...surface,
+        roughness: 0.72,
+      });
+      material.name = 'interior/warm-oak-floor';
+      material.userData.live = true;
+      materials.push(material);
+      return material;
+    },
+  );
+}
+
+export function addOakFloor(
+  parent: T.Group,
+  width: number,
+  depth: number,
+  materials: T.MeshStandardMaterial[],
+) {
+  const bins = materials.map(() => [] as T.BufferGeometry[]);
+  const rows = Math.round(depth / 0.28),
+    pitch = depth / rows;
+  for (let row = 0; row < rows; row++) {
+    let x = -width / 2,
+      col = 0;
+    while (x < width / 2 - 0.001) {
+      const length = Math.min(
+        col ? 1.98 : [1.98, 1.13, 0.68, 1.52][row % 4],
+        width / 2 - x,
+      );
+      const geometry = new T.BoxGeometry(length - 0.006, 0.035, pitch - 0.005);
+      const uv = geometry.getAttribute('uv');
+      for (let i = 0; i < uv.count; i++)
+        uv.setXY(i, (uv.getX(i) * length) / 1.98, uv.getY(i));
+      geometry.translate(
+        x + length / 2,
+        0.06,
+        -depth / 2 + (row + 0.5) * pitch,
+      );
+      bins[(row + col * 2) % materials.length].push(geometry);
+      x += length;
+      col++;
+    }
+  }
+  bins.forEach((geometries, i) => {
+    const geometry = mergeGeometries(geometries)!;
+    geometries.forEach((g) => g.dispose());
+    const floor = new T.Mesh(geometry, materials[i]);
+    floor.name = 'warm-oak-boards';
+    floor.receiveShadow = true;
+    parent.add(floor);
+  });
 }
 export function galleryPrint(index: number, textures: T.Texture[]) {
   const canvas = document.createElement('canvas');

@@ -1,3 +1,9 @@
+import {
+  createBreeze,
+  curtainGeometry,
+  interiorAtmosphere,
+} from './interior-atmosphere';
+import { addOakFloor, oakFloorMaterials } from './house-finishes';
 import { createHouseLandscape, windowViews } from './house-landscape';
 import { addWindowCraft } from './window-craft';
 import { televisionScreen } from './television-screen';
@@ -26,7 +32,11 @@ import {
   type PlacedId,
 } from './room-layout';
 import { localPbr } from './room-materials';
-import { createRoomAssets, setAssetRenderer, type AssetProgress } from './asset-loading';
+import {
+  createRoomAssets,
+  setAssetRenderer,
+  type AssetProgress,
+} from './asset-loading';
 import { releaseHiddenRoomGpu } from './room-resources';
 
 type Options = {
@@ -38,6 +48,7 @@ type Options = {
   onView: (view: HouseView) => void;
 };
 export function createRoom(host: HTMLElement, options: Options): RoomApi {
+  const breeze = createBreeze();
   const assets = createRoomAssets(options.onAssetProgress);
   const scene = new T.Scene();
   const renderer = new T.WebGLRenderer({
@@ -107,8 +118,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     edge = mat('#b48a5e'),
     paleWood = mat('#bb956c'),
     darkWood = mat('#503626');
-  const cream = mat('#eee6d5'),
+  const cream = mat('#eee5d4'),
     white = mat('#fffae9'),
+    ceramic = mat('#f1e8d7', 0.26),
     darkGreen = mat('#254f43');
   const terra = mat('#ae5d3f'),
     brass = mat('#b59a57', 0.28),
@@ -128,7 +140,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   cream.map = plasterTex;
   cream.bumpMap = plasterTex;
   cream.bumpScale = 0.018;
-  darkGreen.color.set('#475647');
+  darkGreen.color.set('#e4dbca');
   darkGreen.map = plasterTex;
   darkGreen.bumpMap = plasterTex;
   darkGreen.bumpScale = 0.035;
@@ -143,6 +155,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     textures,
     'fine_grained_wood',
     new T.Vector2(0.8, 0.65),
+    false,
   );
   for (const m of [oak, paleWood, darkWood]) {
     Object.assign(m, walnutMaps);
@@ -469,40 +482,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   const floor = group('floor');
   box(floor, 8, 0.4, 6.8, 0, -0.23, 0, edge, 0.1);
   box(floor, 7.95, 0.09, 6.75, 0, -0.015, 0, paleWood, 0.03);
-  const floorTints = [
-    '#bd9a70',
-    '#c6a47a',
-    '#c2a078',
-    '#b99773',
-    '#c9a782',
-  ].map((color) => {
-    const m = mat(color, 0.82);
-    m.map = woodTex;
-    m.bumpMap = woodTex;
-    m.bumpScale = 0.008;
-    return m;
-  });
-  for (let row = 0; row < 16; row++) {
-    let x = -3.96;
-    let col = 0;
-    const first = [1.98, 1.13, 0.68, 1.52][row % 4];
-    while (x < 3.95) {
-      const length = Math.min(col === 0 ? first : 1.98, 3.96 - x);
-      box(
-        floor,
-        length - 0.012,
-        0.034,
-        0.405,
-        x + length / 2,
-        0.061,
-        -3.17 + row * 0.417,
-        floorTints[(row + col * 2) % 5],
-        0.003,
-      );
-      x += length;
-      col++;
-    }
+  const floorMaterials = oakFloorMaterials(materials, textures);
+  for (const [m, color] of [
+    [oak, '#ac8052'],
+    [paleWood, '#c29b6a'],
+    [darkWood, '#654b35'],
+  ] as const) {
+    m.map = floorMaterials[0].map;
+    m.color.set(color);
+    m.roughness = 0.66;
   }
+  addOakFloor(floor, 7.92, 6.67, floorMaterials);
   const wall = group('wall');
   box(wall, 0.17, 3.65, 6.8, -3.91, 1.83, 0, cream, 0.035);
   // Build the back wall around a real opening, so sunlight can enter.
@@ -523,7 +513,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   box(win, 0.075, 2.2, 0.1, 0, 0, 0.1, white);
   box(win, 3.25, 0.075, 0.1, 0, -0.05, 0.1, white);
   box(win, 3.65, 0.12, 0.45, 0, -1.18, 0.13, paleWood);
-  const curtain = fabric(mat('#dfd7c2'));
+  const curtain = fabric(mat('#e8e0cf'));
+  curtain.side = T.DoubleSide;
+  breeze.add(curtain, true);
   rod(
     win,
     new T.Vector3(-1.94, 1.32, 0.14),
@@ -532,19 +524,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     brass,
   );
   for (const side of [-1, 1])
-    for (let i = 0; i < 5; i++) {
-      const m = cylinder(
-        win,
-        0.085,
-        0.1,
-        2.45,
-        side * (1.65 + i * 0.075),
-        -0.0,
-        0.15 + Math.sin(i * 1.5) * 0.055,
-        curtain,
-      );
-      m.scale.z = 0.7;
-    }
+    mesh(curtainGeometry(), curtain, win, side * 1.82, 0.03, 0.2);
   // Sofa: feet, load-bearing rails, individually upholstered cushions, piping and soft throw.
   const bed = placed('bed');
   attachSeats(seatAnchors, bed, ['study-sofa-1', 'study-sofa-2']);
@@ -565,8 +545,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   for (const x of [-1.48, 1.48])
     box(bed, 0.15, 0.61, 1.32, x, 0.76, 0, bedding, 0.07);
   box(bed, 2.87, 0.7, 0.19, 0, 0.87, -0.58, bedding, 0.08);
+  const studySofaSeats: T.Object3D[] = [];
   for (const x of [-0.71, 0.71]) {
     const seat = cushion(bed, 1.38, 0.23, 1.12, x, 0.61, 0.055, bedding, 0.1);
+    studySofaSeats.push(seat);
     seamLoop(seat, 1.31, 1.055, 0.064, seam);
     const back = cushion(bed, 1.38, 0.61, 0.23, x, 1.0, -0.37, bedding, 0.1);
     back.rotation.x = -0.13;
@@ -1788,6 +1770,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   );
   const house = buildHouse({
     assets,
+    floorMaterials,
+    contactMaterial: contactMat,
+    breeze,
     seats: seatAnchors,
     cutaways,
     landscape,
@@ -1803,17 +1788,30 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     darkWood,
     cream,
     white,
+    ceramic,
     brass,
     charcoal,
     textile,
   });
+  const atmosphere = interiorAtmosphere(
+    house.roots,
+    groups,
+    materials,
+    textures,
+  );
+  breeze.add(leafMat);
   house.setView('study');
   if (seatAnchors.size !== seats.length)
     throw new Error('座位模型与座位目录不一致');
-  const visitors = createSeatScene(scene, seatAnchors, interactables, () =>
-    refreshShadows(), assets,
+  const visitors = createSeatScene(
+    scene,
+    seatAnchors,
+    interactables,
+    () => refreshShadows(),
+    assets,
   );
   const tvScreen = televisionScreen(host, house.screen);
+  const televisionTint = new T.Color('#a3bbc7');
   const computerScreen = televisionScreen(host, computerPanel, {
     width: 1.13,
     height: 0.67,
@@ -1930,8 +1928,19 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     targetTo: T.Vector3;
     start: number;
   } | null = null;
-  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const reduced = motionPreference.matches;
+  const motionPreference = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  );
+  let reduced = motionPreference.matches;
+  const motionChanged = () => {
+    reduced = motionPreference.matches;
+    if (reduced && tween) {
+      camera.position.copy(tween.to);
+      controls.target.copy(tween.targetTo);
+      tween = null;
+    }
+  };
+  motionPreference.addEventListener('change', motionChanged);
   function moveTo(to: T.Vector3, look: T.Vector3) {
     if (reduced) {
       camera.position.copy(to);
@@ -2019,7 +2028,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     shadowsUntil = performance.now() + duration;
     renderer.shadowMap.needsUpdate = true;
   }
-  let environment: Environment = { time: 'afternoon', weather: 'clear' };
+  let environment: Environment = { time: 'sunset', weather: 'clear' };
   let lightTarget = environmentLight(environment);
   const start = performance.now();
   let last = performance.now();
@@ -2040,7 +2049,13 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       if (p === 1) tween = null;
     }
     // Static views reuse the shadow map; animated furniture and lighting refresh it at 20 Hz.
-    if (now - lastShadow > (now < shadowsUntil || (!motionPreference.matches && visitors.hasVisibleVisitors()) ? 50 : 400)) {
+    if (
+      now - lastShadow >
+      (now < shadowsUntil ||
+      (!motionPreference.matches && visitors.hasVisibleVisitors())
+        ? 50
+        : 400)
+    ) {
       renderer.shadowMap.needsUpdate = true;
       lastShadow = now;
     }
@@ -2048,7 +2063,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     hemi.intensity = T.MathUtils.lerp(hemi.intensity, lightTarget.ambient, a);
     indoorBounce.intensity = T.MathUtils.lerp(
       indoorBounce.intensity,
-      masterLight ? (night ? 0.7 : 0.25) : 0,
+      masterLight ? (night ? 0.22 : 0.12) : 0,
       a,
     );
     hemi.color.lerp(lightTarget.hemi, a);
@@ -2069,6 +2084,26 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       a,
     );
     windowEnvironment.update(t, dt, reduced, camera);
+    studySofaSeats.forEach((seat, i) => {
+      const occupied = occupiedStudySeats.has(`study-sofa-${i + 1}`);
+      seat.scale.y = T.MathUtils.lerp(seat.scale.y, occupied ? 0.86 : 1, a);
+      seat.position.y = T.MathUtils.lerp(
+        seat.position.y,
+        occupied ? 0.594 : 0.61,
+        a,
+      );
+      const id = `study-sofa-${i + 1}`,
+        anchor = seatAnchors.get(id);
+      if (anchor)
+        anchor.position.y =
+          seatById.get(id)!.offset[1] +
+          seat.position.y -
+          0.61 +
+          (seat.scale.y - 1) * 0.115;
+    });
+    breeze.update(t, reduced);
+    atmosphere.setView(activeView);
+    atmosphere.update(t, dt, reduced, environment);
     house.update(t, dt, reduced, night, camera);
     visitors.update(t, motionPreference.matches);
     if (cutaways.update(activeView, camera.position)) refreshShadows();
@@ -2093,7 +2128,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       a,
     );
     bulb.emissiveIntensity = masterLight && taskLit ? 1.2 : 0;
-    if (music) vinyl.rotation.y += dt * 1.5;
+    if (music && !reduced) vinyl.rotation.y += dt * 1.5;
+    tonearm.rotation.z = T.MathUtils.lerp(
+      tonearm.rotation.z,
+      music ? 0 : -0.09,
+      1 - Math.exp(-dt * 1.3),
+    );
     tonearm.rotation.y = T.MathUtils.lerp(
       tonearm.rotation.y,
       music ? 0.05 : -0.55,
@@ -2123,17 +2163,31 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           drop.position.y = 1.4 - ((t * 0.7 + i * 0.11) % 1);
         });
     }
-    steamMat.opacity = now < steamUntil ? 0.3 : 0;
-    steam.position.y = Math.sin(t * 2) * 0.03;
+    steamMat.opacity = reduced ? 0 : now < steamUntil ? 0.3 : 0.11;
+    steam.position.y = reduced ? 0 : Math.sin(t * 0.8) * 0.025;
     controls.update();
     landscape.update(camera, t);
     tvScreen.update(camera);
+    if (!tvScreen.sampleColor(televisionTint, t)) televisionTint.set('#a3bbc7');
+    house.setTVTint(televisionTint);
     computerScreen.update(camera, focusedObject === 'computer');
     renderer.render(scene, camera);
   }
+  const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
-    retryAssets: () => { assets.retry(); visitors.retry(); },
-    setVisitors: (people, me) => visitors.setVisitors(people, me),
+    setProjects: (projects) => house.setProjects(projects),
+    retryAssets: () => {
+      assets.retry();
+      visitors.retry();
+    },
+    setVisitors: (people, me) => {
+      visitors.setVisitors(people, me);
+      const ids = people.map((p) => p.seatId);
+      house.setOccupied(ids);
+      atmosphere.setOccupied(ids);
+      occupiedStudySeats.clear();
+      ids.forEach((id) => occupiedStudySeats.add(id));
+    },
     focusSeat(id) {
       const seat = seatById.get(id),
         anchor = seatAnchors.get(id);
@@ -2423,6 +2477,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       cancelAnimationFrame(frameId);
       observer.disconnect();
       controls.dispose();
+      motionPreference.removeEventListener('change', motionChanged);
       host.removeEventListener('pointerdown', pointerDown);
       host.removeEventListener('pointermove', pointerMove);
       host.removeEventListener('pointerleave', pointerLeave);

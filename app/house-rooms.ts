@@ -1,11 +1,13 @@
-import { pillowGeometry, pillowPiping } from './bed-linen';
+import { seatById } from './seat-data';
+import { curtainGeometry, type InteriorBreeze } from './interior-atmosphere';
+import { pillowGeometry, pillowPiping, drapedLinen } from './bed-linen';
 import type { WallCutaways } from './wall-cutaway';
 import { buildCafe } from './cafe-room';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { wallArt } from './wall-art-data';
-import { houseFinishes, galleryPrint } from './house-finishes';
+import { houseFinishes, galleryPrint, addOakFloor } from './house-finishes';
 import { houseLighting } from './house-lighting';
-import { loadGalleryModel } from './gallery-model';
+import { createProjectGallery } from './project-gallery';
 import type { RoomAssets } from './asset-loading';
 import type { HouseLandscape } from './house-landscape';
 import { addWindowCraft } from './window-craft';
@@ -29,6 +31,9 @@ import type { Environment } from './environment-data';
 
 type Kit = {
   assets: RoomAssets;
+  breeze: InteriorBreeze;
+  floorMaterials: T.MeshStandardMaterial[];
+  contactMaterial: T.Material;
   seats: SeatAnchors;
   cutaways: WallCutaways;
   landscape: HouseLandscape;
@@ -44,6 +49,7 @@ type Kit = {
   darkWood: T.MeshStandardMaterial;
   cream: T.MeshStandardMaterial;
   white: T.MeshStandardMaterial;
+  ceramic: T.MeshStandardMaterial;
   brass: T.MeshStandardMaterial;
   charcoal: T.MeshStandardMaterial;
   textile: (color: string) => T.MeshStandardMaterial;
@@ -86,18 +92,23 @@ export function buildHouse(k: Kit) {
     materials.push(m);
     return m;
   };
-  const finishes = houseFinishes(materials, textures);
+  const foliage = mat('#607458');
+  k.breeze.add(foliage);
+  const curtainCloth = k.textile('#e8e0cf');
+  curtainCloth.side = T.DoubleSide;
+  k.breeze.add(curtainCloth, true);
+  const finishes = houseFinishes(materials, textures, k);
   const fabric = k.textile;
   const terracotta = mat('#b76e53'),
     green = mat('#466455'),
     sage = mat('#8d9a81'),
     black = mat('#171c1c', 0.48);
   const ivoryCloth = fabric('#d5cbb5'),
-    sofaCloth = fabric('#9b9f86'),
-    bedCloth = fabric('#e9dfc9'),
-    blanketCloth = fabric('#788e89');
+    sofaCloth = fabric('#d4c9b7'),
+    bedCloth = fabric('#8495a6'),
+    blanketCloth = fabric('#566773');
   const terracottaWall = cream.clone();
-  terracottaWall.color.set('#cfa58a');
+  terracottaWall.color.set('#eee5d4');
   materials.push(terracottaWall);
   const galleryWall = cream.clone();
   galleryWall.color.set('#e6ddc9');
@@ -262,8 +273,15 @@ export function buildHouse(k: Kit) {
     m: T.Material,
   ) {
     const g = child(p, x, y, z);
-    b(g, w, h, d, 0, 0, 0, m, Math.min(h * 0.35, 0.12));
-    seam(g, w - 0.035, d - 0.035, 0, ivoryCloth);
+    const vertical = h > d;
+    const geometry = vertical
+      ? pillowGeometry(w, d, h)
+      : pillowGeometry(w, h, d);
+    if (vertical) geometry.rotateX(Math.PI / 2);
+    mesh(g, geometry, m);
+    const piping = pillowPiping(w - 0.025, (vertical ? h : d) - 0.025);
+    if (vertical) piping.rotateX(Math.PI / 2);
+    mesh(g, piping, ivoryCloth);
     return g;
   }
   function book(
@@ -326,6 +344,8 @@ export function buildHouse(k: Kit) {
       rod(g, [0, 0.3, 0], [0.02, 1.22, 0], 0.016, darkWood);
       const olive = mat('#788774'),
         underside = mat('#a5ad91');
+      k.breeze.add(olive);
+      k.breeze.add(underside);
       for (let i = 0; i < 7; i++) {
         const a = i * 2.4,
           xx = Math.cos(a) * 0.24,
@@ -360,8 +380,8 @@ export function buildHouse(k: Kit) {
           xx = Math.cos(a) * 0.16,
           zz = Math.sin(a) * 0.16,
           yy = 0.42 + i * 0.064;
-        rod(g, [0, yy - 0.08, 0], [xx, yy, zz], 0.008, green);
-        const leaf = ball(g, 0.15, xx, yy, zz, green, 0.67, 1.1, 0.14);
+        rod(g, [0, yy - 0.08, 0], [xx, yy, zz], 0.008, foliage);
+        const leaf = ball(g, 0.15, xx, yy, zz, foliage, 0.67, 1.1, 0.14);
         leaf.rotation.set(0.4, a, 0.35);
         rod(g, [xx, yy - 0.07, zz], [xx, yy + 0.1, zz], 0.002, sage);
       }
@@ -407,36 +427,21 @@ export function buildHouse(k: Kit) {
     const p = group(id);
     floors[id] = p;
     b(p, 8, 0.4, 6.8, 0, -0.23, 0, paleWood, 0.04);
-    if (id === 'gallery') {
-      for (let row = 0; row < 8; row++)
-        for (let col = 0; col < 9; col++)
-          b(
-            p,
-            0.876,
-            0.036,
-            0.829,
-            -3.51 + col * 0.878,
-            0.06,
-            -2.92 + row * 0.831,
-            (row + col) % 3 === 0 ? cream : galleryWall,
-            0.001,
-          );
-    } else {
-      for (let row = 0; row < 16; row++)
-        for (let col = 0; col < 4; col++)
-          b(
-            p,
-            1.976,
-            0.035,
-            0.407,
-            -2.98 + col * 1.985,
-            0.06,
-            -3.16 + row * 0.417,
-            row % 3 === 0 ? paleWood : oak,
-            0.002,
-          );
+    addOakFloor(p, 7.92, 6.67, k.floorMaterials);
+    for (const item of Object.values(houseFurniture[id])) {
+      const patch = mesh(
+        p,
+        new T.PlaneGeometry(item.width * 1.18, item.depth * 1.18),
+        k.contactMaterial,
+        item.x,
+        id === 'gallery' ? 0.105 : 0.082,
+        item.z,
+      );
+      patch.rotation.x = -Math.PI / 2;
+      patch.castShadow = false;
     }
   }
+
   // Exterior window bays face their room; no sky or rain is drawn inside furniture space.
   const windows: ReturnType<typeof createWindowEnvironment>[] = [];
   function windowWall(
@@ -485,37 +490,39 @@ export function buildHouse(k: Kit) {
     b(w, 0.065, 2.18, 0.08, 0, 0, 0.12, white);
     b(w, 3.22, 0.06, 0.08, 0, -0.05, 0.12, white);
     b(w, 3.57, 0.1, 0.4, 0, -1.18, 0.14, paleWood);
+    // A narrow walnut screen is enough to articulate the plaster without adding clutter.
+    for (let i = 0; i < 9; i++)
+      b(w, 0.035, 2.75, 0.048, 2.2 + i * 0.075, 0.12, 0.06, darkWood, 0.009);
     rod(w, [-1.94, 1.3, 0.15], [1.94, 1.3, 0.15], 0.025, brass);
     if (room === 'gallery') {
       b(w, 3.6, 0.13, 0.19, 0, 1.24, 0.19, charcoal, 0.015);
       b(w, 3.24, 0.33, 0.025, 0, 1.01, 0.17, ivoryCloth, 0.003);
       rod(w, [-1.65, 1.1, 0.19], [-1.65, 0.63, 0.19], 0.004, brass);
       cyl(w, 0.013, 0.013, 0.04, -1.65, 0.62, 0.19, brass);
-    } else
-      for (const side of [-1, 1])
-        for (let i = 0; i < (room === 'bedroom' ? 7 : 5); i++) {
-          const curtain = cyl(
-            w,
-            0.072,
-            0.083,
-            2.45,
-            side * (1.65 + i * 0.067),
-            0,
-            0.16 + Math.sin(i * 1.5) * 0.035,
-            ivoryCloth,
-          );
-          curtain.scale.z = 0.7;
+    } else {
+      for (const side of [-1, 1]) {
+        mesh(
+          w,
+          curtainGeometry(room === 'bedroom' ? 0.63 : 0.5),
+          curtainCloth,
+          side * 1.85,
+          0.03,
+          0.19,
+        );
+        for (let i = 0; i < 6; i++) {
           const ring = torus(
             w,
             0.052,
             0.008,
-            side * (1.65 + i * 0.067),
+            side * (1.61 + i * 0.085),
             1.3,
             0.15,
             brass,
           );
           ring.rotation.y = Math.PI / 2;
         }
+      }
+    }
     if (room === 'bedroom')
       for (const side of [-1, 1]) {
         const tie = torus(w, 0.13, 0.012, side * 1.82, -0.34, 0.18, brass);
@@ -589,8 +596,9 @@ export function buildHouse(k: Kit) {
   b(sofa, 3.31, 0.65, 0.19, 0, 0.91, -0.57, sofaCloth, 0.09);
   for (const x of [-1.64, 1.64])
     cushion(sofa, 0.27, 0.6, 1.32, x, 0.82, 0, sofaCloth);
+  const sofaSeats: T.Group[] = [];
   for (const x of [-1.05, 0, 1.05]) {
-    cushion(sofa, 1.0, 0.22, 1.12, x, 0.67, 0.025, sofaCloth);
+    sofaSeats.push(cushion(sofa, 1.0, 0.22, 1.12, x, 0.67, 0.025, sofaCloth));
     const back = cushion(sofa, 1.02, 0.56, 0.2, x, 0.99, -0.38, sofaCloth);
     back.rotation.x = -0.13;
   }
@@ -616,7 +624,7 @@ export function buildHouse(k: Kit) {
     fabric('#b9816c'),
   );
   pillow2.rotation.z = -0.18;
-  const throwMat = fabric('#b4b6a0');
+  const throwMat = fabric('#a4a68e');
   for (let i = 0; i < 10; i++)
     b(
       sofa,
@@ -639,7 +647,7 @@ export function buildHouse(k: Kit) {
   b(table, 1.45, 0.055, 0.58, 0, 0.29, 0, darkWood, 0.025);
   book(table, 0.42, 0.32, -0.43, 0.736, 0.05, green);
   book(table, 0.38, 0.3, -0.41, 0.83, 0.04, terracotta);
-  const cupGlaze = mat('#d7d0ba', 0.24),
+  const cupGlaze = k.ceramic,
     cupLiquid = mat('#332018', 0.2),
     cupCrema = mat('#b78b56', 0.49);
   const livingCup = group(
@@ -820,7 +828,8 @@ export function buildHouse(k: Kit) {
     black,
   );
   const tvLight = new T.PointLight('#a3bbc7', 0, 4, 2);
-  tvLight.position.set(0, 2.2, 0.4);
+  tvLight.position.set(0, 2.2, -0.25);
+  const tvTint = new T.Color('#a3bbc7');
   tv.add(tvLight);
   let tvOn = false;
   function paintTV(on: boolean, source = '') {
@@ -1236,6 +1245,31 @@ export function buildHouse(k: Kit) {
   floorLamp.add(livingLight);
   plant(roots.living, -2.9, 0.08, -2.6, 1.35);
 
+  const listening = group('living', 'livingRecord', 2.88, 0, -0.71);
+  feet(listening, 0.61, 0.51, 0.59);
+  b(listening, 0.94, 0.07, 0.76, 0, 0.73, 0, oak, 0.04);
+  b(listening, 0.84, 0.13, 0.61, 0, 0.83, 0, darkWood, 0.03);
+  b(listening, 0.8, 0.016, 0.57, 0, 0.904, 0, charcoal, 0.008);
+  const recordPivot = child(listening, -0.08, 0.92, 0.015);
+  cyl(recordPivot, 0.242, 0.242, 0.017, 0, 0, 0, black);
+  cyl(recordPivot, 0.062, 0.062, 0.003, 0, 0.01, 0, ivoryCloth);
+  b(recordPivot, 0.008, 0.002, 0.053, 0.02, 0.013, 0, terracotta, 0.001);
+  for (const r of [0.11, 0.15, 0.19, 0.225])
+    torus(recordPivot, r, 0.0009, 0, 0.012, 0, charcoal).rotation.x =
+      Math.PI / 2;
+  const recordArm = child(listening, 0.29, 0.94, -0.18);
+  cyl(recordArm, 0.034, 0.036, 0.05, 0, 0, 0, brass);
+  line(
+    recordArm,
+    [
+      [0, 0.03, 0],
+      [-0.025, 0.03, 0.19],
+      [-0.19, 0.014, 0.35],
+    ],
+    0.01,
+    brass,
+  );
+  b(recordArm, 0.044, 0.021, 0.063, -0.19, 0.015, 0.35, black, 0.006);
   // BEDROOM. Bed axis points toward the foot bench; both sides and the wardrobe remain reachable.
   const bf = houseFurniture.bedroom;
   const bed = group('bedroom', 'sleepBed', bf.bed.x, 0, bf.bed.z);
@@ -1245,8 +1279,12 @@ export function buildHouse(k: Kit) {
   b(bed, 3.02, 1.02, 0.16, 0, 0.94, -1.74, oak, 0.09);
   for (const x of [-0.73, 0.73])
     cushion(bed, 1.42, 0.78, 0.14, x, 1.02, -1.635, ivoryCloth);
-  cushion(bed, 2.79, 0.32, 3.43, 0, 0.68, 0.02, bedCloth);
-  cushion(bed, 2.77, 0.12, 2.29, 0, 0.898, 0.59, bedCloth);
+  cushion(bed, 2.79, 0.32, 3.43, 0, 0.68, 0.02, ivoryCloth);
+  seam(bed, 2.75, 3.39, 0.73, ivoryCloth);
+  bedCloth.side = blanketCloth.side = T.DoubleSide;
+  mesh(bed, drapedLinen(2.77, 2.29, 0.38), bedCloth, 0, 0.955, 0.59);
+  // The turn-back shows the thickness of the duvet without covering the resting face.
+  cushion(bed, 2.75, 0.065, 0.22, 0, 0.966, -0.46, bedCloth);
   for (const x of [-0.72, 0.72]) {
     for (const [w, h, d, y, z, angle, material] of [
       [1.16, 0.2, 0.66, 0.952, -1.05, x * 0.06, bedCloth],
@@ -1270,19 +1308,17 @@ export function buildHouse(k: Kit) {
       );
     }
   }
-  // Woven runner bends over the foot, with raised seams and fringe.
-  b(bed, 2.83, 0.045, 0.68, 0, 0.985, 1.02, blanketCloth, 0.03);
-  b(bed, 2.83, 0.32, 0.04, 0, 0.81, 1.354, blanketCloth, 0.015);
-  for (let i = 0; i < 35; i++) {
-    b(bed, 0.012, 0.01, 0.65, -1.36 + i * 0.08, 1.01, 1.02, ivoryCloth, 0.003);
-    rod(
-      bed,
-      [-1.36 + i * 0.08, 0.67, 1.373],
-      [-1.36 + i * 0.08, 0.59, 1.378],
-      0.005,
-      ivoryCloth,
-    );
-  }
+  // A second, heavier textile drapes across the lower third of the bed.
+  mesh(bed, drapedLinen(2.8, 0.7, 0.4), blanketCloth, 0, 0.997, 1.13);
+  for (const side of [-1, 1])
+    for (let i = 0; i < 18; i++)
+      rod(
+        bed,
+        [side * 1.457, 0.64 + Math.sin(i * 1.7) * 0.011, 0.8 + i * 0.039],
+        [side * 1.467, 0.55 + Math.sin(i * 1.7) * 0.013, 0.803 + i * 0.039],
+        0.003,
+        blanketCloth,
+      );
   const bedRug = group('bedroom');
   b(bedRug, 4.18, 0.028, 4.39, -0.5, 0.098, 0.05, ivoryCloth, 0.08);
   const lamps: T.PointLight[] = [];
@@ -1520,6 +1556,51 @@ export function buildHouse(k: Kit) {
   feet(bench, 1.98, 0.39, 0.37);
   b(bench, 2.28, 0.08, 0.56, 0, 0.47, 0, oak, 0.04);
   cushion(bench, 2.24, 0.12, 0.55, 0, 0.57, 0, blanketCloth);
+  const lounge = group(
+    'bedroom',
+    undefined,
+    bf.readingChair.x,
+    0,
+    bf.readingChair.z,
+  );
+  lounge.rotation.y = -Math.PI / 2;
+  attachSeats(k.seats, lounge, ['bedroom-reading']);
+  k.interactables.push(lounge);
+  feet(lounge, 0.75, 0.77, 0.48);
+  b(lounge, 1.04, 0.075, 0.98, 0, 0.51, 0, oak, 0.045);
+  cushion(lounge, 0.91, 0.24, 0.85, 0, 0.64, 0.03, ivoryCloth);
+  const chairBack = cushion(
+    lounge,
+    0.93,
+    0.69,
+    0.21,
+    0,
+    1.0,
+    -0.39,
+    ivoryCloth,
+  );
+  chairBack.rotation.x = -0.14;
+  for (const side of [-1, 1]) {
+    b(lounge, 0.08, 0.09, 0.88, side * 0.49, 0.88, 0, oak, 0.035);
+    rod(
+      lounge,
+      [side * 0.49, 0.53, 0.33],
+      [side * 0.49, 0.87, 0.33],
+      0.027,
+      oak,
+    );
+  }
+  const chairPillow = cushion(
+    lounge,
+    0.47,
+    0.36,
+    0.15,
+    0.15,
+    0.88,
+    -0.23,
+    blanketCloth,
+  );
+  chairPillow.rotation.z = -0.15;
   plant(roots.bedroom, -2.9, 0.08, 2.38, 1.25);
   const basket = child(roots.bedroom, 2.73, 0.08, 2.55);
   cyl(basket, 0.3, 0.25, 0.42, 0, 0.21, 0, ivoryCloth);
@@ -1538,6 +1619,27 @@ export function buildHouse(k: Kit) {
   cushion(basket, 0.36, 0.17, 0.39, 0, 0.44, 0, bedCloth);
 
   // GALLERY. Wall pieces, independent pedestals and a viewing bench with clear circulation.
+  const projectGallery = createProjectGallery({
+    root: roots.gallery,
+    materials,
+    textures,
+    groups: k.groups,
+    interactables: k.interactables,
+    oak,
+    brass,
+  });
+  const galleryRug = group('gallery');
+  b(
+    galleryRug,
+    6.9,
+    0.021,
+    3.55,
+    -0.05,
+    0.091,
+    0,
+    finishes.gallery.cloth,
+    0.014,
+  );
   const art = group('gallery', 'galleryArt');
   for (let i = 0; i < 3; i++) {
     const id = `galleryArt${i + 1}` as ObjectId,
@@ -1545,9 +1647,7 @@ export function buildHouse(k: Kit) {
     art.add(frame);
     b(frame, 1.25, 1.68, 0.09, 0, 2.05, -3.145, oak, 0.018);
     b(frame, 1.14, 1.57, 0.013, 0, 2.05, -3.09, white, 0.005);
-    const texture = galleryPrint(i, textures),
-      material = new T.MeshStandardMaterial({ map: texture, roughness: 0.94 });
-    materials.push(material);
+    const { texture, material } = projectGallery.covers[[1, 0, 2][i]];
     pictureMaterials.set(id, { material, original: texture });
     mesh(
       frame,
@@ -1586,54 +1686,12 @@ export function buildHouse(k: Kit) {
     galleryLamps.add(light, light.target);
     spotlights.push(light);
   }
-  const plinth = group('gallery', 'gallerySculpture', 0.1, 0, -0.45);
-  b(plinth, 1, 0.92, 1, 0, 0.55, 0, cream, 0.035);
-  b(plinth, 1.05, 0.045, 1.05, 0, 1.03, 0, white, 0.012);
-  const sculpture = child(plinth, 0, 1.06, 0);
-  const importedSculpture = loadGalleryModel(sculpture, k.onModelReady, k.assets);
-  label(plinth, '01 / CROWNED RABBIT', 0, 0.75, 0.506, 0.69);
-  const caseGroup = group('gallery', 'galleryCase', 2.5, 0, 0.2);
-  b(caseGroup, 0.82, 0.76, 1.7, 0, 0.48, 0, oak, 0.025);
-  b(caseGroup, 0.86, 0.06, 1.74, 0, 0.89, 0, ivoryCloth, 0.008);
-  const lid = child(caseGroup, -0.44, 0.92, 0);
-  for (const x of [0, 0.88])
-    b(lid, 0.012, 0.53, 1.78, x, 0.265, 0, glass, 0.001);
-  for (const z of [-0.89, 0.89])
-    b(lid, 0.88, 0.53, 0.012, 0.44, 0.265, z, glass, 0.001);
-  b(lid, 0.88, 0.012, 1.78, 0.44, 0.53, 0, glass, 0.001);
-  for (const x of [0, 0.88])
-    for (const z of [-0.89, 0.89])
-      rod(lid, [x, 0, z], [x, 0.53, z], 0.007, glassEdge);
-  for (let i = 0; i < 3; i++) {
-    const o = child(caseGroup, 0, 0.94, -0.53 + i * 0.53);
-    cyl(o, 0.1, 0.12, 0.028, 0, 0.014, 0, cream);
-    if (i === 0) {
-      const orbit = torus(o, 0.13, 0.028, 0, 0.19, 0, brass);
-      orbit.rotation.y = 0.6;
-      cyl(o, 0.018, 0.025, 0.09, 0, 0.045, 0, brass);
-    } else if (i === 1) {
-      cyl(o, 0.1, 0.07, 0.24, 0, 0.14, 0, terracotta);
-      cyl(o, 0.078, 0.078, 0.008, 0, 0.262, 0, darkWood);
-      const lip = torus(o, 0.093, 0.009, 0, 0.265, 0, terracotta);
-      lip.rotation.x = Math.PI / 2;
-      torus(o, 0.045, 0.014, 0.11, 0.16, 0, terracotta);
-    } else {
-      b(o, 0.19, 0.21, 0.14, 0, 0.115, 0, green, 0.012);
-      ball(o, 0.067, 0, 0.265, 0, brass);
-    }
-  }
   const galleryBench = group('gallery', undefined, -0.1, 0, 2.1);
   attachSeats(k.seats, galleryBench, ['gallery-bench-1', 'gallery-bench-2']);
   k.interactables.push(galleryBench);
   feet(galleryBench, 1.98, 0.47, 0.39);
   b(galleryBench, 2.25, 0.09, 0.67, 0, 0.49, 0, oak, 0.04);
   cushion(galleryBench, 2.19, 0.13, 0.63, 0, 0.59, 0, ivoryCloth);
-  const catalogue = group('gallery', undefined, -2.9, 0, -0.15);
-  b(catalogue, 0.8, 0.89, 0.7, 0, 0.535, 0, oak);
-  b(catalogue, 0.92, 0.07, 0.83, 0, 1.01, 0, paleWood, 0.04);
-  book(catalogue, 0.44, 0.57, 0, 1.1, 0, green);
-  book(catalogue, 0.41, 0.56, 0.02, 1.2, 0, ivoryCloth);
-  label(catalogue, 'CATALOGUE', 0, 0.74, 0.36, 0.53);
   plant(roots.gallery, -2.9, 0.08, 2.34, 1.65);
 
   // Shared partitions contain real 1.4-unit door openings, aligned with each room's aisles.
@@ -1697,6 +1755,16 @@ export function buildHouse(k: Kit) {
   partition(0, 10.2, 8, 0, 2.65, ['bedroom', 'cafe'], terracottaWall);
   partition(8, 10.2, 8, 0, 1.6, ['gallery', 'cafe'], galleryWall);
   const cafe = buildCafe({
+    floorMaterials: k.floorMaterials,
+    contactMaterial: k.contactMaterial,
+    ceramic: k.ceramic,
+    glass,
+    breeze: k.breeze,
+    oak,
+    darkWood,
+    cream,
+    white,
+    brass,
     assets: k.assets,
     seats: k.seats,
     root: roots.cafe,
@@ -1885,7 +1953,9 @@ export function buildHouse(k: Kit) {
     });
   }
   const ceilingLighting = houseLighting(roots, materials);
-  let masterLight = true;
+  let masterLight = true,
+    galleryPlan = false;
+  const occupiedSeats = new Set<string>();
   // Window groups own their resources and animations; keep them separate from batching.
   for (const room of ['living', 'bedroom', 'gallery'] as const)
     for (const g of roots[room].children) {
@@ -1900,8 +1970,6 @@ export function buildHouse(k: Kit) {
     joyOut = false,
     consoleOn = false,
     wardrobeOpen = false,
-    caseOpen = false,
-    angle = 0,
     lampOn = true,
     bedLampOn = true,
     exhibitOn = true,
@@ -1917,8 +1985,17 @@ export function buildHouse(k: Kit) {
   return {
     roots,
     screen,
+    setProjects: projectGallery.setProjects,
+    setTVTint(color: T.Color) {
+      tvTint.copy(color);
+    },
+    setOccupied(ids: string[]) {
+      occupiedSeats.clear();
+      ids.forEach((id) => occupiedSeats.add(id));
+    },
     setFocus(id: ObjectId | null) {
       cafe.setFocus(id);
+      projectGallery.focus(id);
       ceilingLighting.setPlan(id !== null);
     },
     setSeatFocus() {
@@ -1978,6 +2055,8 @@ export function buildHouse(k: Kit) {
     },
     setView(view: HouseView) {
       ceilingLighting.setPlan(view === 'plan');
+      galleryPlan = view === 'plan';
+      projectGallery.focus(null);
       cafe.setPlan(view === 'plan');
       planLabels.visible = view === 'plan';
       art.visible = galleryLamps.visible = view !== 'plan';
@@ -2005,7 +2084,7 @@ export function buildHouse(k: Kit) {
       if (id === 'livingCup') cupUntil = now + 7;
       if (id === 'bedroomClock') clockUntil = now + 1.6;
       if (id === 'livingSofa')
-        sofaCloth.color.set(['#9b9f86', '#b7836e', '#7b929a'][++sofaIndex % 3]);
+        sofaCloth.color.set(['#d4c9b7', '#b7836e', '#7b929a'][++sofaIndex % 3]);
       if (id === 'switch') joyOut = !joyOut;
       if (id === 'console') consoleOn = !consoleOn;
       if (id === 'controller') {
@@ -2017,7 +2096,7 @@ export function buildHouse(k: Kit) {
       if (id === 'mediaDrawer') pulled = !pulled;
       if (id === 'sleepBed') {
         const schemes = [
-          ['#e9dfc9', '#788e89'],
+          ['#8495a6', '#566773'],
           ['#e1c7b3', '#a57d6d'],
           ['#c7d2d3', '#788b9d'],
         ];
@@ -2027,8 +2106,12 @@ export function buildHouse(k: Kit) {
       }
       if (id === 'bedsideLamp') bedLampOn = !bedLampOn;
       if (id === 'wardrobe') wardrobeOpen = !wardrobeOpen;
-      if (id === 'galleryCase') caseOpen = !caseOpen;
-      if (id === 'gallerySculpture') angle += Math.PI / 2;
+      if (
+        id === 'galleryCase' ||
+        id === 'gallerySculpture' ||
+        id === 'galleryGame'
+      )
+        projectGallery.focus(id);
       if (id === 'galleryLight') exhibitOn = !exhibitOn;
     },
     update(
@@ -2039,6 +2122,39 @@ export function buildHouse(k: Kit) {
       viewer: T.Camera,
     ) {
       now = t;
+      if (musicOn && !reduced) recordPivot.rotation.y += dt * 1.5;
+      recordArm.rotation.y = T.MathUtils.lerp(
+        recordArm.rotation.y,
+        musicOn ? 0 : -0.55,
+        1 - Math.exp(-dt * 1.4),
+      );
+      recordArm.rotation.z = T.MathUtils.lerp(
+        recordArm.rotation.z,
+        musicOn ? 0 : -0.09,
+        1 - Math.exp(-dt * 1.4),
+      );
+      sofaSeats.forEach((cushion, i) => {
+        const occupied = occupiedSeats.has(`living-sofa-${i + 1}`);
+        const a = 1 - Math.exp(-dt * 5);
+        cushion.scale.y = T.MathUtils.lerp(
+          cushion.scale.y,
+          occupied ? 0.85 : 1,
+          a,
+        );
+        cushion.position.y = T.MathUtils.lerp(
+          cushion.position.y,
+          occupied ? 0.652 : 0.67,
+          a,
+        );
+        const id = `living-sofa-${i + 1}`,
+          anchor = k.seats.get(id);
+        if (anchor)
+          anchor.position.y =
+            seatById.get(id)!.offset[1] +
+            cushion.position.y -
+            0.67 +
+            (cushion.scale.y - 1) * 0.11;
+      });
       cafe.update(t, dt, reduced, night, viewer);
       padSticks.forEach((stick, i) => {
         stick.rotation.x =
@@ -2059,8 +2175,7 @@ export function buildHouse(k: Kit) {
         cone.position.z =
           musicOn && !reduced ? Math.sin(t * 43 + i * 0.2) * 0.002 : 0;
       });
-      cupSteamMaterial.opacity =
-        t < cupUntil ? 0.45 : Math.max(0, cupSteamMaterial.opacity - dt * 0.18);
+      cupSteamMaterial.opacity = reduced ? 0 : t < cupUntil ? 0.4 : 0.13;
       cupSteam.children.forEach((s, i) => {
         const phase = reduced ? i / 6 : (t * 0.27 + i / 6) % 1;
         s.position.set(
@@ -2107,8 +2222,13 @@ export function buildHouse(k: Kit) {
             a,
           )),
       );
-      lid.rotation.z = T.MathUtils.lerp(lid.rotation.z, caseOpen ? 1.05 : 0, a);
-      sculpture.rotation.y = T.MathUtils.lerp(sculpture.rotation.y, angle, a);
+      projectGallery.update(
+        dt,
+        reduced,
+        night,
+        masterLight && exhibitOn,
+        galleryPlan,
+      );
       livingLight.intensity = T.MathUtils.lerp(
         livingLight.intensity,
         masterLight && lampOn ? (night ? 7 : 2.4) : 0,
@@ -2146,6 +2266,7 @@ export function buildHouse(k: Kit) {
         a,
       );
       consoleLed.emissiveIntensity = consoleOn ? 2 : 0.1;
+      tvLight.color.lerp(tvTint, a);
       tvLight.intensity = T.MathUtils.lerp(
         tvLight.intensity,
         tvOn ? (night ? 2.1 : 0.5) : 0,
@@ -2156,7 +2277,7 @@ export function buildHouse(k: Kit) {
     dispose() {
       disposed = true;
       pictureMaterials.forEach((entry) => entry.current?.dispose());
-      importedSculpture.dispose();
+      projectGallery.dispose();
       windows.forEach((w) => w.dispose());
       cafe.dispose();
     },

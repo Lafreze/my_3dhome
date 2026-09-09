@@ -120,17 +120,6 @@ export function houseLighting(
           0.65 + Math.cos(a) * 0.475,
         );
       }
-    } else {
-      mesh(new T.BoxGeometry(2.25, 0.09, 0.19), body, -0.1, 3.54, -0.2);
-      mesh(new T.BoxGeometry(2.12, 0.016, 0.115), diffuser, -0.1, 3.487, -0.2);
-      for (const x of [-0.95, 0.75])
-        mesh(
-          new T.CylinderGeometry(0.009, 0.009, 0.11, 8),
-          body,
-          x,
-          3.64,
-          -0.2,
-        );
     }
     const light = new T.PointLight(
       ['#ffdda9', '#ffe7bd', '#ffdeb3', '#fff0da'][index],
@@ -160,7 +149,7 @@ export function houseLighting(
       lights.forEach((l, i) => {
         l.intensity = T.MathUtils.lerp(
           l.intensity,
-          enabled ? (night ? [17, 19, 13, 19][i] : [9, 11, 7, 12][i]) : 0,
+          enabled ? (night ? [7, 8, 5, 2.5][i] : [3.5, 4.5, 2.5, 1.8][i]) : 0,
           a,
         );
       });

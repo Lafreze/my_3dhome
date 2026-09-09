@@ -28,7 +28,7 @@ export type Environment = {
 export const previewSun: Record<TimeOfDay, SolarPosition> = {
   morning: { altitude: 16, azimuth: 95 },
   afternoon: { altitude: 48, azimuth: 205 },
-  sunset: { altitude: 4, azimuth: 265 },
+  sunset: { altitude: 10, azimuth: 265 },
   night: { altitude: -25, azimuth: 0 },
 };
 export function sunFor(value: Environment) {

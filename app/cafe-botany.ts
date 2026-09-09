@@ -1,9 +1,11 @@
+import type { InteriorBreeze } from './interior-atmosphere';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { cafeFloorPlants } from './cafe-layout';
 
 type BotanyKit = {
+  breeze: InteriorBreeze;
   root: T.Group;
   north: T.Group;
   west: T.Group;
@@ -24,6 +26,7 @@ const random = (i: number) =>
 
 /** Original café planting. Each installation belongs to its wall's cutaway group. */
 export function addCafeBotany({
+  breeze,
   root,
   north,
   west,
@@ -88,6 +91,7 @@ export function addCafeBotany({
   leafMaterial.bumpMap = leafMap;
   leafMaterial.bumpScale = 0.002;
   leafMaterial.side = T.DoubleSide;
+  breeze.add(leafMaterial);
   const leafGeo = new T.BufferGeometry(),
     positions: number[] = [],
     uvs: number[] = [],

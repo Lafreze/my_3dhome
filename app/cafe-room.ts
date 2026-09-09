@@ -1,3 +1,5 @@
+import type { InteriorBreeze } from './interior-atmosphere';
+import { addOakFloor } from './house-finishes';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -19,6 +21,16 @@ import { attachSeats, type SeatAnchors } from './seat-scene';
 
 type Kit = {
   assets: RoomAssets;
+  breeze: InteriorBreeze;
+  floorMaterials: T.MeshStandardMaterial[];
+  contactMaterial: T.Material;
+  oak: T.MeshStandardMaterial;
+  darkWood: T.MeshStandardMaterial;
+  cream: T.MeshStandardMaterial;
+  white: T.MeshStandardMaterial;
+  ceramic: T.MeshStandardMaterial;
+  glass: T.MeshPhysicalMaterial;
+  brass: T.MeshStandardMaterial;
   seats: SeatAnchors;
   root: T.Group;
   materials: T.Material[];
@@ -37,18 +49,10 @@ export function buildCafe(k: Kit) {
     materials.push(m);
     return m;
   };
-  const wood = mat('#d5c7b6', 0.53),
-    darkWood = mat('#59402c', 0.48),
-    leather = mat('#174d3c', 0.55),
+  const wood = k.oak,
+    darkWood = k.darkWood,
+    leather = mat('#71816c', 0.73),
     tan = mat('#ac7350', 0.64);
-  Object.assign(
-    wood,
-    localPbr(k.assets, textures, 'walnut_veneer_02', new T.Vector2(1, 1)),
-  );
-  Object.assign(
-    darkWood,
-    localPbr(k.assets, textures, 'wood_table_001', new T.Vector2(0.6, 1)),
-  );
   for (const m of [leather, tan]) {
     Object.assign(
       m,
@@ -56,18 +60,12 @@ export function buildCafe(k: Kit) {
     );
     m.normalScale.set(0.3, 0.3);
   }
-  const floor = mat('#e4ddd0', 0.72);
-  Object.assign(
-    floor,
-    localPbr(k.assets, textures, 'terrazzo_tiles', new T.Vector2(3, 1.5)),
-  );
-  floor.normalScale.set(0.2, 0.2);
-  const green = mat('#204b3c', 0.8),
-    plaster = mat('#e6ddc9', 0.94),
+  const green = mat('#829077', 0.78),
+    plaster = k.cream,
     black = mat('#202825', 0.39, 0.48),
-    brass = mat('#ac8952', 0.32, 0.72),
+    brass = k.brass,
     steel = mat('#afb5ac', 0.28, 0.8),
-    ceramic = mat('#f0e7d4', 0.23),
+    ceramic = k.ceramic,
     coffee = mat('#663621', 0.25),
     roastedBean = mat('#060606', 0.78),
     beanCrease = mat('#010101', 0.9),
@@ -76,16 +74,8 @@ export function buildCafe(k: Kit) {
     crumb = mat('#ce8b44', 0.85),
     cocoa = mat('#4f2c20', 0.8),
     leaf = mat('#456644', 0.88);
-  const glass = new T.MeshPhysicalMaterial({
-    color: '#d3e4dc',
-    roughness: 0.06,
-    metalness: 0.1,
-    transparent: true,
-    opacity: 0.17,
-    depthWrite: false,
-    side: T.DoubleSide,
-  });
-  materials.push(glass);
+  k.breeze.add(leaf);
+  const glass = k.glass;
   const stone = mat('#ddd2bc', 0.45);
   // Separate fine aggregate for the honed countertop, free of floor grout lines.
   const mineralCanvas = document.createElement('canvas');
@@ -317,6 +307,7 @@ export function buildCafe(k: Kit) {
     paint(lines);
     return paint;
   }
+  const warmCups: { group: T.Group; size: number }[] = [];
   function cup(
     p: T.Object3D,
     x: number,
@@ -328,6 +319,7 @@ export function buildCafe(k: Kit) {
     saucer = true,
   ) {
     const g = child(p, x, y, z);
+    if (filled && warmCups.length < 8) warmCups.push({ group: g, size });
     lathe(
       g,
       [
@@ -434,11 +426,23 @@ export function buildCafe(k: Kit) {
       l.rotation.set(0.25, a, -0.55 + noise(i + 32));
     }
   }
-  // Continuous foundation and pale terrazzo floor; fine brass perimeter and inset entry mat.
+  // Continuous warm oak floor, a woven entry mat and a fine brass perimeter.
   const architecture = child(root);
   architecture.name = 'cafe/foundation';
   box(architecture, 16, 0.4, 8, 0, -0.23, 0, darkWood, 0.04);
-  box(architecture, 15.92, 0.06, 7.92, 0, 0.045, 0, floor, 0.006);
+  addOakFloor(architecture, 15.92, 7.92, k.floorMaterials);
+  for (const item of [...Object.values(cafeLayout), ...cafeBistroTables]) {
+    const patch = mesh(
+      architecture,
+      new T.PlaneGeometry(item.width * 1.15, item.depth * 1.15),
+      k.contactMaterial,
+      item.x,
+      0.082,
+      item.z,
+    );
+    patch.rotation.x = -Math.PI / 2;
+    patch.castShadow = false;
+  }
   for (const x of [-7.82, 7.82])
     box(architecture, 0.017, 0.008, 7.65, x, 0.081, 0, brass, 0.001);
   for (const z of [-3.82, 3.82])
@@ -461,7 +465,7 @@ export function buildCafe(k: Kit) {
   const west = child(root),
     east = child(root);
   box(west, 0.17, 3.65, 8, -7.91, 1.83, 0, plaster);
-  box(east, 0.17, 3.65, 8, 7.91, 1.83, 0, green);
+  box(east, 0.17, 3.65, 8, 7.91, 1.83, 0, plaster);
   for (const [g, x, m] of [
     [west, -7.79, darkWood],
     [east, 7.79, darkWood],
@@ -480,7 +484,7 @@ export function buildCafe(k: Kit) {
     [-0.63, 4.88],
     [6.32, 7.9],
   ])
-    box(north, b - a, 3.48, 0.025, (a + b) / 2, 1.82, -3.89, green, 0.003);
+    box(north, b - a, 3.48, 0.025, (a + b) / 2, 1.82, -3.89, plaster, 0.003);
   for (const [a, b] of [
     [-7.9, -2.07],
     [-0.63, 4.88],
@@ -544,11 +548,11 @@ export function buildCafe(k: Kit) {
     '#e8d8ae',
   );
   k.cutaways.add([front], { x: 4, z: 18.11, nx: 0, nz: -1 }, ['cafe']);
-  // Service counter: recessed toe kick, vertical walnut fluting, eased stone lip and brass foot rail.
+  // Service counter: recessed toe kick, sage fluting, eased oak lip and brass foot rail.
   const counter = child(root, cafeLayout.counter.x, 0, cafeLayout.counter.z);
-  box(counter, 5.7, 1.25, 1.12, 0, 0.79, 0, darkWood, 0.03);
+  box(counter, 5.7, 1.25, 1.12, 0, 0.79, 0, green, 0.065);
   box(counter, 5.48, 0.18, 0.86, 0, 0.18, 0, black);
-  box(counter, 5.87, 0.13, 1.3, 0, 1.47, 0, stone, 0.04);
+  box(counter, 5.87, 0.13, 1.3, 0, 1.47, 0, wood, 0.06);
   box(counter, 5.65, 0.045, 0.055, 0, 1.33, 0.58, brass, 0.008);
   for (let i = 0; i < 91; i++)
     box(
@@ -559,7 +563,7 @@ export function buildCafe(k: Kit) {
       -2.75 + i * 0.061,
       0.79,
       0.58,
-      wood,
+      green,
       0.013,
     );
   rod(counter, [-2.65, 0.36, 0.81], [2.65, 0.36, 0.81], 0.023, brass);
@@ -575,7 +579,7 @@ export function buildCafe(k: Kit) {
   box(back, 5.4, 1.25, 0.7, 0, 0.73, 0, darkWood);
   box(back, 5.5, 0.1, 0.82, 0, 1.39, 0, stone, 0.025);
   for (let i = 0; i < 6; i++) {
-    box(back, 0.86, 1.04, 0.028, -2.22 + i * 0.89, 0.77, 0.369, wood, 0.008);
+    box(back, 0.86, 1.04, 0.028, -2.22 + i * 0.89, 0.77, 0.369, green, 0.014);
     rod(
       back,
       [-2.38 + i * 0.89, 1.1, 0.42],
@@ -1294,7 +1298,7 @@ export function buildCafe(k: Kit) {
         [0.1, 0.14],
         [0.055, 0.23],
       ],
-      green,
+      black,
       x,
       y,
       z,
@@ -1338,6 +1342,26 @@ export function buildCafe(k: Kit) {
     s.raycast = () => {};
     steam.add(s);
   }
+  const cupVapour = new T.SpriteMaterial({
+    map: steamMap,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.16,
+  });
+  materials.push(cupVapour);
+  const wisps = warmCups.flatMap(({ group, size }) =>
+    Array.from({ length: 3 }, (_, i) => {
+      const sprite = new T.Sprite(cupVapour);
+      sprite.raycast = () => {};
+      group.add(sprite);
+      return { sprite, size, phase: i / 3 };
+    }),
+  );
+  const shelfGlow = new T.PointLight('#ffc87b', 1, 3.1, 2);
+  shelfGlow.position.set(-6.58, 2.25, -3.36);
+  root.add(shelfGlow);
+  for (const y of [2.15, 2.69])
+    box(north, 1.98, 0.012, 0.02, -6.58, y - 0.045, -3.49, glow, 0.002);
   let brewUntil = 0,
     pourUntil = 0,
     now = 0,
@@ -1385,7 +1409,15 @@ export function buildCafe(k: Kit) {
   }
   for (const g of root.children)
     if (g instanceof T.Group && g !== front) batch(g);
-  addCafeBotany({ root, north, west, front, materials, textures });
+  addCafeBotany({
+    root,
+    north,
+    west,
+    front,
+    materials,
+    textures,
+    breeze: k.breeze,
+  });
   return {
     setPlan(plan: boolean) {
       planView = plan;
@@ -1425,6 +1457,17 @@ export function buildCafe(k: Kit) {
       viewer: T.Camera,
     ) {
       now = t;
+      cupVapour.opacity = reduced ? 0 : 0.16;
+      for (const { sprite, size, phase } of wisps) {
+        const rise = (t * 0.21 + phase) % 1;
+        sprite.position.set(
+          Math.sin(t * 0.6 + phase * 9) * 0.014,
+          size * 1.45 + rise * 0.25,
+          0,
+        );
+        sprite.scale.set(0.04 + rise * 0.065, 0.065 + rise * 0.08, 1);
+      }
+      shelfGlow.intensity = master && localLight ? (night ? 1.6 : 0.7) : 0;
       fixtures.visible = !planView && (!focus || focus === 'cafeLight');
       beams.visible = viewer.position.y < 3.65;
       const a = 1 - Math.exp(-dt * 5),

@@ -63,6 +63,7 @@ const palettes = {
   },
 } as const;
 export function environmentLight(value: Environment) {
+  const goldenPreview = value.time === 'sunset' && !value.solar;
   const solar = sunFor(value),
     altitude = T.MathUtils.degToRad(solar.altitude),
     azimuth = T.MathUtils.degToRad(solar.azimuth);
@@ -76,6 +77,10 @@ export function environmentLight(value: Environment) {
   const hemi = new T.Color('#829dbb')
     .lerp(new T.Color('#e5eff0'), daylight)
     .lerp(new T.Color('#edc4a2'), warmth * daylight * 0.22);
+  if (goldenPreview) {
+    sun.set('#ffc080');
+    hemi.lerp(new T.Color('#96a6c0'), 0.42);
+  }
   return {
     sun,
     hemi,
@@ -89,9 +94,12 @@ export function environmentLight(value: Environment) {
       4.8 *
       Math.pow(Math.max(0, Math.sin(altitude)), 0.5) *
       (1 - (cloud / 100) * 0.94) *
-      (value.weather === 'fog' ? 0.2 : 1),
-    ambient: 0.46 + 2.0 * daylight * (1 - (cloud / 100) * 0.25),
-    fill: 0.3 + 0.9 * daylight,
+      (value.weather === 'fog' ? 0.2 : 1) *
+      (goldenPreview ? 1.38 : 1),
+    ambient:
+      (0.46 + 2.0 * daylight * (1 - (cloud / 100) * 0.25)) *
+      (goldenPreview ? 0.63 : 1),
+    fill: (0.3 + 0.9 * daylight) * (goldenPreview ? 0.58 : 1),
   };
 }
 

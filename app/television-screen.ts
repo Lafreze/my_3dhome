@@ -39,12 +39,60 @@ export function televisionScreen(
   const point = new T.Vector3(),
     normal = new T.Vector3(),
     eye = new T.Vector3();
+  const sample = document.createElement('canvas');
+  sample.width = sample.height = 8;
+  let sampleContext = sample.getContext('2d', { willReadFrequently: true });
+  let lastSample = -Infinity,
+    blockedSource = '';
+  const sampledColor = new T.Color('#a3bbc7');
   return {
+    sampleColor(target: T.Color, time: number) {
+      const video = object?.element.querySelector('video');
+      if (
+        !video ||
+        video.readyState < 2 ||
+        !video.currentSrc ||
+        video.currentSrc === blockedSource ||
+        !sampleContext
+      )
+        return false;
+      if (time - lastSample >= 0.5) {
+        lastSample = time;
+        try {
+          sampleContext.drawImage(video, 0, 0, 8, 8);
+          const pixels = sampleContext.getImageData(0, 0, 8, 8).data;
+          let r = 0,
+            g = 0,
+            b = 0;
+          for (let i = 0; i < pixels.length; i += 4) {
+            r += pixels[i];
+            g += pixels[i + 1];
+            b += pixels[i + 2];
+          }
+          sampledColor.setRGB(
+            r / 16320,
+            g / 16320,
+            b / 16320,
+            T.SRGBColorSpace,
+          );
+        } catch {
+          // Cross-origin players retain their native playback and use a quiet neutral glow.
+          blockedSource = video.currentSrc;
+          sample.width = 8;
+          sampleContext = sample.getContext('2d', { willReadFrequently: true });
+          return false;
+        }
+      }
+      target.copy(sampledColor);
+      return true;
+    },
     setBaseMaterial(material: T.Material | T.Material[]) {
       original = material;
       if (!object) screen.material = material;
     },
     set(element: HTMLElement | null) {
+      blockedSource = '';
+      lastSample = -Infinity;
       if (object) scene.remove(object);
       object = element ? new CSS3DObject(element) : null;
       if (object) {

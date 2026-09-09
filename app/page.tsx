@@ -114,7 +114,14 @@ function validProfile(value: unknown): value is Profile {
   );
 }
 export default function Home() {
-  const [assetProgress, setAssetProgress] = useState<AssetProgress>({ loaded: 0, total: 0, completed: 0, count: 0, busy: true, errors: [] });
+  const [assetProgress, setAssetProgress] = useState<AssetProgress>({
+    loaded: 0,
+    total: 0,
+    completed: 0,
+    count: 0,
+    busy: true,
+    errors: [],
+  });
   useVisibleViewport();
   const [view, setView] = useState<HouseView>('study');
   const [seatPanel, setSeatPanel] = useState(false),
@@ -154,6 +161,21 @@ export default function Home() {
       ctx: AudioContext;
       timer: ReturnType<typeof setInterval>;
     } | null>(null);
+  const projectIntro = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (
+      !selected ||
+      !['gallerySculpture', 'galleryGame', 'galleryCase'].includes(selected)
+    )
+      return;
+    projectIntro.current = setTimeout(
+      () => quickAction.current(selected),
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900,
+    );
+    return () => {
+      if (projectIntro.current) clearTimeout(projectIntro.current);
+    };
+  }, [selected]);
   const notify = useCallback((s: string) => {
     setToast(s);
     if (timer.current) clearTimeout(timer.current);
@@ -268,6 +290,7 @@ export default function Home() {
   }, [music, ready]);
   useEffect(() => {
     api.current?.setArtwork(profile.projects.map((p) => p.image));
+    api.current?.setProjects(profile.projects);
   }, [profile, ready]);
   useEffect(
     () => () => {
@@ -360,6 +383,23 @@ export default function Home() {
     api.current?.focus(id);
   };
   const action = (id: ObjectId) => {
+    const exhibit = { gallerySculpture: 0, galleryGame: 1, galleryCase: 2 }[
+      id as 'gallerySculpture' | 'galleryGame' | 'galleryCase'
+    ];
+    if (exhibit !== undefined) {
+      if (projectIntro.current) clearTimeout(projectIntro.current);
+      if (!profile.projects[exhibit]) {
+        editorSession.current++;
+        setProjectsOnly(true);
+        setDraft(structuredClone(profile));
+        setEditingProject(0);
+        setModal('settings');
+      } else {
+        setProject(exhibit);
+        setModal('works');
+      }
+      return;
+    }
     if (id === 'computer') {
       setModal('computer');
       setSelected(null);
@@ -396,7 +436,7 @@ export default function Home() {
       setEnvironmentOpen(true);
       return;
     }
-    if (id === 'record' || id === 'livingSpeakers') {
+    if (id === 'record' || id === 'livingSpeakers' || id === 'livingRecord') {
       void toggleMusic();
       return;
     }
@@ -604,14 +644,33 @@ export default function Home() {
           <output className="asset-loading-status" aria-live="polite">
             {assetProgress.errors.length > 0 ? (
               <>
-                <span>{usesRemoteAssets() ? '资源服务暂时不可用，部分模型或纹理未能加载。' : '部分模型或纹理未能加载，请检查网络连接。'}</span>
-                <button disabled={assetProgress.busy} onClick={() => api.current?.retryAssets()}>重试资源</button>
+                <span>
+                  {usesRemoteAssets()
+                    ? '资源服务暂时不可用，部分模型或纹理未能加载。'
+                    : '部分模型或纹理未能加载，请检查网络连接。'}
+                </span>
+                <button
+                  disabled={assetProgress.busy}
+                  onClick={() => api.current?.retryAssets()}
+                >
+                  重试资源
+                </button>
               </>
             ) : (
               <>
-                <span>正在布置{rooms[view as RoomId]?.name || '小屋'} · {(assetProgress.loaded / 1048576).toFixed(1)} / {(assetProgress.total / 1048576).toFixed(1)} MB</span>
-                <progress aria-label="房间资源下载进度" value={assetProgress.loaded} max={Math.max(1, assetProgress.total)} />
-                {assetProgress.loaded === assetProgress.total && <small>正在准备画面…</small>}
+                <span>
+                  正在布置{rooms[view as RoomId]?.name || '小屋'} ·{' '}
+                  {(assetProgress.loaded / 1048576).toFixed(1)} /{' '}
+                  {(assetProgress.total / 1048576).toFixed(1)} MB
+                </span>
+                <progress
+                  aria-label="房间资源下载进度"
+                  value={assetProgress.loaded}
+                  max={Math.max(1, assetProgress.total)}
+                />
+                {assetProgress.loaded === assetProgress.total && (
+                  <small>正在准备画面…</small>
+                )}
               </>
             )}
           </output>
@@ -655,7 +714,9 @@ export default function Home() {
                 ? lamp
                   ? '关灯'
                   : '开灯'
-                : selected === 'record' || selected === 'livingSpeakers'
+                : selected === 'record' ||
+                    selected === 'livingSpeakers' ||
+                    selected === 'livingRecord'
                   ? music
                     ? '暂停音乐'
                     : '播放音乐'
@@ -946,12 +1007,31 @@ export default function Home() {
               <p>{profile.about}</p>
               <details className="asset-credits">
                 <summary>素材鸣谢</summary>
-                {[...new Map(assetCredits.map((credit) => [credit.attributionRequired ? credit.id : credit.sourceUrl, credit])).values()].map((credit) => (
+                {[
+                  ...new Map(
+                    assetCredits.map((credit) => [
+                      credit.attributionRequired ? credit.id : credit.sourceUrl,
+                      credit,
+                    ]),
+                  ).values(),
+                ].map((credit) => (
                   <p key={credit.id}>
-                    <a href={credit.sourceUrl} target="_blank" rel="noreferrer">{credit.name}</a>
-                    {' · '}{credit.author}
-                    {' · '}<a href={credit.licenseUrl} target="_blank" rel="noreferrer">{credit.license}</a>
-                    {credit.attributionRequired && <small>{credit.modifications}</small>}
+                    <a href={credit.sourceUrl} target="_blank" rel="noreferrer">
+                      {credit.name}
+                    </a>
+                    {' · '}
+                    {credit.author}
+                    {' · '}
+                    <a
+                      href={credit.licenseUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {credit.license}
+                    </a>
+                    {credit.attributionRequired && (
+                      <small>{credit.modifications}</small>
+                    )}
                   </p>
                 ))}
               </details>

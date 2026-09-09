@@ -99,8 +99,18 @@ export const newObjects = {
   bedroomWindow: { name: '卧室西窗', kind: 'W · 庭院', action: '时间与天气' },
   bedroomBook: { name: '睡前读物', kind: 'READING', action: '翻开手记' },
   galleryArt: { name: '个人作品展', kind: 'SELECTED WORK', action: '浏览作品' },
-  galleryCase: { name: '物件档案', kind: 'ARCHIVE', action: '打开 / 合上展罩' },
-  gallerySculpture: { name: '王冠兔', kind: 'SCULPTURE', action: '旋转展台' },
+  livingRecord: {
+    name: '黑胶听音台',
+    kind: 'LISTENING',
+    action: '播放 / 暂停',
+  },
+  galleryCase: { name: '生成式项目', kind: 'GENERATIVE', action: '阅读项目' },
+  galleryGame: { name: 'Petoria · Web 游戏', kind: 'PLAY', action: '阅读项目' },
+  gallerySculpture: {
+    name: 'AI · 半导体项目',
+    kind: 'FEATURED',
+    action: '阅读项目',
+  },
   galleryLight: { name: '展览照明', kind: 'LIGHT', action: '开灯 / 关灯' },
   galleryWindow: { name: '展厅东窗', kind: 'E · 前庭', action: '时间与天气' },
 } as const;
@@ -125,6 +135,7 @@ export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
   livingSpeakers: 'living',
   livingRemote: 'living',
   livingCup: 'living',
+  livingRecord: 'living',
   bedroomClock: 'bedroom',
   livingLamp: 'living',
   mediaDrawer: 'living',
@@ -136,6 +147,7 @@ export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
   bedroomBook: 'bedroom',
   galleryArt: 'gallery',
   galleryCase: 'gallery',
+  galleryGame: 'gallery',
   gallerySculpture: 'gallery',
   galleryLight: 'gallery',
   galleryWindow: 'gallery',
@@ -161,6 +173,7 @@ export const houseFurniture = {
     media: { x: 0.45, z: -2.74, width: 5.35, depth: 0.72 },
     table: { x: 0.55, z: -0.75, width: 1.75, depth: 0.83 },
     lamp: { x: 2.95, z: 1.08, width: 0.55, depth: 0.55 },
+    record: { x: 2.88, z: -0.71, width: 0.94, depth: 0.76 },
   },
   bedroom: {
     bed: { x: -0.5, z: -0.3, width: 2.9, depth: 3.65 },
@@ -168,6 +181,7 @@ export const houseFurniture = {
     bench: { x: -0.5, z: 2.22, width: 2.28, depth: 0.56 },
     leftNightstand: { x: -2.55, z: -1.94, width: 0.66, depth: 0.69 },
     rightNightstand: { x: 1.54, z: -1.94, width: 0.66, depth: 0.69 },
+    readingChair: { x: -2.92, z: 0.15, width: 1.04, depth: 1.08 },
   },
   gallery: {
     sculpture: { x: 0.1, z: -0.45, width: 1.0, depth: 1.0 },

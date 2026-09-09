@@ -1,4 +1,5 @@
 [
+  {"id":"bedroom-reading","room":"bedroom","name":"窗边休闲椅","offset":[0,0.77,0.12],"yaw":0},
   {"id":"study-work","room":"study","name":"工作椅","offset":[0,0.769,-0.06],"yaw":3.1415926536},
   {"id":"study-reading","room":"study","name":"阅读椅","offset":[0,0.825,0.1],"yaw":0},
   {"id":"study-sofa-1","room":"study","name":"沙发 · 左座","offset":[-0.71,0.732,0.2],"yaw":0},

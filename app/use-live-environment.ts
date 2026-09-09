@@ -13,9 +13,9 @@ import {
 
 export function useLiveEnvironment() {
   const [now, setNow] = useState<Date | null>(null);
-  const [mode, setMode] = useState<'live' | 'manual'>('live');
+  const [mode, setMode] = useState<'live' | 'manual'>('manual');
   const [manual, setManual] = useState<Environment>({
-    time: 'afternoon',
+    time: 'sunset',
     weather: 'clear',
   });
   const [location, setLocation] = useState<WeatherLocation | null>(null);
@@ -88,7 +88,7 @@ export function useLiveEnvironment() {
       .then((p) => {
         if (!mounted.current) return;
         permission = p;
-        if (p.state === 'granted') locate();
+        // Start at golden hour. Location is used only after an explicit live-weather choice.
         p.onchange = () => {
           if (p.state === 'denied') {
             locationRequest.current++;
