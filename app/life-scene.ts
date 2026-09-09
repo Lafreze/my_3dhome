@@ -208,6 +208,10 @@ export function createLifeScene(k: Options) {
           room: a.room,
           state: a.fsm.state,
           visible: a.visible,
+          animationTime: a.animationTime,
+          travelDistance: a.travelDistance,
+          turnDistance: a.turnDistance,
+          navigating: a.path.length > 0,
           lookAt: target?.position,
         });
         continue;
@@ -349,6 +353,7 @@ export function createLifeScene(k: Options) {
     },
     snapshot: () => ({
       ...engine.snapshot(),
+      catPose: k.cat.catPose(),
       render: { ...k.renderer.info.render },
       memory: { ...k.renderer.info.memory },
       models: Object.fromEntries(

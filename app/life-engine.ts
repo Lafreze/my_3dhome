@@ -1,5 +1,6 @@
 import { roomAt, type RoomId, type HouseView } from './house-data.ts';
 import type { Environment } from './environment-data';
+import { catRiseTime, catSettleTime } from './cat-gait.ts';
 import {
   navigationNodes,
   actorSpecs,
@@ -15,6 +16,7 @@ import {
   OccupancyManager,
   distance,
   floorClear,
+  segmentClear,
   worldPoint,
 } from './life-navigation.ts';
 
@@ -96,6 +98,8 @@ export type LifeActor = {
   animationTime: number;
   battery: number;
   actionUntil: number;
+  travelDistance: number;
+  turnDistance: number;
 };
 type Hooks = {
   collect: (id: CollectionId, actor: ActorId, room: RoomId) => void;
@@ -135,6 +139,12 @@ export class LifeEngine {
   private lastView: HouseView = 'study';
   private visitorGreetings = new Set<string>();
   private offscreen = new Map<ActorId, number>();
+  private catRide: {
+    phase: 'mount' | 'aboard' | 'dismount';
+    from: Point;
+    to: Point;
+    elapsed: number;
+  } | null = null;
   private hooks: Hooks;
   constructor(seed: number, hooks: Hooks) {
     this.hooks = hooks;
@@ -175,6 +185,8 @@ export class LifeEngine {
             animationTime: 0,
             battery: 100,
             actionUntil: 0,
+            travelDistance: 0,
+            turnDistance: 0,
           },
         ];
       }),
@@ -297,13 +309,15 @@ export class LifeEngine {
     actor.target = target.id;
     actor.blockedFor = 0;
     actor.fsm.set(
-      actor.id === 'rabbit'
-        ? 'hop'
-        : actor.id === 'robot'
-          ? actor.battery < 25
-            ? 'returnToDock'
-            : 'cleaning'
-          : 'walk',
+      actor.id === 'cat'
+        ? 'rise'
+        : actor.id === 'rabbit'
+          ? 'hop'
+          : actor.id === 'robot'
+            ? actor.battery < 25
+              ? 'returnToDock'
+              : 'cleaning'
+            : 'walk',
     );
     return true;
   }
@@ -320,7 +334,7 @@ export class LifeEngine {
       return;
     }
     a.seated = !!n.seatId;
-    a.rotation = n.rotation;
+    if (a.id !== 'cat') a.rotation = n.rotation;
     a.fsm.set(n.posture);
     a.stayUntil =
       this.clock + 12 + this.random.between(n.minStayTime, n.maxStayTime);
@@ -328,8 +342,7 @@ export class LifeEngine {
       a.fsm.set(a.node === 'robot.dock' ? 'charging' : 'turn');
       a.stayUntil = this.clock + (a.node === 'robot.dock' ? 90 : 4);
     }
-    if (a.id === 'cat')
-      a.fsm.set(this.random.choose<ActorState>(['sleep', 'groom', 'stretch'])!);
+    if (a.id === 'cat') a.fsm.set('settle');
     if (a.id === 'rabbit')
       a.fsm.set(
         this.random.choose<ActorState>([
@@ -355,6 +368,25 @@ export class LifeEngine {
   private move(a: LifeActor, dt: number) {
     const next = a.path[0];
     if (!next) return;
+    if (a.id === 'cat') {
+      // Rise on the spot before taking a step. Face a corner before advancing.
+      if (a.fsm.state === 'rise' && a.fsm.elapsed < catRiseTime) return;
+      const heading = Math.atan2(
+        -(next[0] - a.position[0]),
+        -(next[2] - a.position[2]),
+      );
+      const angle = Math.atan2(
+        Math.sin(heading - a.rotation),
+        Math.cos(heading - a.rotation),
+      );
+      const turn = Math.sign(angle) * Math.min(Math.abs(angle), dt * 2.4);
+      a.rotation += turn;
+      a.turnDistance += Math.abs(turn) * 0.1;
+      if (Math.abs(angle - turn) > 0.04) {
+        a.fsm.set('turn');
+        return;
+      }
+    }
     const d = distance(a.position, next),
       step = Math.min(d, actorSpecs[a.id].speed * dt),
       k = d ? step / d : 1;
@@ -403,11 +435,12 @@ export class LifeEngine {
           ? 'hop'
           : 'walk',
     );
-    if (d > 0.01)
+    if (d > 0.01 && a.id !== 'cat')
       a.rotation = Math.atan2(
         -(next[0] - a.position[0]),
         -(next[2] - a.position[2]),
       );
+    a.travelDistance += distance(a.position, p);
     a.position = p;
     a.room = roomAt(p[0], p[2]) ?? a.room;
     if (step >= d - 0.001) a.path.shift();
@@ -424,6 +457,12 @@ export class LifeEngine {
     // Bird land/takeoff is critical: acknowledge without replacing its event.
     if (id === 'bird') {
       this.hooks.bubble(id, '轻一点，让它安心停一会儿。');
+      return;
+    }
+    if (id === 'cat' && a.fsm.state === 'ride') {
+      // Do not interrupt a jump or detach a rider in mid-air.
+      this.hooks.bubble(id, '小黑猫正搭着便车，等它稳稳落地。');
+      this.events.cooldowns.set('click.cat', this.clock + 4);
       return;
     }
     if (
@@ -628,6 +667,7 @@ export class LifeEngine {
       cat.room === robot.room &&
       robot.path.length &&
       distance(cat.position, robot.position) < 0.85 &&
+      segmentClear(cat.position, robot.position, 'cat') &&
       !this.events.active &&
       this.random.next() < eventRules.robotRide.chance
     ) {
@@ -643,6 +683,12 @@ export class LifeEngine {
         cat.path = [];
         cat.fsm.set('ride');
         cat.stayUntil = this.clock + 12;
+        this.catRide = {
+          phase: 'mount',
+          from: [...cat.position],
+          to: [robot.position[0], 0.285, robot.position[2]],
+          elapsed: 0,
+        };
       }
     }
   }
@@ -703,7 +749,9 @@ export class LifeEngine {
       a.fsm.update(step);
       const owner = this.events.active?.actor;
       const canMove = !owner || owner === a.id || a.id === 'robot';
-      if (a.path.length && !this.reduced && canMove) {
+      const waitingForCat =
+        a.id === 'robot' && this.catRide && this.catRide.phase !== 'aboard';
+      if (a.path.length && !this.reduced && canMove && !waitingForCat) {
         this.move(a, Math.min(step, 0.3));
       }
       if (a.actionUntil && this.clock >= a.actionUntil) {
@@ -717,6 +765,14 @@ export class LifeEngine {
         !['idle', 'sit'].includes(a.fsm.state)
       )
         a.fsm.set(a.seated ? 'sit' : 'idle');
+      if (
+        a.id === 'cat' &&
+        a.fsm.state === 'settle' &&
+        a.fsm.elapsed >= catSettleTime
+      )
+        a.fsm.set(
+          this.random.choose<ActorState>(['sleep', 'groom', 'stretch'])!,
+        );
       if (
         a.id === 'cat' &&
         a.fsm.elapsed > 8 &&
@@ -783,41 +839,58 @@ export class LifeEngine {
         rabbit.fsm.set('hide');
       }
     }
-    if (cat.fsm.state === 'ride') {
-      if (this.clock < cat.stayUntil) {
-        const blend = Math.min(1, dt * 5);
-        cat.position = [
-          cat.position[0] + (robot.position[0] - cat.position[0]) * blend,
-          0.285,
-          cat.position[2] + (robot.position[2] - cat.position[2]) * blend,
-        ];
+    if (cat.fsm.state !== 'ride') this.catRide = null;
+    if (cat.fsm.state === 'ride' && this.catRide && !this.reduced) {
+      const ride = this.catRide;
+      if (ride.phase === 'aboard') {
+        // Once aboard, attach to the robot exactly; no lagging floor interpolation.
+        cat.position = [robot.position[0], 0.285, robot.position[2]];
         cat.room = robot.room;
         cat.rotation = robot.rotation;
         if (cat.fsm.elapsed > 2 && cat.visible)
           this.hooks.collect('cat.robotRide', 'cat', robot.room);
-      } else {
-        const candidates: Point[] = [
-          [robot.position[0] + 0.6, 0.085, robot.position[2]],
-          [robot.position[0] - 0.6, 0.085, robot.position[2]],
-          [robot.position[0], 0.085, robot.position[2] + 0.6],
-          [robot.position[0], 0.085, robot.position[2] - 0.6],
-        ];
-        const point = candidates.find(
-          (p) => floorClear(p, 'cat') && this.occupancy.clear(p, 'cat'),
-        );
-        if (point) {
-          const blend = Math.min(1, dt * 4);
-          cat.position = [
-            cat.position[0] + (point[0] - cat.position[0]) * blend,
-            Math.max(0.085, cat.position[1] - dt * 0.2),
-            cat.position[2] + (point[2] - cat.position[2]) * blend,
+        if (this.clock >= cat.stayUntil) {
+          const candidates: Point[] = [
+            [robot.position[0] + 0.6, 0.085, robot.position[2]],
+            [robot.position[0] - 0.6, 0.085, robot.position[2]],
+            [robot.position[0], 0.085, robot.position[2] + 0.6],
+            [robot.position[0], 0.085, robot.position[2] - 0.6],
           ];
-          robot.path = [];
+          const point = candidates.find(
+            (p) =>
+              floorClear(p, 'cat') &&
+              segmentClear(cat.position, p, 'cat') &&
+              this.occupancy.clear(p, 'cat'),
+          );
           robot.stayUntil = this.clock + 5;
-          if (distance(cat.position, point) < 0.06) {
-            cat.position = point;
-            cat.fsm.set('sleep');
+          if (point) {
+            ride.phase = 'dismount';
+            ride.from = [...cat.position];
+            ride.to = point;
+            ride.elapsed = 0;
+            cat.rotation = Math.atan2(
+              -(point[0] - cat.position[0]),
+              -(point[2] - cat.position[2]),
+            );
+          }
+        }
+      } else {
+        // A brief crouch, then a fixed hop arc onto/off the stationary robot.
+        ride.elapsed += dt;
+        const phase = Math.min(1, Math.max(0, (ride.elapsed - 0.25) / 0.65));
+        cat.position = [
+          ride.from[0] + (ride.to[0] - ride.from[0]) * phase,
+          ride.from[1] +
+            (ride.to[1] - ride.from[1]) * phase +
+            Math.sin(phase * Math.PI) * 0.2,
+          ride.from[2] + (ride.to[2] - ride.from[2]) * phase,
+        ];
+        if (phase === 1) {
+          if (ride.phase === 'mount') ride.phase = 'aboard';
+          else {
+            cat.fsm.set('settle');
             cat.stayUntil = this.clock + 30;
+            this.catRide = null;
           }
         }
       }

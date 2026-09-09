@@ -5,6 +5,8 @@ export type Point = [number, number, number];
 export type ActorState =
   | 'idle'
   | 'walk'
+  | 'rise'
+  | 'settle'
   | 'sit'
   | 'type'
   | 'read'
