@@ -41,7 +41,7 @@
 
 - TypeScript、生产构建、修改文件 lint 通过。
 - 管理鉴权、CSRF、无权限写入、旧配色迁移、任意合法十六进制颜色、三幅书房画、外部地址拒绝和重启后持久化通过。
-- 8 项资源策略检查，饮品状态与降温检查通过。
+- 8 项资源策略检查，饮品状态与降温检查通过。新增按 Docker 运行层复制文件的启动依赖测试，防止配置清单在部署时遗漏。
 - 原有小猫落脚、起身后行走、安全导航、角色随机起点、占位、事件互斥、暂停、太阳天气、家具边界、窗帘及床品几何检查通过。
 - 浏览器实际验证首次选择人物、点击自身编辑、空沙发直接换座、上传与素材选择、其他页面共享、颜色调色板及服务端保存。
 - 手机模拟验证下拉人物、保存、躺下、起身、无横向溢出、可见性隐藏信号后调度与蒸汽时钟停止。
@@ -56,4 +56,4 @@
 - 画作与配色：`wall-art-data.ts`、`wall-art-editor.tsx`、`wall-art-images.ts`、`studio-settings.tsx`、`admin-panel.tsx`、`scripts/house-settings.mjs`、两份资源配置与生成清单、`public/artwork/`。
 - 场景与材质：`room-scene.ts`、`room-data.ts`、`house-rooms.ts`、`house-data.ts`、`house-finishes.ts`、`bed-linen.ts`、`interior-atmosphere.ts`、`cafe-room.ts`。
 - 咖啡、收藏与调度：`coffee-state.ts`、`coffee-menu.tsx`、`collection-album.tsx`、`life-collections.ts`、`life-data.ts`、`life-engine.ts`、`page.tsx`。
-- 验证：`scripts/check-home-refinement.test.mjs`、`scripts/check-admin.test.mjs`。
+- 验证与发布：`scripts/check-home-refinement.test.mjs`、`scripts/check-admin.test.mjs`、`Dockerfile`。

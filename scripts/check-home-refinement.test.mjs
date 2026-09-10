@@ -78,3 +78,36 @@ test('coffee finishes once, cools monotonically, survives inactivity and keeps t
   assert.equal(coffeeHeat(-10), 1);
   assert.equal(coffeeHeat(180), 0);
 });
+
+test('the runtime image includes every server settings dependency', async () => {
+  const { mkdtemp, mkdir, copyFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join, dirname } = await import('node:path');
+  const { pathToFileURL } = await import('node:url');
+  const root = new URL('../', import.meta.url);
+  const dir = await mkdtemp(join(tmpdir(), 'kuro-runtime-'));
+  try {
+    const docker = readFileSync(new URL('Dockerfile', root), 'utf8');
+    for (const line of docker.split('\n')) {
+      const copy = line.match(
+        /^COPY --from=build(?: --chown=node:node)? \/app\/(\S+) (\S+)/,
+      );
+      if (!copy || copy[1] === 'dist/client') continue;
+      const to = join(dir, copy[2]);
+      await mkdir(dirname(to), { recursive: true });
+      await copyFile(new URL(copy[1], root), to);
+    }
+    const { createHouseHandler } = await import(
+      pathToFileURL(join(dir, 'scripts/house-settings.mjs'))
+    );
+    assert.equal(
+      typeof (await createHouseHandler({
+        dataDir: join(dir, 'data'),
+        password: 'test',
+      })),
+      'function',
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
