@@ -1,4 +1,6 @@
 'use client';
+// The selection bridge intentionally reads the latest render, including its async submit.
+/* oxlint-disable react/react-compiler */
 import { useEffect, useRef, useState } from 'react';
 import {
   BedDouble,
@@ -25,6 +27,7 @@ import VisitorWardrobe from './visitor-wardrobe';
 import {
   appearanceStorageKey,
   defaultAppearance,
+  appearanceOptions,
   readAppearance,
 } from './visitor-appearance';
 
@@ -37,6 +40,8 @@ export default function VisitorSeats({
   onClose,
   onChoose,
   onCount,
+  selection,
+  onNotice,
 }: {
   api: React.RefObject<RoomApi | null>;
   ready: boolean;
@@ -46,6 +51,8 @@ export default function VisitorSeats({
   onClose: () => void;
   onChoose: (id: string) => void;
   onCount: (n: number) => void;
+  selection: React.RefObject<((id: string) => void) | null>;
+  onNotice: (text: string) => void;
 }) {
   const [presence, setPresence] = useState<Presence | null>(null);
   const [name, setName] = useState(''),
@@ -163,7 +170,7 @@ export default function VisitorSeats({
       const own = snapshot.current?.visitors.find(
         (p) => p.id === snapshot.current?.me,
       );
-      setName(own?.name || saved);
+      setName(own?.name || saved || appearanceOptions.characters[0].label);
       setAppearance(readAppearance(own?.appearance || savedAppearance));
       setError('');
       if (!selected && own) api.current?.focusSeat(own.seatId);
@@ -172,10 +179,53 @@ export default function VisitorSeats({
       active = false;
     };
   }, [open, selected, api]);
+  // Scene selection never opens the wardrobe for a returning visitor changing seats.
+  useEffect(() => {
+    selection.current = (id) => {
+      const live = snapshot.current;
+      if (!live || !connected) {
+        onNotice('正在连接小屋，请稍候再入座。');
+        return;
+      }
+      if (mutating.current) return;
+      const own = live.visitors.find((v) => v.id === live.me);
+      const taken = live.visitors.find((v) => v.seatId === id);
+      let savedName = '',
+        savedLook: unknown = null;
+      try {
+        savedName = localStorage.getItem('satori-visitor-name') || '';
+        savedLook = JSON.parse(
+          localStorage.getItem(appearanceStorageKey) || 'null',
+        );
+      } catch {
+        /* Seating still works without storage. */
+      }
+      if (taken || (!own && !savedName)) {
+        onChoose(id);
+        return;
+      }
+      const target = seatById.get(id);
+      if (!target) return;
+      void submit(
+        target.kind === 'bed' ? 'rest' : 'sit',
+        undefined,
+        undefined,
+        {
+          seatId: id,
+          name: own?.name || savedName,
+          appearance: readAppearance(own?.appearance || savedLook),
+        },
+      );
+    };
+    return () => {
+      selection.current = null;
+    };
+  });
   async function submit(
     action: 'sit' | 'rest' | 'wake' | 'leave' | 'gesture',
     kind?: 'hello' | 'heart',
     targetId?: string,
+    placement?: { seatId: string; name: string; appearance: typeof appearance },
   ) {
     if (mutating.current) return;
     mutating.current = true;
@@ -190,9 +240,11 @@ export default function VisitorSeats({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action,
-          seatId: selected,
-          name,
-          ...(['sit', 'rest'].includes(action) ? { appearance } : {}),
+          seatId: placement?.seatId || selected,
+          name: placement?.name || name,
+          ...(['sit', 'rest'].includes(action)
+            ? { appearance: placement?.appearance || appearance }
+            : {}),
           ...(action === 'gesture'
             ? { kind, ...(targetId ? { targetId } : {}) }
             : {}),
@@ -217,6 +269,8 @@ export default function VisitorSeats({
       if (action !== 'leave' && own)
         requestAnimationFrame(() => api.current?.focusSeat(own.seatId));
     } catch (e) {
+      if (placement)
+        onNotice(e instanceof Error ? e.message : '入座失败，请重试。');
       if (mounted.current)
         setError(
           e instanceof Error && e.name !== 'AbortError'
@@ -281,7 +335,7 @@ export default function VisitorSeats({
               posture={bed ? 'rest' : 'sit'}
             >
               <label className="visitor-name">
-                小人的名字
+                昵称
                 <input
                   autoComplete="off"
                   maxLength={24}
@@ -311,10 +365,10 @@ export default function VisitorSeats({
               )}
               {bed
                 ? occupant?.posture === 'rest'
-                  ? '保存休息形象'
+                  ? '保存'
                   : '躺下休息'
                 : occupant
-                  ? '保存形象'
+                  ? '保存'
                   : mine
                     ? '换到这里'
                     : '坐在这里'}
@@ -323,10 +377,6 @@ export default function VisitorSeats({
         )}
         {bed && !occupiedByOther && (
           <div className="visitor-actions">
-            <button onClick={() => api.current?.interact('sleepBed')}>
-              <BedDouble size={16} />
-              更换床品
-            </button>
             <button onClick={() => api.current?.interact('bedsideLamp')}>
               <Moon size={16} />
               床头灯
@@ -375,7 +425,7 @@ export default function VisitorSeats({
                 {recommended && (
                   <button
                     className="visitor-primary"
-                    onClick={() => onChoose(recommended.id)}
+                    onClick={() => selection.current?.(recommended.id)}
                   >
                     在这里放置角色
                   </button>

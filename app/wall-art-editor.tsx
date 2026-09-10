@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Upload, RotateCcw } from 'lucide-react';
 import { wallArt, type WallArtId } from './wall-art-data';
 import { compressArt } from './art-storage';
+import { wallArtUrl, wallArtLibrary } from './wall-art-images';
 import { useStudio } from './studio-settings';
 export default function WallArtEditor({
   selected,
@@ -110,22 +111,56 @@ export default function WallArtEditor({
       </label>
       <div className="art-preview">
         {pictures[id] ? (
-          <img src={pictures[id]} alt="当前画框图片" />
+          <img src={wallArtUrl(pictures[id])} alt="当前画框图片" />
         ) : (
           <span>原创画作</span>
         )}
       </div>
       {studio.admin && (
-        <div className="tv-toolbar">
-          <button disabled={busy} onClick={() => input.current?.click()}>
-            <Upload size={14} />
-            上传图片
-          </button>
-          <button disabled={busy || !pictures[id]} onClick={() => void reset()}>
-            <RotateCcw size={14} />
-            恢复原作
-          </button>
-        </div>
+        <>
+          <label className="art-select">
+            R2 素材
+            <select
+              aria-label="选择 R2 素材"
+              disabled={busy}
+              value={pictures[id]?.startsWith('asset:') ? pictures[id] : ''}
+              onChange={async (e) => {
+                if (!e.target.value) return;
+                setBusy(true);
+                try {
+                  await studio.save({ wallArt: { [id]: e.target.value } });
+                  setMessage('已保存，访客可见。');
+                } catch (error) {
+                  setMessage(
+                    error instanceof Error ? error.message : '保存失败。',
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <option value="">选择一幅画作</option>
+              {wallArtLibrary.map((art) => (
+                <option key={art.id} value={`asset:${art.id}`}>
+                  {art.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="tv-toolbar">
+            <button disabled={busy} onClick={() => input.current?.click()}>
+              <Upload size={14} />
+              上传图片
+            </button>
+            <button
+              disabled={busy || !pictures[id]}
+              onClick={() => void reset()}
+            >
+              <RotateCcw size={14} />
+              恢复原作
+            </button>
+          </div>
+        </>
       )}
       <input
         ref={input}

@@ -9,8 +9,19 @@ const defaults = JSON.parse(
     'utf8',
   ),
 );
+const artLibrary = JSON.parse(
+  await readFile(
+    new URL('../config/wall-art-library.json', import.meta.url),
+    'utf8',
+  ),
+);
+const artReferences = new Set(artLibrary.map((a) => `asset:${a.id}`));
+const wallImage = (v) => (artReferences.has(v) ? v : image(v));
 const colorKeys = Object.keys(defaults.appearance);
 const artKeys = [
+  'studyArt1',
+  'studyArt2',
+  'studyArt3',
   'livingArt1',
   'livingArt2',
   'galleryArt1',
@@ -97,7 +108,10 @@ export function validateSettings(input) {
   const appearance = Object.fromEntries(
     colorKeys.map((k) => {
       const v = input.appearance[k];
-      if (!Number.isInteger(v) || v < 0 || v > 2)
+      if (
+        !(Number.isInteger(v) && v >= 0 && v <= 2) &&
+        !(typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v))
+      )
         throw fail(400, '配色选项无效。');
       return [k, v];
     }),
@@ -115,7 +129,7 @@ export function validateSettings(input) {
   const wallArt = Object.fromEntries(
     Object.entries(input.wallArt)
       .filter(([, v]) => v !== null && v !== '')
-      .map(([k, v]) => [k, image(v)]),
+      .map(([k, v]) => [k, wallImage(v)]),
   );
   return {
     profile,

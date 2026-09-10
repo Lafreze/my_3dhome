@@ -1,21 +1,21 @@
 {
-  "version": "ca89e695364fe8c3",
+  "version": "8df5f455625f5ff7",
   "roomSizes": {
     "study": {
-      "bytes": 4493340,
-      "files": 10
+      "bytes": 4515416,
+      "files": 13
     },
     "living": {
-      "bytes": 2759834,
-      "files": 7
+      "bytes": 2781910,
+      "files": 10
     },
     "bedroom": {
       "bytes": 2759834,
       "files": 7
     },
     "gallery": {
-      "bytes": 6331930,
-      "files": 8
+      "bytes": 6354006,
+      "files": 11
     },
     "cafe": {
       "bytes": 6520148,
@@ -43,6 +43,21 @@
     "character.rose.rest"
   ],
   "inventory": [
+    {
+      "path": "public/artwork/botanical-study.webp",
+      "bytes": 8848,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/artwork/evening-window.webp",
+      "bytes": 6538,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/artwork/quiet-hills.webp",
+      "bytes": 6690,
+      "classification": "catalogued-production"
+    },
     {
       "path": "public/favicon.svg",
       "bytes": 233,

@@ -1,3 +1,7 @@
+import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
+import { makeSurface } from './house-finishes';
+import { appearanceColor } from './studio-settings';
+import { wallArtUrl, loadFramedArt } from './wall-art-images';
 import { createSteamEffect } from './steam-effect';
 import {
   createBreeze,
@@ -44,6 +48,7 @@ import type { ActorId, CollectionData } from './life-data';
 import type { Visitor } from './seat-data';
 
 type Options = {
+  onCoffee: (state: CoffeeSnapshot) => void;
   onLifeBubble: (text: string) => void;
   onCollections: (data: CollectionData, message: string) => void;
   onAssetProgress: (progress: AssetProgress) => void;
@@ -164,22 +169,18 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     m.bumpScale = 0.025;
     return m;
   };
-  const walnutMaps = localPbr(
-    assets,
-    textures,
-    'fine_grained_wood',
-    new T.Vector2(0.8, 0.65),
-    false,
-  );
-  for (const m of [oak, paleWood, darkWood]) {
-    Object.assign(m, walnutMaps);
-    m.bumpMap = null;
-    m.normalScale.set(0.22, 0.22);
-    m.roughness = 0.75;
+  const quietOak = makeSurface('ash', textures);
+  for (const [m, color] of [
+    [oak, '#b59876'],
+    [paleWood, '#c5ab89'],
+    [darkWood, '#69513e'],
+    [edge, '#b79b79'],
+  ] as const) {
+    Object.assign(m, quietOak);
+    m.color.set(color);
+    m.metalness = 0;
+    m.roughness = 0.68;
   }
-  oak.color.setRGB(1.35, 1.28, 1.18);
-  paleWood.color.setRGB(1.8, 1.73, 1.6);
-  darkWood.color.setRGB(0.95, 0.9, 0.8);
   const clothMaps = localPbr(
     assets,
     textures,
@@ -202,14 +203,16 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   );
   for (const m of [cream, darkGreen]) {
     Object.assign(m, wallMaps);
-    m.map = plasterTex;
-    m.bumpMap = null;
-    m.normalScale.set(0.1, 0.1);
+    Object.assign(m, makeSurface('lime', textures));
+    m.roughness = 0.96;
+    m.normalScale.set(0.05, 0.05);
   }
   const textile = (color: string) => {
     const m = fabric(mat(color));
     Object.assign(m, clothMaps);
-    m.normalScale.set(0.23, 0.23);
+    m.normalScale.set(0.13, 0.13);
+    m.roughness = 0.96;
+    m.roughnessMap = null;
     m.bumpMap = null;
     return m;
   };
@@ -221,6 +224,46 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     return m;
   });
 
+  const projectMats = artMaps.map((map) => ({
+    map: map as T.Texture,
+    userData: {} as Record<string, string>,
+    needsUpdate: false,
+  }));
+  let projectImages: string[] = [],
+    studyPictures: Record<string, string> = {};
+  function refreshStudyPictures() {
+    artMats.forEach((material, i) => {
+      const value = studyPictures[`studyArt${i + 1}`] || projectImages[i] || '';
+      if (material.userData.url === value) return;
+      material.userData.url = value;
+      const replace = (texture: T.Texture) => {
+        const old = material.map;
+        material.map = texture;
+        material.needsUpdate = true;
+        if (old && old !== artMaps[i] && old !== texture) {
+          old.dispose();
+          const index = textures.indexOf(old);
+          if (index >= 0) textures.splice(index, 1);
+        }
+      };
+      if (!value) {
+        replace(artMaps[i]);
+        return;
+      }
+      void loadFramedArt(wallArtUrl(value), 0.685 / 0.94)
+        .then((texture) => {
+          if (disposed || material.userData.url !== value) {
+            texture.dispose();
+            return;
+          }
+          textures.push(texture);
+          replace(texture);
+        })
+        .catch(() => {
+          /* Leave the last valid painting in place. */
+        });
+    });
+  }
   function mesh(
     geometry: T.BufferGeometry,
     material: T.Material,
@@ -537,8 +580,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     0.035,
     brass,
   );
-  for (const side of [-1, 1])
-    mesh(curtainGeometry(), curtain, win, side * 1.82, 0.03, 0.2);
+  const studyCurtains = group('studyCurtains');
+  win.add(studyCurtains);
+  const studyDrapes = [-1, 1].map((side) =>
+    mesh(curtainGeometry(), curtain, studyCurtains, side * 1.82, 0.03, 0.2),
+  );
+  let studyCurtainsOpen = true;
   // Sofa: feet, load-bearing rails, individually upholstered cushions, piping and soft throw.
   const bed = placed('bed');
   attachSeats(seatAnchors, bed, ['study-sofa-1', 'study-sofa-2']);
@@ -1350,13 +1397,25 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   const frame = group('frame', -3.775, 2.52, 0.67);
   frame.rotation.y = Math.PI / 2;
   for (let i = 0; i < 3; i++) {
-    const x = (i - 1) * 0.96;
-    box(frame, 0.86, 1.22, 0.06, x, 0, 0, darkWood, 0.012);
-    box(frame, 0.79, 1.15, 0.009, x, 0, 0.038, white, 0.001);
-    box(frame, 0.685, 0.94, 0.006, x, 0.015, 0.045, artMats[i], 0.001);
-    box(frame, 0.22, 0.036, 0.018, x, -0.67, 0.01, brass, 0.003);
+    const picture = group(`studyArt${i + 1}` as ObjectId, (i - 1) * 0.96, 0, 0);
+    frame.add(picture);
+    const x = 0;
+    box(picture, 0.86, 1.22, 0.06, x, 0, 0, darkWood, 0.012);
+    box(picture, 0.79, 1.15, 0.009, x, 0, 0.038, white, 0.001);
+    box(picture, 0.685, 0.94, 0.006, x, 0.015, 0.045, artMats[i], 0.001);
+    box(picture, 0.22, 0.036, 0.018, x, -0.67, 0.01, brass, 0.003);
     for (const side of [-1, 1])
-      box(frame, 0.012, 1.19, 0.012, x + side * 0.411, 0, 0.034, brass, 0.002);
+      box(
+        picture,
+        0.012,
+        1.19,
+        0.012,
+        x + side * 0.411,
+        0,
+        0.034,
+        brass,
+        0.002,
+      );
   }
   const rail = new T.Group();
   wall.add(rail);
@@ -1771,6 +1830,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     (houseBounds.minZ + houseBounds.maxZ) / 2,
   );
   const house = buildHouse({
+    onCoffee: options.onCoffee,
     assets,
     floorMaterials,
     contactMaterial: contactMat,
@@ -2119,7 +2179,26 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           0.61 +
           (seat.scale.y - 1) * 0.115;
     });
-    breeze.update(t, reduced);
+    studyDrapes.forEach((drape, i) => {
+      drape.position.x = T.MathUtils.lerp(
+        drape.position.x,
+        (i ? 1 : -1) * (studyCurtainsOpen ? 1.82 : 0.84),
+        reduced ? 1 : 1 - Math.exp(-dt * 3),
+      );
+      drape.scale.x = T.MathUtils.lerp(
+        drape.scale.x,
+        studyCurtainsOpen ? 1 : 3.2,
+        reduced ? 1 : 1 - Math.exp(-dt * 3),
+      );
+    });
+    breeze.update(
+      t,
+      reduced,
+      !['rain', 'storm'].includes(environment.weather) &&
+        (activeView === 'study'
+          ? studyCurtainsOpen
+          : house.curtainsOpen(activeView)),
+    );
     life?.setView(activeView);
     life?.setReduced(motionPreference.matches);
     life?.update(dt, environment);
@@ -2130,7 +2209,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     if (cutaways.update(activeView, camera.position)) refreshShadows();
     lampLight.intensity = T.MathUtils.lerp(
       lampLight.intensity,
-      masterLight && lit ? (night ? 12 : 5) : 0,
+      masterLight && lit ? (night ? 8 : 3.3) : 0,
       a,
     );
     shade.emissiveIntensity = T.MathUtils.lerp(
@@ -2186,7 +2265,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     }
     coffeeSteam.update(
       dt,
-      now < steamUntil ? 1.3 : 0.7,
+      coffeeHeat(steamUntil ? (now - steamUntil) / 1000 + 180 : t + 25),
       reduced,
       ['study', 'overview'].includes(activeView),
     );
@@ -2344,6 +2423,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     setWallPictures(pictures) {
       house.setWallPictures(pictures);
+      studyPictures = pictures;
+      refreshStudyPictures();
     },
     setTVScreen(element) {
       tvScreen.set(element);
@@ -2476,12 +2557,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       house.setMusic(value);
     },
     setAppearance(value) {
-      bedColor = value.bed;
-      chairColor = value.chair;
-      rugColor = value.rug;
-      bedding.color.set(['#74856b', '#b8816b', '#7b91a2'][bedColor]);
-      chairMat.color.set(['#cf966a', '#7f9479', '#9d8287'][chairColor]);
-      rugMat.color.set(['#e5d8b8', '#b1bdac', '#d7bda4'][rugColor]);
+      bedColor = typeof value.bed === 'number' ? value.bed : 0;
+      chairColor = typeof value.chair === 'number' ? value.chair : 0;
+      rugColor = typeof value.rug === 'number' ? value.rug : 0;
+      bedding.color.set(appearanceColor('bed', value.bed));
+      chairMat.color.set(appearanceColor('chair', value.chair));
+      rugMat.color.set(appearanceColor('rug', value.rug));
       house.setAppearance(value);
       refreshShadows();
     },
@@ -2496,18 +2577,34 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       if (id === 'rug')
         rugMat.color.set(['#e5d8b8', '#b1bdac', '#d7bda4'][++rugColor % 3]);
       if (plants.has(id)) wateringUntil.set(id, performance.now() + 3200);
+      if (id === 'studyCurtains') {
+        studyCurtainsOpen = !studyCurtainsOpen;
+        refreshShadows(2500);
+      }
       if (id === 'lamp') lit = !lit;
       if (id === 'taskLamp') taskLit = !taskLit;
-      if (id === 'coffee') steamUntil = performance.now() + 6000;
+      if (id === 'coffee') steamUntil = performance.now() + 180000;
       if (id === 'stool') chairPulled = !chairPulled;
       if (id === 'drawer') drawerOpen = !drawerOpen;
       if (id === 'sculpture') sculptAngle += Math.PI / 2;
     },
+    prepareCoffee(drink) {
+      life?.claimCoffee();
+      return house.prepareCoffee(drink);
+    },
+    clearCoffee: house.clearCoffee,
+    coffeeSnapshot: house.coffeeSnapshot,
+    capture() {
+      renderer.render(scene, camera);
+      return renderer.domElement.toDataURL('image/jpeg', 0.85);
+    },
     setArtwork(images) {
+      projectImages = images;
+      refreshStudyPictures();
       const refreshScreen = () => {
         const previous = display;
         display = screenTexture(
-          artMats.map((m) => m.map!.image as CanvasImageSource),
+          projectMats.map((m) => m.map!.image as CanvasImageSource),
         );
         screenMat.map = display;
         screenMat.emissiveMap = display;
@@ -2518,7 +2615,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         textures.push(display);
       };
       Array.from({ length: 3 }, (_, i) => images[i] || '').forEach((url, i) => {
-        const m = artMats[i];
+        const m = projectMats[i];
         if (m.userData.url === url) return;
         m.userData.url = url;
         const replaceMap = (next: T.Texture) => {
@@ -2608,8 +2705,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
             cat: atmosphere,
             coffee: () => house.interact('cafeEspresso'),
             aroma: (room) => {
-              if (room === 'study') steamUntil = performance.now() + 8000;
-              else house.aroma(room);
+              // Ambient aroma does not reheat a cold drink.
+              if (room !== 'study') house.aroma(room);
             },
             bubble: options.onLifeBubble,
             collections: options.onCollections,

@@ -38,9 +38,12 @@ export function createBreeze() {
       };
       material.customProgramCacheKey = () => `interior-breeze-${cloth}`;
     },
-    update(t: number, reduced: boolean) {
+    update(t: number, reduced: boolean, open = true) {
       time.value = t;
-      strength.value = reduced ? 0 : 1;
+      strength.value =
+        reduced || !open
+          ? 0
+          : Math.pow(Math.max(0, Math.sin(t * 0.043 + 0.4)), 4) * 0.65;
     },
   };
 }

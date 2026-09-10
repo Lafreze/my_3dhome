@@ -1,7 +1,55 @@
 {
   "schemaVersion": 1,
-  "version": "ca89e695364fe8c3",
+  "version": "8df5f455625f5ff7",
   "assets": {
+    "art.botanical-study": {
+      "type": "image",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "gallery"
+      ],
+      "path": "images/artwork/botanical-study.a8905060602b0b85.webp",
+      "logicalPath": "images/artwork/botanical-study.webp",
+      "size": 8848,
+      "sha256": "a8905060602b0b852e7c4968e23dbf9c0593d758347611a2ffec2c79dcb03936",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "art.evening-window": {
+      "type": "image",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "gallery"
+      ],
+      "path": "images/artwork/evening-window.178e3791ece0485d.webp",
+      "logicalPath": "images/artwork/evening-window.webp",
+      "size": 6538,
+      "sha256": "178e3791ece0485d00de08d17036270e15e035f32e7c65d8d4e52b2c0d18af71",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
+    "art.quiet-hills": {
+      "type": "image",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "gallery"
+      ],
+      "path": "images/artwork/quiet-hills.c1fedcbe21bc489b.webp",
+      "logicalPath": "images/artwork/quiet-hills.webp",
+      "size": 6690,
+      "sha256": "c1fedcbe21bc489b5800339445d38ab988cc45dc60ae760ad10bee4209d8e5f7",
+      "contentType": "image/webp",
+      "dependencies": [],
+      "publish": true
+    },
     "character.bear.rest": {
       "type": "model",
       "room": "common",

@@ -146,27 +146,27 @@
   "characters": [
     {
       "id": "bear",
-      "label": "熊女孩",
+      "label": "栗栗",
       "labelHeight": 0.98
     },
     {
       "id": "cat",
-      "label": "猫女孩",
+      "label": "银铃",
       "labelHeight": 1.15
     },
     {
       "id": "fox",
-      "label": "九尾狐",
+      "label": "绯狐",
       "labelHeight": 1.0
     },
     {
       "id": "noir",
-      "label": "暗黑少年",
+      "label": "墨凛",
       "labelHeight": 1.04
     },
     {
       "id": "rose",
-      "label": "角饰女孩",
+      "label": "绯音",
       "labelHeight": 0.89
     }
   ],

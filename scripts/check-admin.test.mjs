@@ -212,3 +212,39 @@ test('login throttles guesses and missing environment password fails closed', as
     await disabled.close();
   }
 });
+
+test('study artwork and arbitrary valid furniture colors persist across restart and remain public read-only', async () => {
+  const f = await fixture();
+  try {
+    await f.login();
+    const initial = await f.request('/api/house');
+    const patch = {
+      wallArt: {
+        studyArt1: 'asset:art.quiet-hills',
+        studyArt2: 'asset:art.evening-window',
+        studyArt3: 'asset:art.botanical-study',
+      },
+      appearance: { bed: '#527a60' },
+    };
+    const saved = await f.request('/api/house', 'PATCH', {
+      revision: initial.data.revision,
+      patch,
+    });
+    assert.equal(saved.status, 200);
+    await f.restart();
+    const publicRead = await f.request('/api/house');
+    assert.deepEqual(publicRead.data.settings.wallArt, patch.wallArt);
+    assert.equal(publicRead.data.settings.appearance.bed, '#527a60');
+    assert.equal(
+      (
+        await f.request('/api/house', 'PATCH', {
+          revision: publicRead.data.revision,
+          patch: { wallArt: { studyArt1: null } },
+        })
+      ).status,
+      401,
+    );
+  } finally {
+    await f.close();
+  }
+});

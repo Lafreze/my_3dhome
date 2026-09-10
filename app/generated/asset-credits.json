@@ -365,5 +365,50 @@
     "modifications": "Unmodified runtime distributed with Three.js",
     "rooms": [],
     "attributionRequired": false
+  },
+  {
+    "id": "art.quiet-hills",
+    "name": "远山 · 雾蓝",
+    "author": "kuro.cafe procedural artwork",
+    "sourceUrl": "",
+    "license": "CC0-1.0",
+    "licenseUrl": "",
+    "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+    "rooms": [
+      "study",
+      "living",
+      "gallery"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "art.evening-window",
+    "name": "暮窗 · 暖日",
+    "author": "kuro.cafe procedural artwork",
+    "sourceUrl": "",
+    "license": "CC0-1.0",
+    "licenseUrl": "",
+    "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+    "rooms": [
+      "study",
+      "living",
+      "gallery"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "art.botanical-study",
+    "name": "枝叶 · 鼠尾草",
+    "author": "kuro.cafe procedural artwork",
+    "sourceUrl": "",
+    "license": "CC0-1.0",
+    "licenseUrl": "",
+    "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+    "rooms": [
+      "study",
+      "living",
+      "gallery"
+    ],
+    "attributionRequired": false
   }
 ]

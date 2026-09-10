@@ -366,6 +366,42 @@ export const eventRules = {
   greeting: { cooldown: 8, duration: 3 },
 } as const;
 export const collectionCards = {
+  'coffee.espresso': {
+    title: '一口浓缩',
+    mark: '浓',
+    hint: '亲手完成一杯浓缩。',
+  },
+  'coffee.latte': {
+    title: '奶泡上的午后',
+    mark: '奶',
+    hint: '让奶香留住片刻。',
+  },
+  'coffee.filter': {
+    title: '慢慢手冲',
+    mark: '滤',
+    hint: '等待一杯清透的回甘。',
+  },
+  'story.book': { title: '书中的夹页', mark: '页', hint: '翻开一本创作手记。' },
+  'story.record': {
+    title: '唱片里的灵感',
+    mark: '音',
+    hint: '听一段旋律，再看一眼唱片。',
+  },
+  'story.gallery': {
+    title: '作品背后的故事',
+    mark: '作',
+    hint: '读一篇作品介绍。',
+  },
+  'house.postcard': {
+    title: '我的小屋明信片',
+    mark: '影',
+    hint: '用书桌上的相机留住此刻。',
+  },
+  'house.rain': {
+    title: '雨天明信片',
+    mark: '雨',
+    hint: '下雨时，拍下小屋的一角。',
+  },
   'visitor.rabbit.first': {
     title: '白兔来访',
     mark: '兔',
@@ -405,7 +441,7 @@ export const collectionCards = {
 export type CollectionId = keyof typeof collectionCards;
 export type CollectionRecord = {
   collectedAt: string;
-  sourceActor: ActorId;
+  sourceActor: ActorId | 'house';
   sourceRoom: RoomId;
   version: 1;
 };

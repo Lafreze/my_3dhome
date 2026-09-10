@@ -10,7 +10,10 @@ import {
 } from 'react';
 import defaults from '../config/house-defaults.json';
 import type { Profile } from './room-data';
-export type Appearance = typeof defaults.appearance;
+export type Appearance = Record<
+  keyof typeof defaults.appearance,
+  number | string
+>;
 export type Device = { url: string; enabled: boolean };
 export type HouseSettings = {
   profile: Profile;
@@ -52,6 +55,14 @@ export const appearanceColors: Record<keyof Appearance, string[]> = {
   sleepBed: ['#8495a6', '#e1c7b3', '#c7d2d3'],
   controller: ['#d0c8b2', '#899d93', '#bf8d7e'],
 };
+export function appearanceColor(
+  id: keyof Appearance,
+  value: Appearance[keyof Appearance],
+): string {
+  return typeof value === 'string'
+    ? value
+    : appearanceColors[id][value] || appearanceColors[id][0];
+}
 export function StudioProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<Snapshot>({
       revision: -1,

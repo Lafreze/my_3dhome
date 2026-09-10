@@ -1,3 +1,6 @@
+import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
+import { appearanceColor } from './studio-settings';
+import { wallArtUrl } from './wall-art-images';
 import { createSteamEffect } from './steam-effect';
 import { seatById } from './seat-data';
 import { curtainGeometry, type InteriorBreeze } from './interior-atmosphere';
@@ -32,6 +35,7 @@ import type { ObjectId } from './room-data';
 import type { Environment } from './environment-data';
 
 type Kit = {
+  onCoffee: (state: CoffeeSnapshot) => void;
   assets: RoomAssets;
   breeze: InteriorBreeze;
   floorMaterials: T.MeshStandardMaterial[];
@@ -69,6 +73,9 @@ export function buildHouse(k: Kit) {
     charcoal,
   } = k;
   let disposed = false;
+  const drapes: { room: RoomId; mesh: T.Mesh; side: number; width: number }[] =
+    [];
+  const curtainOpen = { living: true, bedroom: true };
   const pictureMaterials = new Map<
     string,
     {
@@ -116,11 +123,15 @@ export function buildHouse(k: Kit) {
   galleryWall.color.set('#e6ddc9');
   materials.push(galleryWall);
   const glass = new T.MeshPhysicalMaterial({
-    color: '#c5ded8',
-    roughness: 0.08,
-    metalness: 0.08,
+    color: '#e0e9e1',
+    roughness: 0.12,
+    metalness: 0,
+    clearcoat: 0.6,
+    clearcoatRoughness: 0.12,
+    ior: 1.46,
+    thickness: 0.035,
     transparent: true,
-    opacity: 0.16,
+    opacity: 0.24,
     depthWrite: false,
   });
   materials.push(glass);
@@ -502,15 +513,23 @@ export function buildHouse(k: Kit) {
       rod(w, [-1.65, 1.1, 0.19], [-1.65, 0.63, 0.19], 0.004, brass);
       cyl(w, 0.013, 0.013, 0.04, -1.65, 0.62, 0.19, brass);
     } else {
+      const curtainGroup = group(room, `${room}Curtains` as ObjectId);
+      w.add(curtainGroup);
       for (const side of [-1, 1]) {
-        mesh(
-          w,
+        const drape = mesh(
+          curtainGroup,
           curtainGeometry(room === 'bedroom' ? 0.63 : 0.5),
           curtainCloth,
           side * 1.85,
           0.03,
           0.19,
         );
+        drapes.push({
+          room,
+          mesh: drape,
+          side,
+          width: room === 'bedroom' ? 0.63 : 0.5,
+        });
         for (let i = 0; i < 6; i++) {
           const ring = torus(
             w,
@@ -1256,6 +1275,42 @@ export function buildHouse(k: Kit) {
     brass,
   );
   b(recordArm, 0.044, 0.021, 0.063, -0.19, 0.015, 0.35, black, 0.006);
+  // One quiet horizontal drawing above the bed; the study keeps its three-frame composition.
+  const bedroomDrawing = document.createElement('canvas');
+  bedroomDrawing.width = 768;
+  bedroomDrawing.height = 256;
+  const drawing = bedroomDrawing.getContext('2d')!;
+  drawing.fillStyle = '#e8e3d7';
+  drawing.fillRect(0, 0, 768, 256);
+  drawing.fillStyle = '#d4c8aa';
+  drawing.beginPath();
+  drawing.arc(568, 82, 32, 0, Math.PI * 2);
+  drawing.fill();
+  for (const [color, y] of [
+    ['#b7bdb2', 160],
+    ['#8c9d91', 200],
+  ] as const) {
+    drawing.fillStyle = color;
+    drawing.beginPath();
+    drawing.moveTo(0, y);
+    drawing.bezierCurveTo(160, y - 90, 250, y + 45, 420, y - 35);
+    drawing.bezierCurveTo(590, y - 115, 670, y + 15, 768, y - 30);
+    drawing.lineTo(768, 256);
+    drawing.lineTo(0, 256);
+    drawing.fill();
+  }
+  const bedroomMap = new T.CanvasTexture(bedroomDrawing);
+  bedroomMap.colorSpace = T.SRGBColorSpace;
+  textures.push(bedroomMap);
+  const bedroomPrint = new T.MeshStandardMaterial({
+    map: bedroomMap,
+    roughness: 0.97,
+  });
+  materials.push(bedroomPrint);
+  const headboardArt = child(roots.bedroom, -0.5, 2.6, -3.28);
+  b(headboardArt, 2.05, 0.85, 0.07, 0, 0, 0, darkWood, 0.015);
+  b(headboardArt, 1.95, 0.75, 0.018, 0, 0, 0.045, white, 0.002);
+  b(headboardArt, 1.78, 0.59, 0.008, 0, 0, 0.06, bedroomPrint, 0.001);
   // BEDROOM. Bed axis points toward the foot bench; both sides and the wardrobe remain reachable.
   const bf = houseFurniture.bedroom;
   const bed = group('bedroom', 'sleepBed', bf.bed.x, 0, bf.bed.z);
@@ -1766,6 +1821,7 @@ export function buildHouse(k: Kit) {
   partition(0, 10.2, 8, 0, 2.65, ['bedroom', 'cafe'], terracottaWall);
   partition(8, 10.2, 8, 0, 1.6, ['gallery', 'cafe'], galleryWall);
   const cafe = buildCafe({
+    onCoffee: k.onCoffee,
     floorMaterials: k.floorMaterials,
     contactMaterial: k.contactMaterial,
     ceramic: k.ceramic,
@@ -2008,6 +2064,13 @@ export function buildHouse(k: Kit) {
       occupiedSeats.clear();
       ids.forEach((id) => occupiedSeats.add(id));
     },
+    curtainsOpen(view: HouseView) {
+      return view === 'living' || view === 'bedroom' ? curtainOpen[view] : true;
+    },
+    prepareCoffee: (drink: import('./coffee-state').Drink) =>
+      cafe.prepareCoffee(drink),
+    clearCoffee: () => cafe.clearCoffee(),
+    coffeeSnapshot: cafe.coffeeSnapshot,
     setFocus(id: ObjectId | null) {
       cafe.setFocus(id);
       projectGallery.focus(id);
@@ -2030,6 +2093,7 @@ export function buildHouse(k: Kit) {
           return;
         }
         const image = new Image();
+        image.crossOrigin = 'anonymous';
         image.onload = () => {
           if (disposed || entry.url !== url) return;
           const ratio = wallArt.find((a) => a.id === id)!.aspect,
@@ -2060,7 +2124,7 @@ export function buildHouse(k: Kit) {
           entry.material.map = texture;
           entry.material.needsUpdate = true;
         };
-        image.src = url;
+        image.src = wallArtUrl(url);
       });
     },
     setLamp(on: boolean) {
@@ -2095,22 +2159,19 @@ export function buildHouse(k: Kit) {
       paintTV(on, source);
     },
     setAppearance(value: import('./studio-settings').Appearance) {
-      sofaIndex = value.livingSofa;
-      bedIndex = value.sleepBed;
-      padIndex = value.controller;
-      sofaCloth.color.set(['#d4c9b7', '#b7836e', '#7b929a'][sofaIndex]);
-      padMat.color.set(['#d0c8b2', '#899d93', '#bf8d7e'][padIndex]);
-      const colors = [
-        ['#8495a6', '#566773'],
-        ['#e1c7b3', '#a57d6d'],
-        ['#c7d2d3', '#788b9d'],
-      ][bedIndex];
-      bedCloth.color.set(colors[0]);
-      blanketCloth.color.set(colors[1]);
+      sofaIndex = typeof value.livingSofa === 'number' ? value.livingSofa : 0;
+      bedIndex = typeof value.sleepBed === 'number' ? value.sleepBed : 0;
+      padIndex = typeof value.controller === 'number' ? value.controller : 0;
+      sofaCloth.color.set(appearanceColor('livingSofa', value.livingSofa));
+      padMat.color.set(appearanceColor('controller', value.controller));
+      bedCloth.color.set(appearanceColor('sleepBed', value.sleepBed));
+      blanketCloth.color.copy(bedCloth.color).multiplyScalar(0.7);
     },
     interact(id: ObjectId, detail?: 'appearance') {
       cafe.interact(id);
-      if (id === 'livingCup') cupUntil = now + 7;
+      if (id === 'livingCurtains') curtainOpen.living = !curtainOpen.living;
+      if (id === 'bedroomCurtains') curtainOpen.bedroom = !curtainOpen.bedroom;
+      if (id === 'livingCup') cupUntil = now + 180;
       if (id === 'bedroomClock') clockUntil = now + 1.6;
       if (id === 'livingSofa')
         sofaCloth.color.set(['#d4c9b7', '#b7836e', '#7b929a'][++sofaIndex % 3]);
@@ -2184,6 +2245,20 @@ export function buildHouse(k: Kit) {
             0.67 +
             (cushion.scale.y - 1) * 0.11;
       });
+      drapes.forEach(({ room, mesh, side, width }) => {
+        const open = curtainOpen[room as keyof typeof curtainOpen];
+        const amount = reduced ? 1 : 1 - Math.exp(-dt * 3);
+        mesh.position.x = T.MathUtils.lerp(
+          mesh.position.x,
+          side * (open ? 1.85 : 0.84),
+          amount,
+        );
+        mesh.scale.x = T.MathUtils.lerp(
+          mesh.scale.x,
+          open ? 1 : 1.76 / width,
+          amount,
+        );
+      });
       cafe.update(t, dt, reduced, night, viewer);
       padSticks.forEach((stick, i) => {
         stick.rotation.x =
@@ -2206,7 +2281,7 @@ export function buildHouse(k: Kit) {
       });
       cupSteam.update(
         dt,
-        t < cupUntil ? 1.4 : 0.7,
+        coffeeHeat(cupUntil ? t - cupUntil + 180 : t + 35),
         reduced,
         roots.living.visible,
       );

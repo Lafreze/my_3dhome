@@ -2,6 +2,10 @@ import houseDefaults from '../config/house-defaults.json';
 import { newObjects } from './house-data';
 export const objects = {
   ...newObjects,
+  studyCurtains: { name: '书房窗帘', kind: 'LINEN', action: '开合窗帘' },
+  studyArt1: { name: '书房画作一', kind: 'ART', action: '查看 / 更换画作' },
+  studyArt2: { name: '书房画作二', kind: 'ART', action: '查看 / 更换画作' },
+  studyArt3: { name: '书房画作三', kind: 'ART', action: '查看 / 更换画作' },
   bed: { name: '亚麻沙发', kind: 'LOUNGE', action: '更换织物' },
   desk: { name: '木作工作台', kind: 'WORKSPACE', action: '浏览作品' },
   computer: { name: '作品工作站', kind: 'WEB', action: '电脑设置' },
@@ -19,7 +23,7 @@ export const objects = {
   window: { name: '书房北窗', kind: 'N · 水岸花园', action: '时间与天气' },
   stool: { name: '工作椅', kind: 'FURNITURE', action: '拉出 / 归位' },
   drawer: { name: '收藏抽屉', kind: 'DETAIL', action: '打开 / 收起' },
-  camera: { name: '胶片相机', kind: 'PHOTOGRAPHY', action: '打开相册' },
+  camera: { name: '胶片相机', kind: 'PHOTOGRAPHY', action: '拍张明信片' },
   sculpture: { name: '平衡练习', kind: 'OBJECT', action: '转动雕塑' },
   about: { name: '关于我', kind: 'PORTRAIT', action: '查看名片' },
   floor: { name: '橡木地板', kind: 'ARCHITECTURE', action: '回到全景' },
@@ -42,6 +46,10 @@ export type Profile = {
 };
 export const defaultProfile: Profile = houseDefaults.profile;
 export type RoomApi = {
+  prepareCoffee: (drink: import('./coffee-state').Drink) => boolean;
+  clearCoffee: () => void;
+  coffeeSnapshot: () => import('./coffee-state').CoffeeSnapshot;
+  capture: () => string;
   setAppearance: (value: import('./studio-settings').Appearance) => void;
   setCameraMode: (mode: 'orbit' | 'pan') => void;
   setLifePaused: (paused: boolean) => void;

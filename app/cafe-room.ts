@@ -1,3 +1,10 @@
+import {
+  createCoffeeState,
+  coffeeHeat,
+  drinks,
+  type CoffeeSnapshot,
+  type Drink,
+} from './coffee-state';
 import { createSteamEffect } from './steam-effect';
 import type { InteriorBreeze } from './interior-atmosphere';
 import { addOakFloor } from './house-finishes';
@@ -21,6 +28,7 @@ import { addCafeBotany } from './cafe-botany';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 
 type Kit = {
+  onCoffee: (state: CoffeeSnapshot) => void;
   assets: RoomAssets;
   breeze: InteriorBreeze;
   floorMaterials: T.MeshStandardMaterial[];
@@ -63,9 +71,9 @@ export function buildCafe(k: Kit) {
   }
   const green = mat('#829077', 0.78),
     plaster = k.cream,
-    black = mat('#202825', 0.39, 0.48),
+    black = mat('#252c28', 0.48, 0.08),
     brass = k.brass,
-    steel = mat('#afb5ac', 0.28, 0.8),
+    steel = mat('#afb5ac', 0.36, 0.9),
     ceramic = k.ceramic,
     coffee = mat('#663621', 0.25),
     roastedBean = mat('#060606', 0.78),
@@ -1141,9 +1149,11 @@ export function buildCafe(k: Kit) {
       }
     return g;
   }
-  for (const t of cafeBistroTables) {
+  for (const [index, t] of cafeBistroTables.entries()) {
     const g = table(t.x, t.z, t.width, t.depth);
-    cup(g, 0.18, 1.239, -0.18, 0.11, true);
+    if (index === 0) cup(g, 0.18, 1.239, -0.18, 0.11, true);
+    if (index === 1) cup(g, 0.18, 1.239, -0.18, 0.11, false, false);
+    if (index !== 0) continue;
     box(g, 0.21, 0.01, 0.3, -0.22, 1.231, 0.16, plaster, 0.002);
     cyl(g, 0.055, 0.05, 0.14, -0.25, 1.304, -0.2, ceramic);
     rod(g, [-0.25, 1.37, -0.2], [-0.23, 1.57, -0.18], 0.004, green);
@@ -1317,6 +1327,19 @@ export function buildCafe(k: Kit) {
     box(beams, 0.12, 0.14, 7.75, x, 3.65, 0, wood, 0.012);
   box(beams, 15.8, 0.14, 0.12, 0, 3.65, -3.86, wood);
   box(beams, 15.8, 0.14, 0.12, 0, 3.65, 3.86, wood);
+  const service = createCoffeeState(k.onCoffee);
+  const servedCup = cup(root, -4.48, 1.555, -0.67, 0.12, false, false);
+  const drinkSurface = mat(drinks.latte.color, 0.28);
+  cyl(servedCup, 0.101, 0.101, 0.006, 0, 0.139, 0, drinkSurface);
+  servedCup.visible = false;
+  const serviceSteam = createSteamEffect({
+    count: 9,
+    height: 0.35,
+    width: 0.075,
+    seed: 19,
+  });
+  serviceSteam.root.position.y = 0.165;
+  servedCup.add(serviceSteam.root);
   const steam = createSteamEffect({
     count: 16,
     height: 0.56,
@@ -1342,8 +1365,6 @@ export function buildCafe(k: Kit) {
   for (const y of [2.15, 2.69])
     box(north, 1.98, 0.012, 0.02, -6.58, y - 0.045, -3.49, glow, 0.002);
   let aromaUntil = 0,
-    brewUntil = 0,
-    pourUntil = 0,
     now = 0,
     caseOpen = false,
     seatIndex = 0,
@@ -1399,6 +1420,13 @@ export function buildCafe(k: Kit) {
     breeze: k.breeze,
   });
   return {
+    prepareCoffee(drink: Drink) {
+      return service.start(drink);
+    },
+    clearCoffee() {
+      service.clear();
+    },
+    coffeeSnapshot: service.snapshot,
     aroma() {
       aromaUntil = now + 8;
     },
@@ -1416,8 +1444,8 @@ export function buildCafe(k: Kit) {
       windows.forEach((w) => w.set(value));
     },
     interact(id: ObjectId) {
-      if (id === 'cafeEspresso') brewUntil = now + 9;
-      if (id === 'cafePourOver') pourUntil = now + 8;
+      if (id === 'cafeEspresso') service.start('espresso');
+      if (id === 'cafePourOver') service.start('filter');
       if (id === 'cafePastry') caseOpen = !caseOpen;
       if (id === 'cafeSeat')
         leather.color.set(['#174d3c', '#8b6046', '#536269'][++seatIndex % 3]);
@@ -1440,10 +1468,21 @@ export function buildCafe(k: Kit) {
       viewer: T.Camera,
     ) {
       now = t;
-      wisps.forEach((w) =>
+      service.update(dt);
+      const serving = service.snapshot();
+      servedCup.visible = serving.phase === 'ready';
+      servedCup.scale.fromArray([...drinks[serving.drink].scale]);
+      drinkSurface.color.set(drinks[serving.drink].color);
+      serviceSteam.update(
+        dt,
+        serving.heat,
+        reduced,
+        root.visible && !planView && servedCup.visible,
+      );
+      wisps.forEach((w, i) =>
         w.update(
           dt,
-          t < aromaUntil ? 1.4 : 0.7,
+          coffeeHeat(t + 30 + i * 19) * (t < aromaUntil ? 1.2 : 0.65),
           reduced,
           root.visible && !planView,
         ),
@@ -1452,8 +1491,8 @@ export function buildCafe(k: Kit) {
       fixtures.visible = !planView && (!focus || focus === 'cafeLight');
       beams.visible = viewer.position.y < 3.65;
       const a = 1 - Math.exp(-dt * 5),
-        brewing = t < brewUntil,
-        pouring = t < pourUntil;
+        brewing = serving.phase === 'extracting' && serving.drink !== 'filter',
+        pouring = serving.phase === 'extracting' && serving.drink === 'filter';
       streams.visible = brewing;
       steam.update(dt, brewing ? 1.5 : 0, reduced, root.visible && !planView);
       indicator.emissiveIntensity = brewing
@@ -1508,6 +1547,7 @@ export function buildCafe(k: Kit) {
     },
     dispose() {
       steam.dispose();
+      serviceSteam.dispose();
       wisps.forEach((w) => w.dispose());
       windows.forEach((w) => w.dispose());
     },

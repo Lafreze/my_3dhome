@@ -47,6 +47,7 @@ export class AmbientEventScheduler {
   active: { kind: string; actor: ActorId; until: number } | null = null;
   cooldowns = new Map<string, number>();
   last = '';
+  nextAutomatic = 0;
   start(
     kind: string,
     actor: ActorId,
@@ -56,7 +57,7 @@ export class AmbientEventScheduler {
     priority = false,
   ) {
     if (
-      (now < 10 && !priority) ||
+      ((now < 10 || now < this.nextAutomatic) && !priority) ||
       (!priority && this.active && this.active.until > now) ||
       (this.cooldowns.get(kind) ?? 0) > now
     )
@@ -65,6 +66,7 @@ export class AmbientEventScheduler {
     this.active = { kind, actor, until: now + duration };
     this.cooldowns.set(kind, now + cooldown);
     this.last = kind;
+    this.nextAutomatic = now + 110 + (Math.floor(now * 997) % 61);
     return true;
   }
   tick(now: number) {

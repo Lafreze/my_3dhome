@@ -19,7 +19,7 @@ export function readCollections(): CollectionData {
           typeof r.collectedAt === 'string' &&
           Number.isFinite(Date.parse(r.collectedAt)) &&
           roomIds.includes(r.sourceRoom as RoomId) &&
-          ['resident', 'cat', 'rabbit', 'bird', 'robot'].includes(
+          ['resident', 'cat', 'rabbit', 'bird', 'robot', 'house'].includes(
             r.sourceActor as string,
           )
         );
@@ -34,7 +34,11 @@ export function createCollectionStore(
 ) {
   let cards = readCollections();
   return {
-    collect(id: CollectionId, sourceActor: ActorId, sourceRoom: RoomId) {
+    collect(
+      id: CollectionId,
+      sourceActor: ActorId | 'house',
+      sourceRoom: RoomId,
+    ) {
       // Merge another tab's acquisitions before awarding, including in-memory fallback.
       cards = { ...readCollections(), ...cards };
       if (cards[id]) return false;

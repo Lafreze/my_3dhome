@@ -819,6 +819,63 @@
       "sourceUrl": "",
       "modifications": "User supplied 20260910 model; ~48k triangles, 1K original textures; continuous seated derivative or intact body for rigid rest",
       "approval": "pending"
+    },
+    {
+      "id": "art.quiet-hills",
+      "source": "public/artwork/quiet-hills.webp",
+      "path": "images/artwork/quiet-hills.webp",
+      "type": "image",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "gallery"
+      ],
+      "license": "CC0-1.0",
+      "author": "kuro.cafe procedural artwork",
+      "sourceUrl": "",
+      "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+      "approval": "approved",
+      "name": "远山 · 雾蓝",
+      "sourceSha256": "c1fedcbe21bc489b5800339445d38ab988cc45dc60ae760ad10bee4209d8e5f7"
+    },
+    {
+      "id": "art.evening-window",
+      "source": "public/artwork/evening-window.webp",
+      "path": "images/artwork/evening-window.webp",
+      "type": "image",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "gallery"
+      ],
+      "license": "CC0-1.0",
+      "author": "kuro.cafe procedural artwork",
+      "sourceUrl": "",
+      "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+      "approval": "approved",
+      "name": "暮窗 · 暖日",
+      "sourceSha256": "178e3791ece0485d00de08d17036270e15e035f32e7c65d8d4e52b2c0d18af71"
+    },
+    {
+      "id": "art.botanical-study",
+      "source": "public/artwork/botanical-study.webp",
+      "path": "images/artwork/botanical-study.webp",
+      "type": "image",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "gallery"
+      ],
+      "license": "CC0-1.0",
+      "author": "kuro.cafe procedural artwork",
+      "sourceUrl": "",
+      "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+      "approval": "approved",
+      "name": "枝叶 · 鼠尾草",
+      "sourceSha256": "a8905060602b0b852e7c4968e23dbf9c0593d758347611a2ffec2c79dcb03936"
     }
   ]
 }

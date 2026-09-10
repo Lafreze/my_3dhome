@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import {
-  appearanceColors,
+  appearanceColor,
   appearanceLabels,
   useStudio,
   type Appearance,
@@ -16,6 +16,7 @@ export default function AdminPanel({
   onArt: () => void;
 }) {
   const studio = useStudio();
+  const [colorDraft, setColorDraft] = useState(studio.settings.appearance);
   const [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false),
     [note, setNote] = useState(studio.settings.note),
@@ -47,7 +48,7 @@ export default function AdminPanel({
           电视内容 <span>网页、YouTube 或视频直链</span>
         </button>
         <button onClick={onArt}>
-          墙上画作 <span>客厅与展厅的五个画框</span>
+          墙上画作 <span>书房、客厅与展厅的八个画框</span>
         </button>
       </div>
       <fieldset disabled={busy}>
@@ -57,26 +58,31 @@ export default function AdminPanel({
             <div key={id}>
               <span>{appearanceLabels[id]}</span>
               <div>
-                {appearanceColors[id].map((color, i) => (
-                  <button
-                    key={color}
-                    className="admin-swatch"
-                    style={{ background: color }}
-                    aria-label={`${appearanceLabels[id]}配色 ${i + 1}`}
-                    aria-pressed={studio.settings.appearance[id] === i}
-                    onClick={() =>
-                      void run(
-                        () => studio.save({ appearance: { [id]: i } }),
-                        '配色已保存。',
-                      )
-                    }
-                  />
-                ))}
+                <input
+                  type="color"
+                  aria-label={`${appearanceLabels[id]}颜色`}
+                  value={appearanceColor(id, colorDraft[id])}
+                  onChange={(e) =>
+                    setColorDraft({ ...colorDraft, [id]: e.target.value })
+                  }
+                />
               </div>
             </div>
           ))}
         </div>
       </fieldset>
+      <button
+        className="dark-button"
+        disabled={busy}
+        onClick={() =>
+          void run(
+            () => studio.save({ appearance: colorDraft }),
+            '配色已保存。',
+          )
+        }
+      >
+        保存配色
+      </button>
       <form
         onSubmit={(e) => {
           e.preventDefault();

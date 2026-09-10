@@ -1,4 +1,7 @@
 'use client';
+import CoffeeMenu from './coffee-menu';
+import CollectionAlbum from './collection-album';
+import { type CoffeeSnapshot } from './coffee-state';
 /* Local data-URL previews are already resized on upload; no image optimization server is used. */
 /* oxlint-disable next/no-img-element */
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -63,6 +66,7 @@ import {
   StudioProvider,
   useStudio,
   appearanceLabels,
+  appearanceColor,
   type Appearance,
 } from './studio-settings';
 import AdminPanel from './admin-panel';
@@ -75,8 +79,10 @@ import {
   lifeStorageKey,
   type CollectionData,
 } from './life-data';
-import { readCollections } from './life-collections';
+import { readCollections, createCollectionStore } from './life-collections';
 type Modal =
+  | 'coffeeMenu'
+  | 'postcard'
   | 'admin'
   | 'computer'
   | 'wallArt'
@@ -156,6 +162,61 @@ function StudioHome() {
   const [lifeBubble, setLifeBubble] = useState('');
   const [collectionData, setCollectionData] = useState<CollectionData>({});
   const [collectionQueue, setCollectionQueue] = useState<string[]>([]);
+  const furniturePicker = useRef<HTMLInputElement>(null);
+  const furnitureTarget = useRef<keyof Appearance>('bed');
+  const colorPending = useRef<Partial<Appearance>>({});
+  const colorSaving = useRef(false);
+  const colorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openColor = (key: keyof Appearance) => {
+    if (!studio.admin || !furniturePicker.current) return;
+    furnitureTarget.current = key;
+    furniturePicker.current.value = appearanceColor(
+      key,
+      studio.settings.appearance[key],
+    );
+    furniturePicker.current.click();
+  };
+  const saveColors = async () => {
+    if (colorSaving.current || !Object.keys(colorPending.current).length)
+      return;
+    colorSaving.current = true;
+    const patch = colorPending.current;
+    colorPending.current = {};
+    try {
+      await studio.save({ appearance: patch });
+    } catch (e) {
+      notify(e instanceof Error ? e.message : '配色保存失败。');
+      api.current?.setAppearance(studio.settings.appearance);
+    } finally {
+      colorSaving.current = false;
+      if (Object.keys(colorPending.current).length)
+        colorTimer.current = setTimeout(saveColors, 500);
+    }
+  };
+  useEffect(
+    () => () => {
+      if (colorTimer.current) clearTimeout(colorTimer.current);
+    },
+    [],
+  );
+  const seatSelection = useRef<((id: string) => void) | null>(null);
+  const [coffeeState, setCoffeeState] = useState<CoffeeSnapshot>({
+    drink: 'latte',
+    phase: 'empty',
+    age: 0,
+    heat: 0,
+  });
+  const [postcard, setPostcard] = useState('');
+  const brewingByUser = useRef(false);
+  const discover = (id: import('./life-data').CollectionId, room: RoomId) => {
+    createCollectionStore((key, data, saved) => {
+      setCollectionData(data);
+      setCollectionQueue((queue) => [
+        ...queue,
+        `${collectionCards[key].title}${saved ? '' : ' · 本次访问有效'}`,
+      ]);
+    }).collect(id, 'house', room);
+  };
   const [seatPanel, setSeatPanel] = useState(false),
     [seatSelected, setSeatSelected] = useState<string | null>(null),
     [visitorCount, setVisitorCount] = useState(0);
@@ -177,7 +238,7 @@ function StudioHome() {
     [project, setProject] = useState(0),
     [photo, setPhoto] = useState(0),
     [page, setPage] = useState(0);
-  const closeModal = useCallback(() => setModal(null), []);
+  const closeModal = useCallback(() => setModal(null), [setModal]);
   const [projectsOnly, setProjectsOnly] = useState(false),
     [editingProject, setEditingProject] = useState(0),
     [saving, setSaving] = useState(false),
@@ -218,8 +279,8 @@ function StudioHome() {
     };
   }, []);
   useEffect(() => {
-    api.current?.setLifePaused(!!modal || seatPanel);
-  }, [modal, seatPanel, ready]);
+    api.current?.setLifePaused(!!modal || seatPanel || environmentOpen);
+  }, [modal, seatPanel, environmentOpen, ready]);
   useEffect(() => {
     if (
       !selected ||
@@ -247,6 +308,13 @@ function StudioHome() {
         try {
           api.current = createRoom(host.current, {
             onLifeBubble: setLifeBubble,
+            onCoffee: (state) => {
+              setCoffeeState(state);
+              if (state.phase === 'ready' && brewingByUser.current) {
+                brewingByUser.current = false;
+                discover(`coffee.${state.drink}`, 'cafe');
+              }
+            },
             onCollections: (data, message) => {
               setCollectionData(data);
               setCollectionQueue((q) => [...q, message]);
@@ -255,8 +323,7 @@ function StudioHome() {
             onSeatSelect: (id) => {
               setSelected(null);
               setModal(null);
-              setSeatSelected(id);
-              setSeatPanel(true);
+              seatSelection.current?.(id);
             },
             onSelect: (id) => {
               setSelected(id === 'computer' ? null : id);
@@ -268,6 +335,9 @@ function StudioHome() {
                   'livingRemote',
                   'livingCup',
                   'bedroomClock',
+                  'studyCurtains',
+                  'livingCurtains',
+                  'bedroomCurtains',
                 ].includes(id)
               )
                 quickAction.current(id);
@@ -428,6 +498,11 @@ function StudioHome() {
     api.current?.focus(id);
   };
   const action = (id: ObjectId) => {
+    if (['cafeMenu', 'cafeEspresso', 'cafePourOver'].includes(id)) {
+      setCoffeeState(api.current?.coffeeSnapshot() || coffeeState);
+      setModal('coffeeMenu');
+      return;
+    }
     if (id === 'galleryRabbit') {
       setModal('rabbitModel');
       return;
@@ -450,6 +525,7 @@ function StudioHome() {
         setModal('settings');
       } else {
         setProject(exhibit);
+        discover('story.gallery', 'gallery');
         setModal('works');
       }
       return;
@@ -459,7 +535,7 @@ function StudioHome() {
       setSelected(null);
       return;
     }
-    if (/^(livingArt[12]|galleryArt[123])$/.test(id)) {
+    if (/^(studyArt[123]|livingArt[12]|galleryArt[123])$/.test(id)) {
       setModal('wallArt');
       return;
     }
@@ -478,11 +554,16 @@ function StudioHome() {
       return;
     }
     if (id === 'camera') {
-      setPhoto(0);
-      setModal('photos');
+      try {
+        setPostcard(api.current?.capture() || '');
+        setModal('postcard');
+      } catch {
+        notify('这一刻没能拍下来，请重试。');
+      }
       return;
     }
     if (id === 'shelf' || id === 'bedroomBook') {
+      discover('story.book', id === 'shelf' ? 'study' : 'bedroom');
       setModal('book');
       return;
     }
@@ -491,6 +572,7 @@ function StudioHome() {
       return;
     }
     if (id === 'record' || id === 'livingSpeakers' || id === 'livingRecord') {
+      if (music) discover('story.record', id === 'record' ? 'study' : 'living');
       void toggleMusic();
       return;
     }
@@ -502,13 +584,7 @@ function StudioHome() {
       if (!studio.admin) {
         return;
       }
-      const key = id as keyof Appearance;
-      void studio
-        .save({
-          appearance: { [key]: (studio.settings.appearance[key] + 1) % 3 },
-        })
-        .then(() => notify('配色已保存。'))
-        .catch((e) => notify(e.message));
+      openColor(id as keyof Appearance);
       return;
     }
     if (id === 'cafeSeat' && !studio.admin) return;
@@ -810,16 +886,7 @@ function StudioHome() {
             {selected === 'controller' && studio.admin && (
               <button
                 className="text-button"
-                onClick={() =>
-                  void studio
-                    .save({
-                      appearance: {
-                        controller:
-                          (studio.settings.appearance.controller + 1) % 3,
-                      },
-                    })
-                    .catch((e) => notify(e.message))
-                }
+                onClick={() => openColor('controller')}
               >
                 更换手柄配色
               </button>
@@ -975,7 +1042,28 @@ function StudioHome() {
           </output>
         )}
       </div>
+      <input
+        ref={furniturePicker}
+        type="color"
+        className="furniture-native-picker"
+        aria-label="家具调色板"
+        tabIndex={-1}
+        onChange={(e) => {
+          colorPending.current = {
+            ...colorPending.current,
+            [furnitureTarget.current]: e.target.value,
+          };
+          api.current?.setAppearance({
+            ...studio.settings.appearance,
+            ...colorPending.current,
+          });
+          if (colorTimer.current) clearTimeout(colorTimer.current);
+          colorTimer.current = setTimeout(saveColors, 500);
+        }}
+      />
       <VisitorSeats
+        selection={seatSelection}
+        onNotice={notify}
         api={api}
         ready={ready}
         open={seatPanel}
@@ -984,6 +1072,7 @@ function StudioHome() {
         onClose={() => setSeatPanel(false)}
         onChoose={(id) => {
           setSeatSelected(id || null);
+          setSeatPanel(true);
           if (id) api.current?.focusSeat(id);
         }}
         onCount={setVisitorCount}
@@ -1043,6 +1132,8 @@ function StudioHome() {
             {
               (
                 {
+                  coffeeMenu: '今天喝什么',
+                  postcard: '小屋明信片',
                   tv: '家庭影院',
                   works: '精选作品',
                   about: '关于我',
@@ -1109,31 +1200,57 @@ function StudioHome() {
               </dl>
             </div>
           )}
-          {modal === 'collections' && (
-            <div className="life-album">
-              <p>在小屋里慢慢相遇。收藏仅记录在当前浏览器。</p>
-              <div className="life-card-grid">
-                {Object.entries(collectionCards).map(([id, card]) => {
-                  const record = collectionData[id as keyof CollectionData];
-                  return (
-                    <article
-                      key={id}
-                      className={record ? 'life-card collected' : 'life-card'}
-                    >
-                      <div className="life-stamp" aria-hidden="true">
-                        {record ? card.mark : '·'}
-                      </div>
-                      <h3>{record ? card.title : '尚未遇见'}</h3>
-                      <p>
-                        {record
-                          ? `${rooms[record.sourceRoom].name} · ${new Date(record.collectedAt).toLocaleDateString()}`
-                          : card.hint}
-                      </p>
-                    </article>
-                  );
-                })}
-              </div>
+          {modal === 'coffeeMenu' && (
+            <CoffeeMenu
+              state={coffeeState}
+              onMake={(drink) => {
+                brewingByUser.current = true;
+                if (!api.current?.prepareCoffee(drink))
+                  brewingByUser.current = false;
+              }}
+              onClear={() => api.current?.clearCoffee()}
+            />
+          )}
+          {modal === 'postcard' && (
+            <div className="postcard-content">
+              {postcard && <img src={postcard} alt="此刻的小屋明信片" />}
+              <p>留住今天的光。照片保存在这台设备的收藏册。</p>
+              <button
+                className="dark-button"
+                onClick={() => {
+                  try {
+                    localStorage.setItem('kuro-house-postcard-v1', postcard);
+                  } catch {
+                    notify('设备空间不足，可以直接下载照片。');
+                    return;
+                  }
+                  const room =
+                    view === 'overview' || view === 'plan' ? 'study' : view;
+                  discover('house.postcard', room);
+                  if (['rain', 'storm'].includes(environment.weather))
+                    discover('house.rain', room);
+                  notify('明信片已存入收藏册。');
+                }}
+              >
+                存入收藏册
+              </button>
+              <a
+                className="text-button"
+                href={postcard}
+                download="kuro-cafe-postcard.jpg"
+              >
+                下载照片
+              </a>
             </div>
+          )}
+          {modal === 'collections' && (
+            <CollectionAlbum
+              data={collectionData}
+              onVisit={(room) => {
+                setModal(null);
+                visit(room);
+              }}
+            />
           )}
           {modal === 'works' && (
             <div className="project-layout">
