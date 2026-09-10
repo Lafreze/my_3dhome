@@ -1,4 +1,4 @@
-/** A small forward hop with a planted preparation and landing; units are metres. */
+/** A small forward hop with a planted preparation and landing; distances use scene units. */
 export const rabbitHopDuration = 1.35;
 export function sampleRabbitHop(time: number) {
   const cycles = Math.floor(Math.max(0, time) / rabbitHopDuration);

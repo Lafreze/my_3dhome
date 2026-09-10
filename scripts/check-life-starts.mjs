@@ -32,6 +32,12 @@ for (let seed = 1; seed <= 150; seed++) {
               actorSpecs[a.id].radius + actorSpecs[b.id].radius + 0.05,
           );
   }
+  // A safe navigation node must also be a valid room for the rare arrival event.
+  e.clock = 60;
+  assert(
+    e.startRabbit(e.actors.rabbit.room),
+    'Every preselected rabbit origin can actually host its visit',
+  );
   previous = Object.fromEntries(actors.map((a) => [a.id, a.node]));
 }
 for (const [id, nodes] of Object.entries(variants))

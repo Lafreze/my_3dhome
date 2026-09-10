@@ -169,6 +169,7 @@ export class LifeEngine {
       let candidates = navigationNodes.filter(
         (n) =>
           n.allowedActors.includes(id) &&
+          (id !== 'rabbit' || rabbitRooms.includes(n.room)) &&
           (id === 'bird' || floorClear(worldPoint(n), id)) &&
           this.occupancy.available(n, id),
       );
