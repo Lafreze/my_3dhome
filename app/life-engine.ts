@@ -3,6 +3,12 @@ import type { Environment } from './environment-data';
 import { catRiseTime, catSettleTime } from './cat-gait.ts';
 import { sampleRabbitHop } from './rabbit-motion.ts';
 import {
+  residentRoutines,
+  quietPoses,
+  momentRules,
+  type ResidentRoutine,
+} from './life-routines.ts';
+import {
   navigationNodes,
   actorSpecs,
   eventRules,
@@ -108,6 +114,11 @@ type Hooks = {
   bubble: (actor: ActorId, text: string) => void;
   sound: (kind: string, position: Point) => void;
   coffee: (pickup?: boolean) => void;
+  moment?: (
+    kind: 'coffeeAroma' | 'windowMotes',
+    room: RoomId,
+    seed: number,
+  ) => void;
 };
 const nearby: Record<RoomId, RoomId[]> = {
   study: ['living', 'bedroom'],
@@ -136,6 +147,8 @@ export class LifeEngine {
   nextCheck = 15;
   rabbitEligible: boolean;
   rabbitSeen = false;
+  residentRoutine: ResidentRoutine = 'work';
+  private routineUntil = 0;
   private rabbitPoseAt = 0;
   birdWitness = false;
   birdRoomCooldown = new Map<RoomId, number>();
@@ -160,6 +173,10 @@ export class LifeEngine {
     this.occupancy.setVisitors(visitors);
     this.sessionSeed = seed >>> 0;
     this.random = new SeededRandom(seed);
+    this.residentRoutine = this.random.choose(
+      Object.keys(residentRoutines) as ResidentRoutine[],
+    )!;
+    this.routineUntil = this.random.between(180, 300);
     this.rabbitEligible = this.random.next() < eventRules.rabbit.visitChance;
     this.nextCheck = this.random.between(14, 28);
     this.actors = {} as Record<ActorId, LifeActor>;
@@ -402,7 +419,7 @@ export class LifeEngine {
   private move(a: LifeActor, dt: number) {
     const next = a.path[0];
     if (!next) return;
-    if (a.id === 'cat' || a.id === 'rabbit') {
+    if (a.id === 'cat' || a.id === 'rabbit' || a.id === 'resident') {
       // Rise on the spot before taking a step. Face a corner before advancing.
       if (a.fsm.state === 'rise' && a.fsm.elapsed < catRiseTime) return;
       const heading = Math.atan2(
@@ -475,7 +492,7 @@ export class LifeEngine {
           ? 'hop'
           : 'walk',
     );
-    if (d > 0.01 && !['cat', 'rabbit'].includes(a.id))
+    if (d > 0.01 && !['cat', 'rabbit', 'resident'].includes(a.id))
       a.rotation = Math.atan2(
         -(next[0] - a.position[0]),
         -(next[2] - a.position[2]),
@@ -963,6 +980,14 @@ export class LifeEngine {
       }
     }
     if (this.clock >= 10 && !this.reduced) {
+      if (this.clock >= this.routineUntil) {
+        this.residentRoutine = this.random.choose(
+          (Object.keys(residentRoutines) as ResidentRoutine[]).filter(
+            (mode) => mode !== this.residentRoutine,
+          ),
+        )!;
+        this.routineUntil = this.clock + this.random.between(180, 300);
+      }
       if (
         resident.active &&
         this.relevant(resident.room) &&
@@ -977,9 +1002,18 @@ export class LifeEngine {
         const all = this.eligible('resident').filter(
             (n) => n.id !== resident.node,
           ),
-          preferred = all.filter((n) => n.room === wanted);
+          routine = all.filter((n) =>
+            (
+              residentRoutines[this.residentRoutine] as readonly string[]
+            ).includes(n.id),
+          ),
+          preferred = routine.filter((n) => n.room === wanted);
         const goal = this.random.choose(
-          this.random.next() < 0.7 && preferred.length ? preferred : all,
+          this.random.next() < 0.7 && preferred.length
+            ? preferred
+            : routine.length
+              ? routine
+              : all,
         );
         resident.stayUntil = this.clock + 10;
         if (goal) this.go(resident, goal);
@@ -1062,20 +1096,85 @@ export class LifeEngine {
                   'cafe',
                 ])!
               : this.view;
-          if (this.rabbitEligible && !this.rabbitSeen && this.clock > 45)
+          const rabbitStarted =
+            this.rabbitEligible &&
+            !this.rabbitSeen &&
+            this.clock > 45 &&
             this.startRabbit(rabbit.room);
-          else if (
-            this.random.next() < eventRules.bird.chance[this.environment.time]
-          )
+          const birdStarted =
+            !rabbitStarted &&
+            this.random.next() <
+              eventRules.bird.chance[this.environment.time] &&
             this.startBird(room);
+          if (!rabbitStarted && !birdStarted) this.quietMoment(room);
         }
       }
     }
+  }
+  private quietMoment(room: RoomId) {
+    if (this.events.active || this.reduced || this.clock < 10) return false;
+    const resident = this.actors.resident;
+    const rule = momentRules.residentQuiet;
+    if (
+      resident.active &&
+      resident.visible &&
+      !resident.path.length &&
+      !resident.actionUntil &&
+      this.random.next() < rule.chance &&
+      this.events.start(
+        'residentQuiet',
+        'resident',
+        this.clock,
+        rule.duration,
+        rule.cooldown,
+      )
+    ) {
+      resident.fsm.set(this.random.choose(quietPoses(resident.node))!);
+      resident.actionUntil = this.clock + rule.duration;
+      resident.stayUntil = Math.max(
+        resident.stayUntil,
+        this.clock + rule.duration + 20,
+      );
+      return true;
+    }
+    const coffee = momentRules.coffeeAroma;
+    if (
+      ['study', 'living', 'cafe'].includes(room) &&
+      this.random.next() < coffee.chance &&
+      this.events.start(
+        'coffeeAroma',
+        'resident',
+        this.clock,
+        coffee.duration,
+        coffee.cooldown,
+      )
+    ) {
+      this.hooks.moment?.('coffeeAroma', room, this.random.next());
+      return true;
+    }
+    const dust = momentRules.windowMotes;
+    if (
+      this.environment.time !== 'night' &&
+      ['clear', 'cloudy'].includes(this.environment.weather) &&
+      this.random.next() < dust.chance &&
+      this.events.start(
+        'windowMotes',
+        'resident',
+        this.clock,
+        dust.duration,
+        dust.cooldown,
+      )
+    ) {
+      this.hooks.moment?.('windowMotes', room, this.random.next());
+      return true;
+    }
+    return false;
   }
   snapshot() {
     return {
       clock: this.clock,
       seed: this.sessionSeed,
+      residentRoutine: this.residentRoutine,
       event: this.events.active,
       paused: this.paused,
       rabbitEligible: this.rabbitEligible,

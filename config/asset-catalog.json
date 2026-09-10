@@ -704,7 +704,7 @@
       "license": "User-supplied; R2 redistribution pending",
       "author": "User-supplied Hi3D model",
       "sourceUrl": "",
-      "modifications": "50k triangles, 1K original PBR textures, normalized 1.65 scene units facing -Z; lightweight runtime body rig",
+      "modifications": "50k triangles, 1K original PBR textures, normalized 1.65 scene units facing -Z; Q-proportioned 11-bone runtime rig, neutral head and quiet routines",
       "approval": "pending"
     },
     {

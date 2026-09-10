@@ -12,7 +12,12 @@ export type ActorModel = {
     dt: number,
     reduced: boolean,
     seated?: boolean,
-    motion?: { hopTime: number; moving: boolean; crouched?: boolean },
+    motion?: {
+      hopTime: number;
+      moving: boolean;
+      crouched?: boolean;
+      travelDistance?: number;
+    },
   ) => void;
   dispose: () => void;
   triangles: number;

@@ -4,6 +4,9 @@ export type ActorId = 'resident' | 'cat' | 'rabbit' | 'bird' | 'robot';
 export type Point = [number, number, number];
 export type ActorState =
   | 'idle'
+  | 'lookOutside'
+  | 'listenMusic'
+  | 'think'
   | 'walk'
   | 'rise'
   | 'settle'

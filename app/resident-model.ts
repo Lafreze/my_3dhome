@@ -53,15 +53,18 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     bones.push(b);
     return b;
   };
-  const pelvis = add('resident.pelvis', [0, 0.82, 0]);
-  const spine = add('resident.spine', [0, 0.31, 0], pelvis);
-  const head = add('resident.head', [0, 0.28, 0], spine);
+  const pelvis = add('resident.pelvis', [0, 0.62, 0]);
+  const spine = add('resident.spine', [0, 0.21, 0], pelvis);
+  const head = add('resident.head', [0, 0.2, 0], spine);
   const legs = [-1, 1].map((side) => {
-    const thigh = add(`resident.thigh.${side}`, [side * 0.105, 0, 0], pelvis);
-    const shin = add(`resident.shin.${side}`, [0, -0.39, 0], thigh);
-    const foot = add(`resident.foot.${side}`, [0, -0.33, -0.025], shin);
+    const thigh = add(`resident.thigh.${side}`, [side * 0.13, 0, 0], pelvis);
+    const shin = add(`resident.shin.${side}`, [0, -0.3, 0], thigh);
+    const foot = add(`resident.foot.${side}`, [0, -0.23, -0.025], shin);
     return { thigh, shin, foot };
   });
+  const shoulders = [-1, 1].map((side) =>
+    add(`resident.shoulder.${side}`, [side * 0.18, 0.035, 0], spine),
+  );
   avatar.updateMatrixWorld(true);
   const skeleton = new T.Skeleton(bones);
   let triangles = 0;
@@ -75,18 +78,21 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
       const x = position.getX(i),
         y = position.getY(i),
         influences: [number, number][] = [];
-      const lower = 1 - smooth(0.76, 0.9, y);
-      const headWeight = smooth(1.34, 1.44, y);
-      const torso = smooth(0.89, 1.14, y) * (1 - headWeight);
+      const lower = 1 - smooth(0.54, 0.65, y);
+      const headWeight = smooth(0.96, 1.04, y);
+      const torso = smooth(0.63, 0.87, y) * (1 - headWeight);
       const addWeight = (b: T.Bone, w: number) => {
         if (w > 0.00001) influences.push([bones.indexOf(b), w]);
       };
       addWeight(head, headWeight);
-      addWeight(spine, torso * (1 - lower));
+      const shoulder =
+        torso * smooth(0.15, 0.24, Math.abs(x)) * smooth(0.65, 0.76, y) * 0.65;
+      addWeight(shoulders[x < 0 ? 0 : 1], shoulder);
+      addWeight(spine, (torso - shoulder) * (1 - lower));
       addWeight(pelvis, (1 - headWeight - torso) * (1 - lower));
       const side = x < 0 ? 0 : 1;
-      const knee = 1 - smooth(0.39, 0.48, y),
-        ankle = 1 - smooth(0.095, 0.15, y);
+      const knee = 1 - smooth(0.28, 0.36, y),
+        ankle = 1 - smooth(0.08, 0.14, y);
       addWeight(legs[side].thigh, lower * (1 - knee));
       addWeight(legs[side].shin, lower * knee * (1 - ankle));
       addWeight(legs[side].foot, lower * knee * ankle);
@@ -118,7 +124,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
   model.root.children.forEach((o) => {
     o.visible = o instanceof T.Mesh && o.geometry instanceof T.CircleGeometry;
   });
-  model.root.scale.setScalar(1.15);
+  model.root.scale.setScalar(1.05);
   model.root.add(avatar);
   model.triangles = triangles;
   model.root.userData.assetId = residentAssetId;
@@ -132,7 +138,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     gestureTime = 0,
     previousState = '';
   const oldDispose = model.dispose;
-  model.animate = (state, t, dt, reduced, seated = false) => {
+  model.animate = (state, t, dt, reduced, seated = false, motion) => {
     if (previousState !== state) {
       previousState = state;
       gestureTime = 0;
@@ -143,10 +149,14 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     crouchBlend +=
       ((state === 'petCat' && !seated ? 1 : 0) - crouchBlend) * blend;
     bones.forEach((b) => b.rotation.set(0, 0, 0));
-    avatar.position.y = -0.755 * sitBlend - 0.25 * crouchBlend;
+    avatar.position.y = -0.55 * sitBlend - 0.25 * crouchBlend;
     const walk =
       state === 'walk' && !reduced
-        ? Math.sin(t * 4.2) * (1 - sitBlend) * 0.22
+        ? Math.sin(
+            ((motion?.travelDistance ?? t * 0.62) / 0.68) * Math.PI * 2,
+          ) *
+          (1 - sitBlend) *
+          0.22
         : 0;
     legs.forEach((leg, i) => {
       const stride = walk * (i ? 1 : -1);
@@ -156,8 +166,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
       leg.foot.rotation.x = 0.08 * sitBlend + 0.35 * crouchBlend;
     });
     spine.rotation.x = 0.2 * crouchBlend;
-    // The supplied sculpture has a small baked head roll. Correct that bind pose
-    // and return to a neutral neck after a single brief greeting, not a loop.
+    // This supplied model has a neutral neck: never apply the old model's roll correction.
     const nod =
       !reduced &&
       ['wave', 'lookAround', 'drinkCoffee'].includes(state) &&
@@ -165,12 +174,26 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
         ? -Math.sin((gestureTime / 1.2) * Math.PI) * 0.06
         : 0;
     const gaze =
-      !reduced && state === 'inspectArtwork' && gestureTime < 2.5
-        ? Math.sin((gestureTime / 2.5) * Math.PI) * 0.08
+      !reduced && ['inspectArtwork', 'lookOutside', 'think'].includes(state)
+        ? Math.sin(Math.min(1, gestureTime / 8) * Math.PI) *
+          (state === 'lookOutside' ? 0.2 : 0.1)
         : 0;
-    headPitch += (nod - headPitch) * blend;
+    const listening =
+      state === 'listenMusic' && !reduced ? Math.sin(t * 1.7) * 0.025 : 0;
+    headPitch += (nod + listening - headPitch) * blend;
     headYaw += (gaze - headYaw) * blend;
-    head.rotation.set(headPitch, headYaw, -0.12);
+    head.rotation.set(headPitch, headYaw, 0);
+    shoulders.forEach((shoulder, i) => {
+      shoulder.rotation.z =
+        !reduced && state === 'stretch'
+          ? Math.sin(Math.min(1, gestureTime / 8) * Math.PI) * (i ? -0.1 : 0.1)
+          : 0;
+      shoulder.rotation.x =
+        !reduced && state === 'type' ? Math.sin(t * 2 + i) * 0.02 : 0;
+    });
+    if (state === 'think')
+      spine.rotation.x =
+        Math.sin(Math.min(1, gestureTime / 8) * Math.PI) * 0.035;
     avatar.updateMatrixWorld(true);
     skeleton.update();
   };

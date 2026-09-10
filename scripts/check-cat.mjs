@@ -136,6 +136,7 @@ assert.equal(
 );
 // Boarding and dismounting have a visible arc; a click cannot strand the cat in air.
 const ride = new LifeEngine(8, hooks);
+for (const a of Object.values(ride.actors)) a.stayUntil = Infinity;
 ride.clock = 60;
 ride.nextCheck = 0;
 ride.random.next = () => 0;

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "5dd9284eaf5e0988",
+  "version": "893a3b24940396f3",
   "assets": {
     "character.bear.rest": {
       "type": "model",
@@ -154,10 +154,10 @@
         "gallery",
         "cafe"
       ],
-      "path": "models/characters/resident/hi3d.81f259b98dcdeb4a.glb",
+      "path": "models/characters/resident/hi3d.ee0974d8ad8151aa.glb",
       "logicalPath": "models/characters/resident/hi3d.glb",
-      "size": 1544568,
-      "sha256": "81f259b98dcdeb4ac14f83228dbdc6b0e8a2c6a3aaabdd28913d0bee27450f98",
+      "size": 1677604,
+      "sha256": "ee0974d8ad8151aa74d21f1bc2b59b6039c1cabba7802a4b6c9a94ef899568c4",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false

@@ -16,8 +16,7 @@ export default function AdminPanel({
   onArt: () => void;
 }) {
   const studio = useStudio();
-  const [passphrase, setPassphrase] = useState(''),
-    [message, setMessage] = useState(''),
+  const [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false),
     [note, setNote] = useState(studio.settings.note),
     [originalNote, setOriginalNote] = useState(studio.settings.note);
@@ -33,35 +32,7 @@ export default function AdminPanel({
       setBusy(false);
     }
   };
-  if (!studio.admin)
-    return (
-      <form
-        className="admin-login"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void run(async () => {
-            await studio.login(passphrase);
-            setPassphrase('');
-          });
-        }}
-      >
-        <p>主理人留了一把钥匙。输入暗号，开始布置小屋。</p>
-        <label>
-          管理暗号
-          <input
-            type="password"
-            autoComplete="current-password"
-            maxLength={256}
-            value={passphrase}
-            onChange={(e) => setPassphrase(e.target.value)}
-          />
-        </label>
-        {message && <p role="alert">{message}</p>}
-        <button className="dark-button" disabled={busy || !passphrase}>
-          {busy ? '正在验证…' : '进入管理模式'}
-        </button>
-      </form>
-    );
+  if (!studio.admin) return null;
   return (
     <div className="admin-panel">
       <p>已进入管理模式。保存后，所有访客都能看到更新。</p>

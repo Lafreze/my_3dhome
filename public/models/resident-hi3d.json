@@ -1,17 +1,17 @@
 {
-  "source": "Hi3D_allparts.glb",
-  "sourceSha256": "3d870de851aa25b68360b6f9fb36feff7d6f791d8b2b9dbca76ec4ad546e057b",
-  "sourceBytes": 60222816,
-  "sourceTriangles": 2000000,
+  "source": "Hi3D_Untitled_allparts_20260910_123452.glb",
+  "sourceSha256": "810c3c10d11e6ec95d02c6516da3214fd31b32fbef6c1b298c215b288ac464a3",
+  "sourceBytes": 74178340,
+  "sourceTriangles": 1997710,
   "triangles": 50000,
-  "bytes": 1544568,
+  "bytes": 1677604,
   "height": 1.65,
   "forward": "-Z",
   "sourceBones": 0,
   "sourceAnimations": [],
-  "runtimeBones": 9,
+  "runtimeBones": 11,
+  "runtimeScale": 1.05,
+  "runtimeHeight": 1.7325,
   "textures": "1024px, original PBR colors",
-  "gestures": "Procedural leg/spine/head poses; hands-in-pockets silhouette retained. No authored finger/hand animation clips.",
-  "runtimeScale": 1.15,
-  "runtimeHeight": 1.8975
+  "gestures": "Q-proportioned runtime legs, spine, shoulders and neutral head; hands-in-pockets silhouette retained. Quiet gaze, listening, thinking and stretch poses."
 }

@@ -1,3 +1,4 @@
+import { createSteamEffect } from './steam-effect';
 import {
   createBreeze,
   curtainGeometry,
@@ -44,7 +45,6 @@ import type { Visitor } from './seat-data';
 
 type Options = {
   onLifeBubble: (text: string) => void;
-  onResidentSelect: () => void;
   onCollections: (data: CollectionData, message: string) => void;
   onAssetProgress: (progress: AssetProgress) => void;
   onSeatSelect: (id: string) => void;
@@ -1001,26 +1001,14 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     brass,
   );
   sphere(coffee, 0.028, 0.495, 0.734, 0.0, brass, 0.68, 0.18, 1.35);
-  const steamMat = new T.MeshBasicMaterial({
-    color: '#ffffff',
-    transparent: true,
-    opacity: 0,
+  const coffeeSteam = createSteamEffect({
+    count: 9,
+    height: 0.4,
+    width: 0.095,
+    seed: 3,
   });
-  materials.push(steamMat);
-  const steam = new T.Group();
-  coffee.add(steam);
-  for (let i = 0; i < 4; i++)
-    sphere(
-      steam,
-      0.03,
-      0.3 + Math.sin(i) * 0.025,
-      1.02 + i * 0.07,
-      0.15,
-      steamMat,
-      0.6,
-      1.7,
-      0.6,
-    );
+  coffeeSteam.root.position.set(0.3, 0.905, 0.15);
+  coffee.add(coffeeSteam.root);
   const chair = placed('chair');
   attachSeats(seatAnchors, chair, ['study-reading']);
   const chairMat = mat('#dcaf86', 0.88);
@@ -1936,7 +1924,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     const hit = pick(e);
     if (hit && 'actorId' in hit && hit.actorId) {
       life?.click(hit.actorId);
-      if (hit.actorId === 'resident') options.onResidentSelect();
       return;
     }
     if (hit?.seatId) {
@@ -2197,8 +2184,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           drop.position.y = 1.4 - ((t * 0.7 + i * 0.11) % 1);
         });
     }
-    steamMat.opacity = reduced ? 0 : now < steamUntil ? 0.3 : 0.11;
-    steam.position.y = reduced ? 0 : Math.sin(t * 0.8) * 0.025;
+    coffeeSteam.update(
+      dt,
+      now < steamUntil ? 1.3 : 0.7,
+      reduced,
+      ['study', 'overview'].includes(activeView),
+    );
     controls.update();
     // Keep panning bounded around the current room or whole house, preserving camera distance.
     const panCenter =
@@ -2248,7 +2239,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     greetResident() {
       life?.click('resident');
-      options.onResidentSelect();
     },
     lifeSnapshot: () => life?.snapshot(),
     setProjects: (projects) => house.setProjects(projects),
@@ -2560,6 +2550,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       });
     },
     dispose() {
+      coffeeSteam.dispose();
       disposed = true;
       life?.dispose();
       assets.dispose();
@@ -2616,6 +2607,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
             visitors: lifeVisitors,
             cat: atmosphere,
             coffee: () => house.interact('cafeEspresso'),
+            aroma: (room) => {
+              if (room === 'study') steamUntil = performance.now() + 8000;
+              else house.aroma(room);
+            },
             bubble: options.onLifeBubble,
             collections: options.onCollections,
           },

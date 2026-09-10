@@ -141,7 +141,6 @@ function StudioHome() {
   const studio = useStudio();
   const profile = studio.settings.profile,
     note = studio.settings.note;
-  const [residentMenu, setResidentMenu] = useState(false);
   const draftRevision = useRef(-1);
   const [assetProgress, setAssetProgress] = useState<AssetProgress>({
     loaded: 0,
@@ -195,10 +194,10 @@ function StudioHome() {
     } | null>(null);
   const projectIntro = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!lifeBubble || residentMenu) return;
+    if (!lifeBubble) return;
     const id = setTimeout(() => setLifeBubble(''), 4500);
     return () => clearTimeout(id);
-  }, [lifeBubble, residentMenu]);
+  }, [lifeBubble]);
   useEffect(() => {
     if (!collectionQueue.length) return;
     const id = setTimeout(() => setCollectionQueue((q) => q.slice(1)), 1500);
@@ -247,7 +246,6 @@ function StudioHome() {
         if (disposed || !host.current) return;
         try {
           api.current = createRoom(host.current, {
-            onResidentSelect: () => setResidentMenu(true),
             onLifeBubble: setLifeBubble,
             onCollections: (data, message) => {
               setCollectionData(data);
@@ -502,7 +500,6 @@ function StudioHome() {
     }
     if (id !== 'controller' && id in appearanceLabels) {
       if (!studio.admin) {
-        setModal('admin');
         return;
       }
       const key = id as keyof Appearance;
@@ -514,6 +511,7 @@ function StudioHome() {
         .catch((e) => notify(e.message));
       return;
     }
+    if (id === 'cafeSeat' && !studio.admin) return;
     api.current?.interact(id);
     if (id === 'plant' || id === 'deskPlant' || id === 'shelfPlant')
       notify('给绿意一点水。');
@@ -526,7 +524,6 @@ function StudioHome() {
   });
   const openEditor = () => {
     if (!studio.admin) {
-      setModal('admin');
       return;
     }
     draftRevision.current = studio.revision;
@@ -538,7 +535,6 @@ function StudioHome() {
   };
   const editProjects = () => {
     if (!studio.admin) {
-      setModal('admin');
       return;
     }
     draftRevision.current = studio.revision;
@@ -694,13 +690,15 @@ function StudioHome() {
               open={environmentOpen}
               onOpenChange={setEnvironmentOpen}
             />
-            <button
-              className="icon-button"
-              aria-label="管理小屋"
-              onClick={() => setModal('admin')}
-            >
-              <Settings2 size={18} />
-            </button>
+            {studio.admin && (
+              <button
+                className="icon-button"
+                aria-label="管理小屋"
+                onClick={() => setModal('admin')}
+              >
+                <Settings2 size={18} />
+              </button>
+            )}
           </div>
         </header>
         {!ready && (
@@ -788,20 +786,27 @@ function StudioHome() {
               </button>
             </div>
             <h2>{objects[selected].name}</h2>
-            <button className="object-action" onClick={() => action(selected)}>
-              {selected === 'lamp'
-                ? lamp
-                  ? '关灯'
-                  : '开灯'
-                : selected === 'record' ||
-                    selected === 'livingSpeakers' ||
-                    selected === 'livingRecord'
-                  ? music
-                    ? '暂停音乐'
-                    : '播放音乐'
-                  : objects[selected].action}
-              <ArrowUpRight size={16} />
-            </button>
+            {(studio.admin ||
+              (!(selected in appearanceLabels) && selected !== 'cafeSeat') ||
+              selected === 'controller') && (
+              <button
+                className="object-action"
+                onClick={() => action(selected)}
+              >
+                {selected === 'lamp'
+                  ? lamp
+                    ? '关灯'
+                    : '开灯'
+                  : selected === 'record' ||
+                      selected === 'livingSpeakers' ||
+                      selected === 'livingRecord'
+                    ? music
+                      ? '暂停音乐'
+                      : '播放音乐'
+                    : objects[selected].action}
+                <ArrowUpRight size={16} />
+              </button>
+            )}
             {selected === 'controller' && studio.admin && (
               <button
                 className="text-button"
@@ -949,27 +954,14 @@ function StudioHome() {
             {toast}
           </output>
         )}
-        {(lifeBubble || residentMenu) && (
+        {lifeBubble && (
           <output className="life-bubble" aria-live="polite">
-            <span>{lifeBubble || '欢迎来坐坐。'}</span>
-            {residentMenu && (
-              <button
-                className="text-button"
-                onClick={() => {
-                  setResidentMenu(false);
-                  setLifeBubble('');
-                  setModal('admin');
-                }}
-              >
-                {studio.admin ? '管理小屋' : '输入管理暗号'}
-              </button>
-            )}
+            <span>{lifeBubble}</span>
             <button
               className="icon-button"
               aria-label="收起伙伴提示"
               onClick={() => {
                 setLifeBubble('');
-                setResidentMenu(false);
               }}
             >
               <X size={13} />
@@ -1013,6 +1005,7 @@ function StudioHome() {
             onClose={closeModal}
             onScreen={computerScreen}
             onPower={computerPower}
+            onManage={() => setModal('admin')}
           />
           <WallArtEditor
             selected={selected}
@@ -1027,7 +1020,11 @@ function StudioHome() {
         </>
       )}
       <Dialog
-        open={modal !== null && !['tv', 'computer', 'wallArt'].includes(modal)}
+        open={
+          modal !== null &&
+          !['tv', 'computer', 'wallArt'].includes(modal) &&
+          (modal !== 'admin' || studio.admin)
+        }
         onOpenChange={(v) => {
           if (!v) setModal(null);
         }}
@@ -1056,7 +1053,7 @@ function StudioHome() {
                   objects: '屋内物件',
                   rabbitModel: '皇冠兔 · 建模手记',
                   collections: '小屋收藏册',
-                  admin: '主理人的钥匙',
+                  admin: '布置小屋',
                 } as Record<string, string>
               )[modal || '']
             }
@@ -1074,9 +1071,9 @@ function StudioHome() {
                       ? 'A LITTLE ABOUT ME'
                       : 'SATORI / PERSONAL COLLECTION'}
           </DialogDescription>
-          {modal === 'admin' && (
+          {modal === 'admin' && studio.admin && (
             <AdminPanel
-              key={studio.admin ? 'manager' : 'guest'}
+              key="manager"
               onProfile={openEditor}
               onDevice={(id) => {
                 visit(id === 'computer' ? 'study' : 'living');
@@ -1366,10 +1363,10 @@ function StudioHome() {
                 底部菜单切换房间或整屋全景，选择「房屋俯瞰图」查看完整平面布局。拖动空白处环顾，滚轮或双指缩放。
               </p>
               <p>
-                点击物件靠近，再使用物件卡上的按钮：打开抽屉、转动雕塑、浇水，或浏览作品。管理者可修改家具配色。
+                点击物件靠近，再使用物件卡上的按钮：打开抽屉、转动雕塑、浇水，或浏览作品。
               </p>
               <p>
-                右上角选择时间与天气；点击主理人输入暗号后，可编辑个人内容。底部可开灯、播放原创合成旋律，或回到全景。
+                右上角选择时间与天气；点击主理人打个招呼。底部可开灯、播放原创合成旋律，或回到全景。
               </p>
               <p>
                 客厅电视可播放

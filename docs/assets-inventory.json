@@ -1,5 +1,5 @@
 {
-  "version": "5dd9284eaf5e0988",
+  "version": "893a3b24940396f3",
   "roomSizes": {
     "study": {
       "bytes": 4493340,
@@ -24,7 +24,7 @@
   },
   "commonCharacters": {
     "files": 9,
-    "bytes": 24218288
+    "bytes": 24351324
   },
   "pending": [
     "character.bear.sit",
@@ -201,12 +201,12 @@
     },
     {
       "path": "public/models/resident-hi3d.glb",
-      "bytes": 1544568,
+      "bytes": 1677604,
       "classification": "catalogued-production"
     },
     {
       "path": "public/models/resident-hi3d.json",
-      "bytes": 550,
+      "bytes": 617,
       "classification": "excluded-unused-or-documentation"
     },
     {

@@ -1,3 +1,4 @@
+import { createSteamEffect } from './steam-effect';
 import type { InteriorBreeze } from './interior-atmosphere';
 import { addOakFloor } from './house-finishes';
 import * as T from 'three';
@@ -1316,53 +1317,32 @@ export function buildCafe(k: Kit) {
     box(beams, 0.12, 0.14, 7.75, x, 3.65, 0, wood, 0.012);
   box(beams, 15.8, 0.14, 0.12, 0, 3.65, -3.86, wood);
   box(beams, 15.8, 0.14, 0.12, 0, 3.65, 3.86, wood);
-  // Low-cost steam sprites and time-limited coffee streams live outside static batching.
-  const steamCanvas = document.createElement('canvas');
-  steamCanvas.width = steamCanvas.height = 32;
-  const sc = steamCanvas.getContext('2d')!,
-    gradient = sc.createRadialGradient(16, 16, 0, 16, 16, 16);
-  gradient.addColorStop(0, '#ffffff70');
-  gradient.addColorStop(1, '#ffffff00');
-  sc.fillStyle = gradient;
-  sc.fillRect(0, 0, 32, 32);
-  const steamMap = new T.CanvasTexture(steamCanvas);
-  textures.push(steamMap);
-  const steamMaterial = new T.SpriteMaterial({
-    map: steamMap,
-    transparent: true,
-    depthWrite: false,
-    opacity: 0,
+  const steam = createSteamEffect({
+    count: 16,
+    height: 0.56,
+    width: 0.13,
+    seed: 2,
   });
-  materials.push(steamMaterial);
-  const steam = child(espresso, -0.37, 0.44, 0.25);
-  for (let i = 0; i < 7; i++) {
-    const s = new T.Sprite(steamMaterial);
-    s.scale.set(0.17, 0.23, 1);
-    s.position.set(Math.sin(i) * 0.03, i * 0.055, 0);
-    s.raycast = () => {};
-    steam.add(s);
-  }
-  const cupVapour = new T.SpriteMaterial({
-    map: steamMap,
-    transparent: true,
-    depthWrite: false,
-    opacity: 0.16,
+  steam.root.position.set(-0.37, 0.44, 0.25);
+  espresso.add(steam.root);
+  const wisps = warmCups.map(({ group, size }, i) => {
+    const effect = createSteamEffect({
+      count: 7,
+      height: 0.29,
+      width: 0.075,
+      seed: i + 5,
+    });
+    effect.root.position.y = size * 1.45;
+    group.add(effect.root);
+    return effect;
   });
-  materials.push(cupVapour);
-  const wisps = warmCups.flatMap(({ group, size }) =>
-    Array.from({ length: 3 }, (_, i) => {
-      const sprite = new T.Sprite(cupVapour);
-      sprite.raycast = () => {};
-      group.add(sprite);
-      return { sprite, size, phase: i / 3 };
-    }),
-  );
   const shelfGlow = new T.PointLight('#ffc87b', 1, 3.1, 2);
   shelfGlow.position.set(-6.58, 2.25, -3.36);
   root.add(shelfGlow);
   for (const y of [2.15, 2.69])
     box(north, 1.98, 0.012, 0.02, -6.58, y - 0.045, -3.49, glow, 0.002);
-  let brewUntil = 0,
+  let aromaUntil = 0,
+    brewUntil = 0,
     pourUntil = 0,
     now = 0,
     caseOpen = false,
@@ -1419,6 +1399,9 @@ export function buildCafe(k: Kit) {
     breeze: k.breeze,
   });
   return {
+    aroma() {
+      aromaUntil = now + 8;
+    },
     setPlan(plan: boolean) {
       planView = plan;
       focus = null;
@@ -1457,16 +1440,14 @@ export function buildCafe(k: Kit) {
       viewer: T.Camera,
     ) {
       now = t;
-      cupVapour.opacity = reduced ? 0 : 0.16;
-      for (const { sprite, size, phase } of wisps) {
-        const rise = (t * 0.21 + phase) % 1;
-        sprite.position.set(
-          Math.sin(t * 0.6 + phase * 9) * 0.014,
-          size * 1.45 + rise * 0.25,
-          0,
-        );
-        sprite.scale.set(0.04 + rise * 0.065, 0.065 + rise * 0.08, 1);
-      }
+      wisps.forEach((w) =>
+        w.update(
+          dt,
+          t < aromaUntil ? 1.4 : 0.7,
+          reduced,
+          root.visible && !planView,
+        ),
+      );
       shelfGlow.intensity = master && localLight ? (night ? 1.6 : 0.7) : 0;
       fixtures.visible = !planView && (!focus || focus === 'cafeLight');
       beams.visible = viewer.position.y < 3.65;
@@ -1474,19 +1455,7 @@ export function buildCafe(k: Kit) {
         brewing = t < brewUntil,
         pouring = t < pourUntil;
       streams.visible = brewing;
-      steamMaterial.opacity = brewing
-        ? 0.5
-        : Math.max(0, steamMaterial.opacity - dt * 0.4);
-      if (!reduced)
-        for (let i = 0; i < steam.children.length; i++) {
-          const phase = (t * 0.3 + i / 7) % 1;
-          steam.children[i].position.set(
-            Math.sin(t + i) * 0.026,
-            0.05 + phase * 0.48,
-            0,
-          );
-          steam.children[i].scale.setScalar(0.09 + phase * 0.12);
-        }
+      steam.update(dt, brewing ? 1.5 : 0, reduced, root.visible && !planView);
       indicator.emissiveIntensity = brewing
         ? reduced
           ? 1
@@ -1538,6 +1507,8 @@ export function buildCafe(k: Kit) {
       windows.forEach((w) => w.update(t, dt, reduced, viewer));
     },
     dispose() {
+      steam.dispose();
+      wisps.forEach((w) => w.dispose());
       windows.forEach((w) => w.dispose());
     },
   };

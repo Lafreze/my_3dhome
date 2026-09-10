@@ -1,3 +1,4 @@
+import { createSteamEffect } from './steam-effect';
 import { seatById } from './seat-data';
 import { curtainGeometry, type InteriorBreeze } from './interior-atmosphere';
 import { pillowGeometry, pillowPiping, drapedLinen } from './bed-linen';
@@ -703,30 +704,14 @@ export function buildHouse(k: Kit) {
   spoon.rotation.y = -0.4;
   b(spoon, 0.018, 0.006, 0.12, 0, 0, 0, brass, 0.006);
   ball(spoon, 0.026, 0, 0.002, -0.07, brass, 0.65, 0.15, 1);
-  const steamCanvas = document.createElement('canvas');
-  steamCanvas.width = steamCanvas.height = 64;
-  const steamCtx = steamCanvas.getContext('2d')!;
-  const steamGradient = steamCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  steamGradient.addColorStop(0, '#ffffff88');
-  steamGradient.addColorStop(1, '#ffffff00');
-  steamCtx.fillStyle = steamGradient;
-  steamCtx.fillRect(0, 0, 64, 64);
-  const cupSteamMap = new T.CanvasTexture(steamCanvas);
-  textures.push(cupSteamMap);
-  const cupSteamMaterial = new T.SpriteMaterial({
-    map: cupSteamMap,
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
+  const cupSteam = createSteamEffect({
+    count: 8,
+    height: 0.38,
+    width: 0.095,
+    seed: 7,
   });
-  materials.push(cupSteamMaterial);
-  const cupSteam = child(livingCup);
-  for (let i = 0; i < 6; i++) {
-    const s = new T.Sprite(cupSteamMaterial);
-    s.scale.set(0.08, 0.13, 1);
-    s.raycast = () => {};
-    cupSteam.add(s);
-  }
+  cupSteam.root.position.y = 0.18;
+  livingCup.add(cupSteam.root);
   // Slatted walnut media console, open equipment bays, sliding collection drawer and cable routes.
   const cabinet = group('living', undefined, lf.media.x, 0, lf.media.z);
   feet(cabinet, lf.media.width - 0.35, 0.46, 0.18);
@@ -2009,6 +1994,10 @@ export function buildHouse(k: Kit) {
     padUntil = 0,
     lastClockSecond = -1;
   return {
+    aroma(room: string) {
+      if (room === 'cafe') cafe.aroma();
+      if (room === 'living') cupUntil = now + 8;
+    },
     roots,
     screen,
     setProjects: projectGallery.setProjects,
@@ -2215,16 +2204,12 @@ export function buildHouse(k: Kit) {
         cone.position.z =
           musicOn && !reduced ? Math.sin(t * 43 + i * 0.2) * 0.002 : 0;
       });
-      cupSteamMaterial.opacity = reduced ? 0 : t < cupUntil ? 0.4 : 0.13;
-      cupSteam.children.forEach((s, i) => {
-        const phase = reduced ? i / 6 : (t * 0.27 + i / 6) % 1;
-        s.position.set(
-          Math.sin(i + (reduced ? 0 : t)) * 0.015,
-          0.18 + phase * 0.35,
-          0,
-        );
-        s.scale.set(0.055 + phase * 0.1, 0.1 + phase * 0.13, 1);
-      });
+      cupSteam.update(
+        dt,
+        t < cupUntil ? 1.4 : 0.7,
+        reduced,
+        roots.living.visible,
+      );
       striker.rotation.z =
         !reduced && t < clockUntil ? Math.sin(t * 55) * 0.38 : 0;
       if (Math.floor(t) !== lastClockSecond) {
@@ -2315,6 +2300,7 @@ export function buildHouse(k: Kit) {
     },
     roomForObject,
     dispose() {
+      cupSteam.dispose();
       disposed = true;
       pictureMaterials.forEach((entry) => entry.current?.dispose());
       projectGallery.dispose();

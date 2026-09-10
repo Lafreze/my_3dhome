@@ -159,6 +159,7 @@ for (let i = 0; i < 450; i++)
 assert(!missed.some((c) => c[0] === 'visitor.bird.window'));
 // Force close, safe encounters so the rare combinations are covered without waiting for chance.
 const meeting = new LifeEngine(8, hooks);
+for (const a of Object.values(meeting.actors)) a.stayUntil = Infinity;
 meeting.clock = 60;
 meeting.nextCheck = 0;
 meeting.random.next = () => 0.5;
@@ -188,6 +189,7 @@ const ride = new LifeEngine(8, {
   ...hooks,
   collect: (...v) => rideCards.push(v),
 });
+for (const a of Object.values(ride.actors)) a.stayUntil = Infinity;
 ride.clock = 60;
 ride.nextCheck = 0;
 ride.random.next = () => 0;

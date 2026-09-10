@@ -153,7 +153,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     patch: HousePatch,
     revision = current.current.revision,
   ) => {
-    if (!admin) throw Error('请先输入管理暗号。');
+    if (!admin) throw Error('当前无法保存。');
     accept(await request('/api/house', { revision, patch }, 'PATCH'));
   };
   return (

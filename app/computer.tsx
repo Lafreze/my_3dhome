@@ -10,12 +10,14 @@ export default function Computer({
   onClose,
   onScreen,
   onPower,
+  onManage,
 }: {
   active: boolean;
   open: boolean;
   onClose: () => void;
   onScreen: (element: HTMLElement | null) => void;
   onPower: (on: boolean) => void;
+  onManage: () => void;
 }) {
   const studio = useStudio();
   const stored = studio.settings.devices.computer;
@@ -24,6 +26,8 @@ export default function Computer({
     [enabled, setEnabled] = useState(true),
     [loaded, setLoaded] = useState(false),
     [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const close = useRef<HTMLButtonElement>(null);
   const [host] = useState(() => {
     const el = document.createElement('div');
@@ -63,13 +67,34 @@ export default function Computer({
   }, [open, onClose]);
   const save = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!studio.admin) return;
-    const valid = url.trim() ? websiteURL(url) : '';
-    if (valid === null) {
-      setMessage('请输入完整的 HTTP / HTTPS 网址。');
-      return;
-    }
+    if (submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
+    setMessage('');
+    const input = url.trim();
+    const valid = input ? websiteURL(input) : '';
     try {
+      if (!studio.admin && valid === null && input.length <= 256) {
+        // Never navigate, store, echo or send this value to an embedded website.
+        setUrl(source);
+        try {
+          await studio.login(input);
+          onManage();
+        } catch {
+          setMessage('请输入完整的 HTTP / HTTPS 网址。');
+        }
+        return;
+      }
+      if (valid === null) {
+        setMessage('请输入完整的 HTTP / HTTPS 网址。');
+        return;
+      }
+      if (!studio.admin) {
+        setSource(valid);
+        setEnabled(true);
+        setMessage('本次访问预览');
+        return;
+      }
       await studio.save({
         devices: { computer: { url: valid, enabled: true } },
       });
@@ -78,6 +103,9 @@ export default function Computer({
       setMessage('已保存 · 所有访客进入书房均可观看');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '保存失败。');
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   };
   const toggle = async () => {
@@ -119,20 +147,28 @@ export default function Computer({
             <X size={16} />
           </button>
         </div>
-        {studio.admin && (
-          <form className="tv-source-form" onSubmit={save}>
-            <input
-              aria-label="电脑网址"
-              type="url"
-              placeholder="https://…"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-            <button type="submit" className="tv-play" aria-label="保存电脑网址">
-              <Save size={16} />
-            </button>
-          </form>
-        )}
+        <form className="tv-source-form" onSubmit={save}>
+          <input
+            aria-label="电脑网址"
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            maxLength={2048}
+            placeholder="https://…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="tv-play"
+            disabled={busy}
+            aria-label={studio.admin ? '保存电脑网址' : '打开电脑网址'}
+          >
+            {studio.admin ? <Save size={16} /> : <ArrowUpRight size={16} />}
+          </button>
+        </form>
         {message && <output className="device-saved">{message}</output>}
         <div className="tv-toolbar">
           {source && (
@@ -151,9 +187,7 @@ export default function Computer({
             <Power size={15} />
           </button>
         </div>
-        <p className="device-note">
-          部分网站限制嵌入，若未显示可独立打开。网址由管理者设置。
-        </p>
+        <p className="device-note">部分网站限制嵌入，若未显示可独立打开。</p>
       </section>
     </>
   );

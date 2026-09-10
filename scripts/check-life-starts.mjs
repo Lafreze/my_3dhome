@@ -88,7 +88,17 @@ Object.assign(a, {
   position: worldPoint(from),
   expires: 1000,
 });
-e.occupancy.release('rabbit');
+e.occupancy.reservations.clear();
+e.occupancy.actors.clear();
+for (const other of Object.values(e.actors))
+  if (other.id !== 'rabbit') other.active = false;
+Object.assign(e.actors.resident, {
+  active: true,
+  node: 'study.desk',
+  room: 'study',
+  position: worldPoint(e.node('study.desk')),
+  stayUntil: Infinity,
+});
 assert(e.go(a, to));
 let moved = false,
   groundedHolds = 0;

@@ -1,3 +1,4 @@
+import { createWindowMotes } from './life-moments';
 import * as T from 'three';
 import { LifeEngine } from './life-engine';
 import { rememberLifeStarts, type LifeSession } from './life-session';
@@ -33,10 +34,13 @@ type Options = {
   visitors: Visitor[];
   cat: ReturnType<typeof interiorAtmosphere>;
   coffee: () => void;
+  aroma: (room: RoomId) => void;
   bubble: (text: string) => void;
   collections: (data: CollectionData, message: string) => void;
 };
 export function createLifeScene(k: Options, session: LifeSession) {
+  const motes = createWindowMotes();
+  k.scene.add(motes.root);
   const models = new Map<ActorId, ActorModel>();
   const poseClock = new Map<ActorId, { dt: number; state: string }>();
   const mobile = window.matchMedia('(pointer: coarse)').matches;
@@ -146,6 +150,10 @@ export function createLifeScene(k: Options, session: LifeSession) {
   const engine = new LifeEngine(
     session.seed,
     {
+      moment: (kind, room, seed) => {
+        if (kind === 'coffeeAroma') k.aroma(room);
+        else motes.start(room, seed);
+      },
       collect: (...args) => collections.collect(...args),
       bubble: (_actor, text) => k.bubble(text),
       sound,
@@ -211,6 +219,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
       stopHum();
       return;
     }
+    motes.update(dt, reduced, (room) => engine.visibleRoom(room));
     for (const a of Object.values(engine.actors)) {
       const model = models.get(a.id),
         position = new T.Vector3(...a.position);
@@ -318,7 +327,12 @@ export function createLifeScene(k: Options, session: LifeSession) {
           pose.dt,
           reduced,
           a.seated,
-          { hopTime: a.hopTime, moving: a.path.length > 0, crouched: duck },
+          {
+            hopTime: a.hopTime,
+            travelDistance: a.travelDistance,
+            moving: a.path.length > 0,
+            crouched: duck,
+          },
         );
         pose.dt = 0;
         pose.state = a.fsm.state;
@@ -364,6 +378,22 @@ export function createLifeScene(k: Options, session: LifeSession) {
     } else stopHum();
   }
   const debug = {
+    steamSnapshot: () => {
+      const values: { time: number; visible: boolean; strength: number }[] = [];
+      k.scene.traverse((o) => {
+        if (
+          o instanceof T.Points &&
+          o.name === 'coffee/steam' &&
+          o.material instanceof T.ShaderMaterial
+        )
+          values.push({
+            time: o.material.uniforms.clock.value,
+            visible: o.visible,
+            strength: o.material.uniforms.strength.value,
+          });
+      });
+      return values;
+    },
     engine,
     screenPosition(id: ActorId) {
       const object = id === 'cat' ? k.cat.cat : models.get(id)?.root;
@@ -382,6 +412,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
     },
     setEnabled(value: boolean) {
       diagnosticEnabled = value;
+      if (!value) motes.root.visible = false;
     },
     snapshot: () => ({
       ...engine.snapshot(),
@@ -439,6 +470,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
         ? engine.node(engine.actors.resident.node).seatId
         : undefined,
     dispose() {
+      motes.dispose();
       disposed = true;
       stopHum();
       tones.forEach((v) => {
