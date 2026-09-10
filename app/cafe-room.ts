@@ -343,16 +343,19 @@ export function buildCafe(k: Kit) {
       ],
       ceramic,
     );
-    const handle = torus(
+    // An open C-shaped handle joins the outside wall; a full torus used to protrude into the drink.
+    tube(
       g,
-      size * 0.48,
-      size * 0.13,
-      size * 0.98,
-      size * 0.72,
-      0,
+      [
+        [size * 0.96, size * 1.11, 0],
+        [size * 1.38, size * 1.17, 0],
+        [size * 1.57, size * 0.78, 0],
+        [size * 1.28, size * 0.3, 0],
+        [size * 0.8, size * 0.38, 0],
+      ],
+      size * 0.115,
       ceramic,
     );
-    handle.scale.x = 0.8;
     if (filled)
       cyl(
         g,
@@ -1328,9 +1331,11 @@ export function buildCafe(k: Kit) {
   box(beams, 15.8, 0.14, 0.12, 0, 3.65, -3.86, wood);
   box(beams, 15.8, 0.14, 0.12, 0, 3.65, 3.86, wood);
   const service = createCoffeeState(k.onCoffee);
-  const servedCup = cup(root, -4.48, 1.555, -0.67, 0.12, false, false);
+  const servedCup = cup(root, -4.22, 1.557, -0.6, 0.12, false, false);
   const drinkSurface = mat(drinks.latte.color, 0.28);
-  cyl(servedCup, 0.101, 0.101, 0.006, 0, 0.139, 0, drinkSurface);
+  // Liquid stays inside the sloping inner wall, below the ceramic lip.
+  cyl(servedCup, 0.094, 0.094, 0.003, 0, 0.135, 0, drinkSurface);
+  servedCup.name = 'Finished coffee / clear pickup';
   servedCup.visible = false;
   const serviceSteam = createSteamEffect({
     count: 9,
@@ -1472,6 +1477,7 @@ export function buildCafe(k: Kit) {
       const serving = service.snapshot();
       servedCup.visible = serving.phase === 'ready';
       servedCup.scale.fromArray([...drinks[serving.drink].scale]);
+      servedCup.position.y = 1.537 + 0.022 * drinks[serving.drink].scale[1];
       drinkSurface.color.set(drinks[serving.drink].color);
       serviceSteam.update(
         dt,

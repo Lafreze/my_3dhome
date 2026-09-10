@@ -1,3 +1,7 @@
+import {
+  createVisitorJourney,
+  sampleVisitorJourney,
+} from '../app/visitor-travel.mjs';
 import { createHmac, randomBytes } from 'node:crypto';
 import { isIP } from 'node:net';
 import catalog from '../app/seat-catalog.json' with { type: 'json' };
@@ -106,9 +110,24 @@ export function createPresenceStore({
       if (people.delete(id)) revision++;
       return snapshot(ip);
     }
+    if (
+      current?.journey &&
+      now() < current.journey.at + current.journey.duration &&
+      !['heartbeat', 'leave'].includes(data.action)
+    )
+      throw Object.assign(new Error('正在走向新位置，等入座后再操作。'), {
+        status: 409,
+      });
     if (data.action === 'wake') {
       if (!current || current.posture !== 'rest')
         throw Object.assign(new Error('你现在没有躺下休息'), { status: 409 });
+      current.journey = createVisitorJourney(
+        current.seatId,
+        current.seatId,
+        'rest',
+        'sit',
+        now(),
+      );
       current.posture = 'sit';
       current.seen = now();
       delete current.gesture;
@@ -122,7 +141,7 @@ export function createPresenceStore({
         });
       if (current.posture === 'rest')
         throw Object.assign(new Error('先醒来再打招呼吧'), { status: 409 });
-      if (!['hello', 'heart'].includes(data.kind))
+      if (!['hello', 'heart', 'phone', 'coffee'].includes(data.kind))
         throw Object.assign(new Error('不支持的互动'), { status: 400 });
       if (
         current.lastGesture !== undefined &&
@@ -146,7 +165,8 @@ export function createPresenceStore({
         kind: data.kind,
         ...(data.targetId ? { targetId: data.targetId } : {}),
         at: now(),
-        expiresAt: now() + 6500,
+        expiresAt:
+          now() + (['phone', 'coffee'].includes(data.kind) ? 10000 : 6500),
       };
       return snapshot(ip);
     }
@@ -165,13 +185,87 @@ export function createPresenceStore({
     const appearance = validateAppearance(data.appearance, current?.appearance);
     // No await between checking and committing: competing requests cannot double-book.
     if (
-      [...people.values()].some((p) => p.seatId === data.seatId && p.id !== id)
+      [...people.values()].some(
+        (p) =>
+          p.id !== id &&
+          (p.seatId === data.seatId ||
+            (p.journey &&
+              now() < p.journey.at + p.journey.duration &&
+              p.journey.fromSeat === data.seatId)),
+      )
     )
       throw Object.assign(new Error('这个位置正在使用，请选择另一个空位'), {
         status: 409,
       });
     if (!current && people.size >= ids.size)
       throw Object.assign(new Error('座位已满，稍后再来坐坐'), { status: 409 });
+    let journey;
+    if (
+      current &&
+      (current.seatId !== data.seatId || current.posture !== data.action)
+    ) {
+      // One transfer uses the narrow shared passages at a time; seats remain independently usable.
+      if (
+        [...people.values()].some(
+          (p) =>
+            p.id !== id &&
+            p.journey &&
+            now() < p.journey.at + p.journey.duration,
+        )
+      )
+        throw Object.assign(new Error('通道上有人正在换座，稍等片刻再走。'), {
+          status: 409,
+        });
+      journey = createVisitorJourney(
+        current.seatId,
+        data.seatId,
+        current.posture || 'sit',
+        data.action,
+        now(),
+      );
+      if (!journey)
+        throw Object.assign(new Error('暂时没有安全路线，请选择附近的位置。'), {
+          status: 409,
+        });
+      // Check both furniture approaches against other seated visitors, including the shared banquette.
+      for (let t = 0; t <= journey.duration; t += 100) {
+        const sample = sampleVisitorJourney(
+          journey,
+          journey.at + t,
+          appearance.character,
+        );
+        if (
+          [...people.values()].some(
+            (p) =>
+              p.id !== id &&
+              (() => {
+                const other = createVisitorJourney(
+                  p.seatId,
+                  p.seatId,
+                  p.posture,
+                  p.posture,
+                  now(),
+                );
+                const point = sampleVisitorJourney(
+                  other,
+                  now(),
+                  p.appearance.character,
+                ).position;
+                return (
+                  Math.hypot(
+                    point[0] - sample.position[0],
+                    point[2] - sample.position[2],
+                  ) < 0.53
+                );
+              })(),
+          )
+        )
+          throw Object.assign(
+            new Error('这条路线有人，请选择另一处空位或稍后再走。'),
+            { status: 409 },
+          );
+      }
+    }
     people.set(id, {
       id,
       name,
@@ -180,6 +274,7 @@ export function createPresenceStore({
       posture: data.action === 'rest' ? 'rest' : 'sit',
       seen: now(),
       lastGesture: current?.lastGesture,
+      ...(journey ? { journey } : {}),
     });
     revision++;
     return snapshot(ip);

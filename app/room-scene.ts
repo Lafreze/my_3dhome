@@ -1876,6 +1876,27 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     () => refreshShadows(),
     assets,
   );
+  if (['localhost', '127.0.0.1'].includes(location.hostname))
+    Object.assign(window, {
+      __kuroVisitors: {
+        snapshot: visitors.snapshots,
+        seatPoint: (id: string) => {
+          const a = seatAnchors.get(id);
+          if (!a) return null;
+          const p = a.getWorldPosition(new T.Vector3()).project(camera),
+            r = renderer.domElement.getBoundingClientRect();
+          return {
+            x: r.left + ((p.x + 1) * r.width) / 2,
+            y: r.top + ((1 - p.y) * r.height) / 2,
+          };
+        },
+        camera: (position: number[], target: number[]) => {
+          camera.position.fromArray(position);
+          controls.target.fromArray(target);
+          controls.update();
+        },
+      },
+    });
   const tvScreen = televisionScreen(host, house.screen);
   const televisionTint = new T.Color('#a3bbc7');
   const computerScreen = televisionScreen(host, computerPanel, {
@@ -1987,7 +2008,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       return;
     }
     if (hit?.seatId) {
-      api.focusSeat(hit.seatId);
+      if (visitors.shouldFocusSeat(hit.seatId)) api.focusSeat(hit.seatId);
+      else if (hit.seatId === 'study-work') chairPulled = true;
       options.onSeatSelect(hit.seatId);
     } else if (hit?.id) {
       api.focus(hit.id);
@@ -2666,6 +2688,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       tvScreen.dispose();
       house.dispose();
       visitors.dispose();
+      if (['localhost', '127.0.0.1'].includes(location.hostname))
+        delete (window as Window & { __kuroVisitors?: unknown }).__kuroVisitors;
       landscape.dispose();
       const geometries = new Set<T.BufferGeometry>();
       scene.traverse((o) => {

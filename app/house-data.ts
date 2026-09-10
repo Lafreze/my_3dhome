@@ -111,10 +111,10 @@ export const newObjects = {
     kind: 'LISTENING',
     action: '播放 / 暂停',
   },
-  galleryCase: { name: '生成式项目', kind: 'GENERATIVE', action: '阅读项目' },
-  galleryGame: { name: 'Petoria · Web 游戏', kind: 'PLAY', action: '阅读项目' },
+  galleryCase: { name: '右侧展位', kind: 'GENERATIVE', action: '阅读项目' },
+  galleryGame: { name: '左侧展位', kind: 'PLAY', action: '阅读项目' },
   gallerySculpture: {
-    name: 'AI · 半导体项目',
+    name: '中央展位',
     kind: 'FEATURED',
     action: '阅读项目',
   },

@@ -18,7 +18,7 @@ for (const seat of seats) {
 assert.equal(normalizeIP('::ffff:127.0.0.1'), '127.0.0.1');
 assert.equal(normalizeIP('::1'), '127.0.0.1');
 let now = 10_000;
-const store = createPresenceStore({ now: () => now, ttl: 1000 });
+const store = createPresenceStore({ now: () => now, ttl: 120000 });
 const sit = (ip, seatId, name = '访客') =>
   store.mutate(ip, { action: 'sit', seatId, name });
 const a = sit('192.0.2.1', seats[0].id, '小森');
@@ -36,6 +36,7 @@ assert.equal(
 assert.equal(updated.visitors[0].id, a.me);
 assert.equal(updated.visitors[0].name, '新名字');
 assert.throws(() => sit('192.0.2.2', seats[1].id), { status: 409 });
+now += updated.visitors[0].journey.duration + 1;
 assert.throws(() => sit('192.0.2.1', 'invented'), { status: 400 });
 for (const name of ['', ' ', '<script>', '名'.repeat(17), '不\u200b可见'])
   assert.throws(() => sit('192.0.2.1', seats[0].id, name), { status: 400 });
@@ -58,7 +59,7 @@ assert.equal(
 for (let i = 1; i < seats.length; i++) sit(`198.51.100.${i}`, seats[i].id);
 assert.equal(store.snapshot('192.0.2.1').visitors.length, seats.length);
 assert.throws(() => sit('203.0.113.1', seats[1].id), { status: 409 });
-now += 750;
+now += 119750;
 store.mutate('198.51.100.0', { action: 'heartbeat' });
 now += 500;
 assert.equal(
@@ -66,7 +67,7 @@ assert.equal(
   1,
   'Only the connected visitor keeps their seat',
 );
-now += 501;
+now += 120001;
 assert.equal(store.snapshot('192.0.2.1').visitors.length, 0);
 
 // Bed occupancy remains atomic and one-per-IP across sitting and resting.
@@ -109,6 +110,7 @@ assert.equal(awake.visitors[0].appearance.character, 'fox');
 assert.throws(() => resting.mutate('192.0.2.10', { action: 'wake' }), {
   status: 409,
 });
+now += awake.visitors[0].journey.duration + 1;
 const other = resting.mutate('192.0.2.11', {
   action: 'sit',
   seatId: seats[0].id,
@@ -161,6 +163,9 @@ assert.throws(
     }),
   { status: 409 },
 );
+now +=
+  resting.snapshot('192.0.2.10').visitors.find((v) => v.id === sleep.me).journey
+    .duration + 1;
 const move = resting.mutate('192.0.2.10', {
   action: 'sit',
   seatId: seats[1].id,
@@ -172,11 +177,21 @@ assert.equal(
   move.visitors.find((v) => v.id === move.me).appearance.character,
   'fox',
 );
+assert.throws(
+  () =>
+    resting.mutate('192.0.2.12', {
+      action: 'rest',
+      seatId: bed,
+      name: '新访客',
+    }),
+  { status: 409 },
+);
+now += move.visitors.find((v) => v.id === move.me).journey.duration + 1;
 resting.mutate('192.0.2.12', { action: 'rest', seatId: bed, name: '新访客' });
 assert.equal(
   resting.snapshot('192.0.2.12').visitors.length,
   3,
-  'Moving releases the bed',
+  'Completing the walk releases the bed',
 );
 const request = {
   headers: { 'x-real-ip': '203.0.113.6' },
@@ -212,7 +227,11 @@ try {
       ),
     ),
   );
-  assert(responses.every((r) => r.status === 200));
+  assert(responses.some((r) => r.status === 200));
+  assert(
+    responses.every((r) => [200, 409].includes(r.status)),
+    'Rapid moves serialize while preserving the one-IP identity',
+  );
   const state = await (await fetch(url)).json();
   assert.equal(
     state.visitors.length,

@@ -497,6 +497,16 @@ function StudioHome() {
     if (id === 'computer') setModal('computer');
     api.current?.focus(id);
   };
+  const objectTitle = (id: ObjectId) => {
+    const index = (
+      { gallerySculpture: 0, galleryGame: 1, galleryCase: 2 } as Partial<
+        Record<ObjectId, number>
+      >
+    )[id];
+    return index === undefined
+      ? objects[id].name
+      : profile.projects[index]?.title || '待布置展位';
+  };
   const action = (id: ObjectId) => {
     if (['cafeMenu', 'cafeEspresso', 'cafePourOver'].includes(id)) {
       setCoffeeState(api.current?.coffeeSnapshot() || coffeeState);
@@ -845,7 +855,7 @@ function StudioHome() {
             }}
           >
             <span className="brand-dot" />
-            {objects[hover.id].name}
+            {objectTitle(hover.id)}
             <ArrowUpRight size={13} />
           </div>
         )}
@@ -861,7 +871,7 @@ function StudioHome() {
                 <X size={16} />
               </button>
             </div>
-            <h2>{objects[selected].name}</h2>
+            <h2>{objectTitle(selected)}</h2>
             {(studio.admin ||
               (!(selected in appearanceLabels) && selected !== 'cafeSeat') ||
               selected === 'controller') && (
@@ -1463,7 +1473,7 @@ function StudioHome() {
                   .map((id, i) => (
                     <button key={id} onClick={() => choose(id)}>
                       <small>{String(i + 1).padStart(2, '0')}</small>
-                      <span>{objects[id].name}</span>
+                      <span>{objectTitle(id)}</span>
                       <ArrowUpRight size={14} />
                     </button>
                   ))}

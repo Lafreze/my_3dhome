@@ -97,6 +97,10 @@ test('the runtime image includes every server settings dependency', async () => 
       await mkdir(dirname(to), { recursive: true });
       await copyFile(new URL(copy[1], root), to);
     }
+    const { createPresenceHandler } = await import(
+      pathToFileURL(join(dir, 'scripts/seat-presence.mjs'))
+    );
+    assert.equal(typeof createPresenceHandler(), 'function');
     const { createHouseHandler } = await import(
       pathToFileURL(join(dir, 'scripts/house-settings.mjs'))
     );

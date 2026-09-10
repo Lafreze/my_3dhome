@@ -1,3 +1,4 @@
+import { sampleVisitorJourney } from './visitor-travel.mjs';
 import { createWindowMotes } from './life-moments';
 import * as T from 'three';
 import { LifeEngine } from './life-engine';
@@ -134,18 +135,34 @@ export function createLifeScene(k: Options, session: LifeSession) {
       `${collectionCards[id].title}${saved ? '' : ' · 本次访问已记下'}`,
     ),
   );
+  let onlinePeople = k.visitors;
   const visitorFootprints = (people: Visitor[]) =>
     people.flatMap((p) => {
       const anchor = k.seats.get(p.seatId);
       if (!anchor) return [];
       anchor.updateWorldMatrix(true, false);
-      return [
-        {
-          id: p.id,
-          seatId: p.seatId,
-          position: anchor.getWorldPosition(new T.Vector3()).toArray() as Point,
-        },
-      ];
+      const position = anchor
+        .getWorldPosition(new T.Vector3())
+        .toArray() as Point;
+      if (p.journey && Date.now() < p.journey.at + p.journey.duration) {
+        const character = p.appearance?.character || 'bear',
+          now = Date.now();
+        return [
+          {
+            id: p.id,
+            seatId: p.seatId,
+            position: sampleVisitorJourney(p.journey, now, character)
+              .position as Point,
+          },
+          {
+            id: `${p.id}/route`,
+            seatId: p.journey.fromSeat,
+            position: sampleVisitorJourney(p.journey, now + 3800, character)
+              .position as Point,
+          },
+        ];
+      }
+      return [{ id: p.id, seatId: p.seatId, position }];
     });
   const engine = new LifeEngine(
     session.seed,
@@ -200,7 +217,8 @@ export function createLifeScene(k: Options, session: LifeSession) {
   function click(id: ActorId) {
     engine.interact(id, k.camera.position.toArray() as Point);
   }
-  let diagnosticEnabled = true;
+  let diagnosticEnabled = true,
+    visitorCheck = 0;
   function update(dt: number, environment: Environment) {
     if (disposed || document.hidden) return;
     if (!diagnosticEnabled) {
@@ -210,6 +228,18 @@ export function createLifeScene(k: Options, session: LifeSession) {
       return;
     }
     dock.visible = view === 'cafe' || view === 'overview';
+    visitorCheck += dt;
+    if (
+      visitorCheck > 0.2 &&
+      onlinePeople.some(
+        (p) => p.journey && Date.now() < p.journey.at + p.journey.duration,
+      )
+    ) {
+      const footprints = visitorFootprints(onlinePeople);
+      engine.setVisitors(footprints);
+      engine.yieldToVisitor(footprints.filter((p) => p.id.endsWith('/route')));
+      visitorCheck = 0;
+    }
     engine.update(dt, { view, environment, reduced, paused });
     pickup.visible =
       (view === 'cafe' || view === 'overview') &&
@@ -260,6 +290,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
       if (!model) continue;
       model.root.visible = a.visible;
       model.root.position.copy(position);
+      model.root.userData.moving = a.path.length > 0;
       const delta = Math.atan2(
         Math.sin(rotation - model.root.rotation.y),
         Math.cos(rotation - model.root.rotation.y),
@@ -452,6 +483,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
       reduced = value;
     },
     setVisitors(people: Visitor[]) {
+      onlinePeople = people;
       engine.setVisitors(visitorFootprints(people));
     },
     claimCoffee() {

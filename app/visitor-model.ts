@@ -1,3 +1,4 @@
+import { prepareStandingMorph } from './visitor-pose-morph';
 import * as T from 'three';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
 import { createVisitorEyelids } from './visitor-eyelids';
@@ -176,7 +177,9 @@ async function loadCharacter(character: Character) {
         }
       }
     redundant.forEach(releaseAssetTexture);
-    return [...seated, ...standing];
+    const parts = [...seated, ...standing];
+    await prepareStandingMorph(parts);
+    return parts;
   } catch (error) {
     disposeParts(seated);
     throw error;

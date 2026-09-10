@@ -20,6 +20,8 @@ COPY --from=build --chown=node:node /app/config/wall-art-library.json ./config/w
 COPY --from=build /app/scripts/start-server.sh ./scripts/start-server.sh
 COPY --from=build --chown=node:node /app/app/seat-catalog.json ./app/seat-catalog.json
 COPY --from=build --chown=node:node /app/app/visitor-appearance.json ./app/visitor-appearance.json
+COPY --from=build --chown=node:node /app/app/visitor-travel.mjs ./app/visitor-travel.mjs
+COPY --from=build --chown=node:node /app/config/visitor-routes.json ./config/visitor-routes.json
 ENV STUDIO_DATA_DIR=/data
 RUN command -v runuser
 EXPOSE 3000

@@ -75,6 +75,9 @@ export default function VisitorSeats({
       ...next,
       visitors: next.visitors.map((v) => ({
         ...v,
+        ...(v.journey
+          ? { journey: { ...v.journey, at: v.journey.at + offset } }
+          : {}),
         ...(v.gesture
           ? {
               gesture: {
@@ -223,7 +226,7 @@ export default function VisitorSeats({
   });
   async function submit(
     action: 'sit' | 'rest' | 'wake' | 'leave' | 'gesture',
-    kind?: 'hello' | 'heart',
+    kind?: 'hello' | 'heart' | 'phone' | 'coffee',
     targetId?: string,
     placement?: { seatId: string; name: string; appearance: typeof appearance },
   ) {
@@ -266,7 +269,7 @@ export default function VisitorSeats({
           /* Optional saved preferences. */
         }
       onClose();
-      if (action !== 'leave' && own)
+      if (action !== 'leave' && own && !own.journey)
         requestAnimationFrame(() => api.current?.focusSeat(own.seatId));
     } catch (e) {
       if (placement)
@@ -475,6 +478,22 @@ export default function VisitorSeats({
             <Sun size={16} />
             醒来，坐一会儿
           </button>
+        )}
+        {mine && !resting && (!seat || occupant?.id === mine.id) && (
+          <div className="visitor-actions">
+            <button
+              disabled={busy || !connected}
+              onClick={() => void submit('gesture', 'phone')}
+            >
+              看看手机
+            </button>
+            <button
+              disabled={busy || !connected}
+              onClick={() => void submit('gesture', 'coffee')}
+            >
+              喝口咖啡
+            </button>
+          </div>
         )}
         {mine && !resting && (!seat || occupant?.id === mine.id) && (
           <VisitorActions

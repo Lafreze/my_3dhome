@@ -272,6 +272,31 @@ export class LifeEngine {
         this.occupancy.available(n, id),
     );
   }
+  private yieldedUntil = new Map<ActorId, number>();
+  yieldToVisitor(ahead: { position: Point }[]) {
+    for (const a of Object.values(this.actors)) {
+      if (
+        !a.active ||
+        a.id === 'bird' ||
+        a.seated ||
+        (this.yieldedUntil.get(a.id) || 0) > this.clock
+      )
+        continue;
+      if (!ahead.some((v) => distance(v.position, a.position) < 1.7)) continue;
+      const candidates = this.eligible(a.id, a.room).filter(
+        (n) =>
+          distance(worldPoint(n), a.position) > 0.7 &&
+          !ahead.some((v) => distance(v.position, worldPoint(n)) < 2),
+      );
+      candidates.sort(
+        (x, y) =>
+          distance(worldPoint(x), a.position) -
+          distance(worldPoint(y), a.position),
+      );
+      if (candidates.some((n) => this.go(a, n, false)))
+        this.yieldedUntil.set(a.id, this.clock + 5);
+    }
+  }
   setVisitors(people: { id: string; seatId: string; position: Point }[]) {
     this.occupancy.setVisitors(people);
     const resident = this.actors.resident;
@@ -303,6 +328,7 @@ export class LifeEngine {
     }
     for (const v of people)
       if (
+        !v.id.endsWith('/route') &&
         !this.visitorGreetings.has(v.id) &&
         this.visibleRoom(resident.room) &&
         distance(v.position, resident.position) < 2.6

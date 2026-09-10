@@ -11,7 +11,11 @@ export type Seat = {
 };
 export const seats = catalog as Seat[];
 export const seatById = new Map(seats.map((seat) => [seat.id, seat]));
+export type VisitorJourney = NonNullable<
+  ReturnType<typeof import('./visitor-travel.mjs').createVisitorJourney>
+>;
 export type Visitor = {
+  journey?: VisitorJourney;
   id: string;
   name: string;
   seatId: string;
@@ -19,7 +23,7 @@ export type Visitor = {
   posture?: 'sit' | 'rest';
   gesture?: {
     id: string;
-    kind: 'hello' | 'heart';
+    kind: 'hello' | 'heart' | 'phone' | 'coffee';
     targetId?: string;
     at: number;
     expiresAt: number;

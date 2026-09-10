@@ -1,3 +1,7 @@
+import { roomAt } from './house-data';
+import { sampleVisitorJourney, visitorTravelNodes } from './visitor-travel.mjs';
+import { createVisitorProps, sampleSeatedActivity } from './visitor-props';
+import { motionRig } from './visitor-motion';
 import * as T from 'three';
 import type { RoomAssets } from './asset-loading';
 import type { Character } from './visitor-appearance';
@@ -57,7 +61,25 @@ export function createSeatScene(
     slotIds: string[];
     motion: T.InstancedBufferAttribute;
     rest: T.InstancedBufferAttribute;
+    activity: T.InstancedBufferAttribute;
   }[] = [];
+  const frames = new Map<
+    string,
+    { root: T.Group; props: ReturnType<typeof createVisitorProps> }
+  >();
+  function visitorFrame(id: string) {
+    let frame = frames.get(id);
+    if (!frame) {
+      const root = new T.Group();
+      root.name = `Visitor ${id}`;
+      const props = createVisitorProps();
+      root.add(props.root);
+      crowd.add(root);
+      frame = { root, props };
+      frames.set(id, frame);
+    }
+    return frame;
+  }
   const ownedMaterials: T.Material[] = [];
   const pickingGeometries: T.BufferGeometry[] = [];
   const states = new Map<string, { seed: number; value: T.Vector4 }>();
@@ -81,7 +103,7 @@ export function createSeatScene(
     person: Visitor,
     event: NonNullable<Visitor['gesture']>,
   ) {
-    const anchor = anchors.get(person.seatId);
+    const anchor = visitorFrame(person.id).root;
     if (!anchor) return;
     const key = person.id;
     if (reactions.get(key)?.event.id === event.id) {
@@ -168,6 +190,12 @@ export function createSeatScene(
           );
           rest.setUsage(T.DynamicDrawUsage);
           geometry.setAttribute('visitorInstanceRest', rest);
+          const activity = new T.InstancedBufferAttribute(
+            new Float32Array(seats.length * 4),
+            4,
+          );
+          activity.setUsage(T.DynamicDrawUsage);
+          geometry.setAttribute('visitorInstanceActivity', activity);
           const material = Array.isArray(part.material)
             ? part.material.map((m) => m.clone())
             : part.material.clone();
@@ -229,7 +257,7 @@ export function createSeatScene(
           mesh.count = 0;
           crowd.add(mesh);
           interactables.push(mesh);
-          meshes.push({ mesh, part, slotIds, motion, rest });
+          meshes.push({ mesh, part, slotIds, motion, rest, activity });
         }
         update(0, true);
         invalidate();
@@ -246,7 +274,12 @@ export function createSeatScene(
       current
         .filter((visitor) => {
           const anchor = anchors.get(visitor.seatId);
-          return anchor && isVisible(anchor);
+          return (
+            (anchor && isVisible(anchor)) ||
+            (visitor.journey &&
+              !!anchors.get(visitor.journey.fromSeat) &&
+              isVisible(anchors.get(visitor.journey.fromSeat)!))
+          );
         })
         .map((visitor) => readAppearance(visitor.appearance).character),
     );
@@ -272,8 +305,7 @@ export function createSeatScene(
     return true;
   }
   function label(visitor: Visitor) {
-    const anchor = anchors.get(visitor.seatId);
-    if (!anchor) return;
+    const anchor = visitorFrame(visitor.id).root;
     const character = readAppearance(visitor.appearance).character;
     const signature = `${visitor.name}/${visitor.id === me}/${character}/${visitor.posture}`;
     const previous = labels.get(visitor.seatId);
@@ -336,73 +368,209 @@ export function createSeatScene(
       );
       sprite.material.opacity = Math.min(1, (event.expiresAt - now) / 1400);
     }
-    const occupied = new Map(current.map((v) => [v.seatId, v]));
-    const visibleSeats = seats
-      .filter(
-        (s) =>
-          occupied.has(s.id) &&
-          anchors.has(s.id) &&
-          isVisible(anchors.get(s.id)!),
-      )
-      .map((seat) => {
-        const anchor = anchors.get(seat.id)!;
-        anchor.updateWorldMatrix(true, false);
-        return {
-          seat,
-          anchor,
-          visitor: occupied.get(seat.id)!,
-          appearance: readAppearance(occupied.get(seat.id)!.appearance),
+    const visibleVisitors = current.flatMap((visitor) => {
+      const seat = seatById.get(visitor.seatId),
+        anchor = anchors.get(visitor.seatId);
+      if (!seat || !anchor) return [];
+      const frame = visitorFrame(visitor.id),
+        appearance = readAppearance(visitor.appearance);
+      anchor.updateWorldMatrix(true, false);
+      let stand = 0,
+        rest = visitor.posture === 'rest' ? 1 : 0,
+        gait = 0,
+        moving = false;
+      const j = visitor.journey;
+      if (j && now < j.at + j.duration) {
+        const sample = sampleVisitorJourney(j, now, appearance.character);
+        stand = sample.stand;
+        rest = sample.rest;
+        gait = reduced ? 0 : sample.gait;
+        moving = true;
+        const p = new T.Vector3().fromArray(sample.position);
+        // Chair travel and the sitting edge of the bed use the real furniture anchors.
+        const actual = (id: string, posture: string) => {
+          const a = anchors.get(id)!,
+            spec = seatById.get(id)!;
+          if (spec.kind === 'bed') {
+            const local =
+              posture === 'rest'
+                ? new T.Vector3().fromArray(spec.offset)
+                : new T.Vector3(Math.sign(spec.offset[0]) * 1.19, 0.97, 0.34);
+            a.parent!.updateWorldMatrix(true, false);
+            return local.applyMatrix4(a.parent!.matrixWorld);
+          }
+          return a.getWorldPosition(new T.Vector3());
         };
-      });
-    for (const { visitor } of visibleSeats) {
+        const fromDelta = actual(j.fromSeat, j.fromPosture).sub(
+          new T.Vector3().fromArray(
+            visitorTravelNodes[j.fromSeat as keyof typeof visitorTravelNodes]
+              .position,
+          ),
+        );
+        const toDelta = actual(j.toSeat, j.toPosture).sub(
+          new T.Vector3().fromArray(
+            visitorTravelNodes[j.toSeat as keyof typeof visitorTravelNodes]
+              .position,
+          ),
+        );
+        const age = (now - j.at) / 1000;
+        if (!j.path.length) {
+          const f = T.MathUtils.smoothstep(age, 0, j.duration / 1000);
+          p.addScaledVector(fromDelta, 1 - f).addScaledVector(toDelta, f);
+          const fromYaw =
+            j.fromPosture === 'rest'
+              ? 0
+              : (Math.sign(seat.offset[0]) * Math.PI) / 2;
+          const toYaw =
+            j.toPosture === 'rest'
+              ? 0
+              : (Math.sign(seat.offset[0]) * Math.PI) / 2;
+          sample.yaw = T.MathUtils.lerp(fromYaw, toYaw, f);
+        } else if (sample.phase === 'rise' || sample.phase === 'exit')
+          p.addScaledVector(
+            fromDelta,
+            1 - T.MathUtils.smoothstep(age, j.rise, j.rise + j.exit),
+          );
+        else if (sample.phase === 'enter' || sample.phase === 'settle')
+          p.addScaledVector(
+            toDelta,
+            T.MathUtils.smoothstep(
+              age,
+              j.rise + j.exit + j.walk,
+              j.rise + j.exit + j.walk + j.enter,
+            ),
+          );
+        frame.root.position.copy(p);
+        frame.root.rotation.set(0, sample.yaw, 0);
+        const room = roomAt(p.x, p.z);
+        frame.root.visible =
+          !!room &&
+          seats.some(
+            (s) =>
+              s.room === room &&
+              anchors.has(s.id) &&
+              isVisible(anchors.get(s.id)!),
+          );
+      } else {
+        frame.root.position.setFromMatrixPosition(anchor.matrixWorld);
+        frame.root.quaternion.setFromRotationMatrix(anchor.matrixWorld);
+        frame.root.visible = isVisible(anchor);
+      }
+      frame.root.userData.moving = moving;
+      frame.root.updateMatrixWorld(true);
       let state = states.get(visitor.id);
       if (!state) {
         state = { seed: visitorSeed(visitor.id), value: new T.Vector4() };
         states.set(visitor.id, state);
       }
       sampleVisitorMotion(t, state.seed, reduced, state.value);
-      if (visitor.posture === 'rest')
+      const activity = moving
+        ? { kind: 0, amount: 0 }
+        : sampleSeatedActivity(visitor, t, reduced);
+      frame.props.update(
+        activity.kind,
+        activity.amount,
+        motionRig[appearance.character].neck,
+        appearance.character,
+      );
+      if (rest > 0)
         state.value.set(
-          1,
+          rest,
           0,
           reduced ? 0 : Math.sin(t * 1.18 + (state.seed % 100)) * 0.0018,
           0,
         );
+      else if (activity.kind)
+        state.value.w += activity.amount * (activity.kind === 1 ? 0.12 : -0.03);
       else if (visitor.gesture && !reduced) {
-        const age = (Date.now() - visitor.gesture.at) / 1000;
+        const age = (now - visitor.gesture.at) / 1000;
         if (age >= 0 && age < 5.2)
           state.value.w +=
             Math.sin(age * Math.PI * 2.2) *
             Math.sin((Math.PI * age) / 5.2) *
             0.085;
       }
-    }
-    for (const { mesh, part, slotIds, motion, rest } of meshes) {
+      const name = labels.get(visitor.seatId)?.sprite;
+      if (name) {
+        name.position.set(
+          0,
+          T.MathUtils.lerp(
+            appearanceOptions.characters.find(
+              (c) => c.id === appearance.character,
+            )!.labelHeight,
+            restPoses[appearance.character].labelHeight,
+            rest,
+          ),
+          -0.59 * rest,
+        );
+      }
+      if (!frame.root.visible) return [];
+      return [
+        {
+          seat,
+          anchor: frame.root,
+          visitor,
+          appearance,
+          stand,
+          rest,
+          gait,
+          moving,
+          activity,
+        },
+      ];
+    });
+    for (const { mesh, part, slotIds, motion, rest, activity } of meshes) {
       slotIds.length = 0;
-      for (let i = 0; i < visibleSeats.length; i++) {
-        const { seat, anchor, appearance, visitor } = visibleSeats[i];
-        if (!partVisible(part, appearance, visitor.posture || 'sit')) continue;
+      for (const record of visibleVisitors) {
+        const { seat, anchor, appearance, visitor } = record;
+        if (
+          !partVisible(
+            part,
+            appearance,
+            record.moving ? 'sit' : visitor.posture || 'sit',
+          )
+        )
+          continue;
         const index = slotIds.length;
         slotIds.push(seat.id);
         local.copy(part.matrix);
-        // A single continuous sitting pose follows the seat; no disconnected shin/boot scaling.
         transform.multiplyMatrices(anchor.matrixWorld, local);
         mesh.setMatrixAt(index, transform);
         const pose = states.get(visitor.id)!.value;
         motion.setXYZW(index, pose.x, pose.y, pose.z, pose.w);
-        rest.setX(index, visitor.posture === 'rest' ? 1 : 0);
+        rest.setX(index, record.rest);
+        activity.setXYZW(
+          index,
+          record.stand,
+          record.gait,
+          record.activity.kind,
+          record.activity.amount,
+        );
         if (part.tint) mesh.setColorAt(index, tint.set(appearance[part.tint]));
       }
       mesh.count = slotIds.length;
       mesh.instanceMatrix.needsUpdate = true;
-      motion.needsUpdate = true;
-      rest.needsUpdate = true;
+      motion.needsUpdate = rest.needsUpdate = activity.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.visible = slotIds.length > 0;
     }
   }
 
   return {
+    shouldFocusSeat: (id: string) =>
+      !current.some((v) => v.id === me) || current.some((v) => v.seatId === id),
+    snapshots: () =>
+      current.map((visitor) => {
+        const f = frames.get(visitor.id);
+        return {
+          id: visitor.id,
+          seatId: visitor.seatId,
+          position: f?.root.position.toArray(),
+          moving:
+            !!visitor.journey &&
+            Date.now() < visitor.journey.at + visitor.journey.duration,
+        };
+      }),
     refreshVisible,
     retry: () => refreshVisible(true),
     update,
@@ -410,6 +578,12 @@ export function createSeatScene(
       meshes.some(({ mesh }) => mesh.visible && mesh.count > 0),
     setVisitors(visitors: Visitor[], ownId: string) {
       current = visitors;
+      for (const [id, frame] of frames)
+        if (!visitors.some((v) => v.id === id)) {
+          frame.props.dispose();
+          frame.root.removeFromParent();
+          frames.delete(id);
+        }
       me = ownId;
       refreshVisible();
       const identities = new Set(visitors.map((v) => v.id));
@@ -439,7 +613,11 @@ export function createSeatScene(
       for (const id of reactions.keys())
         if (!identities.has(id)) clearReaction(id);
       for (const person of visitors)
-        if (person.gesture && person.gesture.expiresAt > Date.now()) {
+        if (
+          person.gesture &&
+          ['hello', 'heart'].includes(person.gesture.kind) &&
+          person.gesture.expiresAt > Date.now()
+        ) {
           showReaction(person, person.gesture);
           const target = visitors.find(
             (v) => v.id === person.gesture?.targetId,
@@ -494,6 +672,11 @@ export function createSeatScene(
     },
     dispose() {
       disposed = true;
+      for (const frame of frames.values()) {
+        frame.props.dispose();
+        frame.root.removeFromParent();
+      }
+      frames.clear();
       crowd.removeFromParent();
       highlight.removeFromParent();
       highlight.geometry.dispose();

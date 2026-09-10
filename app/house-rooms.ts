@@ -1,3 +1,4 @@
+import { createInteriorDoor } from './interior-doors';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { appearanceColor } from './studio-settings';
 import { wallArtUrl } from './wall-art-images';
@@ -1761,6 +1762,7 @@ export function buildHouse(k: Kit) {
   plant(roots.gallery, -2.9, 0.08, 2.34, 1.65);
 
   // Shared partitions contain real 1.4-unit door openings, aligned with each room's aisles.
+  const passageDoors: ReturnType<typeof createInteriorDoor>[] = [];
   const partitions: { base: T.Group; upper: T.Group; neighbours: RoomId[] }[] =
     [];
   function partition(
@@ -1798,6 +1800,7 @@ export function buildHouse(k: Kit) {
     }
     b(upper, 1.47, 0.07, 0.2, door, 2.74, 0, oak, 0.012);
     b(base, 1.4, 0.025, 0.26, door, 0.09, 0, paleWood, 0.005);
+    passageDoors.push(createInteriorDoor(upper, door, oak, brass, k.materials));
     partitions.push({ base, upper, neighbours });
     k.cutaways.add(
       [upper],
@@ -2259,6 +2262,15 @@ export function buildHouse(k: Kit) {
           amount,
         );
       });
+      const passers: T.Vector3[] = [];
+      k.scene.getObjectByName('Seated visitors')?.children.forEach((o) => {
+        if (o.userData.moving) passers.push(o.position);
+      });
+      for (const id of ['resident', 'rabbit', 'robot']) {
+        const actor = k.scene.getObjectByName(`life/${id}`);
+        if (actor?.userData.moving) passers.push(actor.position);
+      }
+      passageDoors.forEach((door) => door.update(dt, reduced, passers));
       cafe.update(t, dt, reduced, night, viewer);
       padSticks.forEach((stick, i) => {
         stick.rotation.x =

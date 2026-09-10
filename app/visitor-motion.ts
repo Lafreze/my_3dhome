@@ -1,3 +1,4 @@
+import { seatedHand, heldHand } from './visitor-hand-poses.ts';
 import * as T from 'three';
 import type { Character } from './visitor-appearance';
 import { visitorRestMatrix } from './visitor-rest.ts';
@@ -118,15 +119,46 @@ export function configureVisitorMotion(
   const rig = motionRig[character];
   const restTransform = { value: visitorRestMatrix(character) };
   material.customProgramCacheKey = () =>
-    `${previousKey}/idle-v3/${character}/${instanced}/${eyelid}`;
+    `${previousKey}/idle-v4/${character}/${instanced}/${eyelid}`;
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
     shader.uniforms.visitorMotion = state;
     shader.uniforms.visitorRest = resting;
+    shader.uniforms.visitorActivity = { value: new T.Vector4() };
     shader.uniforms.visitorRestTransform = restTransform;
     shader.vertexShader =
       `
       attribute vec2 visitorWeights;
+      attribute vec3 visitorStandPosition;
+      attribute vec3 visitorStandNormal;
+      ${instanced ? 'attribute vec4 visitorInstanceActivity;' : 'uniform vec4 visitorActivity;'}
+      vec4 visitorAction() { return ${instanced ? 'visitorInstanceActivity' : 'visitorActivity'}; }
+      vec3 visitorGait(vec3 p) {
+        vec4 action = visitorAction();
+        float weight = (1. - smoothstep(-.04, .045, p.y)) * smoothstep(.012, .075, abs(p.x));
+        ${character === 'fox' ? 'weight *= smoothstep(-.11, -.035, p.z);' : ''}
+        float phase=fract(action.y / 6.2831853 + (p.x < 0. ? .5 : 0.));
+        float swing=max(0.,(phase-.6)/.4);
+        float stepZ=phase<.6 ? .108-.36*phase : -.108+.216*(swing*swing*(3.-2.*swing));
+        float enabled=action.x*step(.001,abs(action.y));
+        p.z += stepZ*weight*enabled;
+        p.y += sin(swing*3.14159265)*.072*weight*enabled;
+        float arm=smoothstep(.11,.19,abs(p.x))*(1.-smoothstep(${(rig.neck - 0.08).toFixed(4)},${(rig.neck - 0.02).toFixed(4)},p.y))*smoothstep(-.08,.04,p.y);
+        p.z -= sin(action.y+(p.x<0.?3.14159265:0.))*.022*arm*enabled;
+        return p;
+      }
+      vec3 visitorHands(vec3 p) {
+        vec4 action = visitorAction();
+        if(action.z < .5 || action.x > .01) return p;
+        vec3 pivot=vec3(${seatedHand[character].join(',')});
+        vec3 target=action.z>1.5?vec3(${heldHand(character, rig.neck, 2).join(',')}):vec3(${heldHand(character, rig.neck, 1).join(',')});
+        float hand=1.-smoothstep(.055,.21,distance(p,pivot));
+        hand *= smoothstep(${(Math.abs(seatedHand[character][0]) * 0.75).toFixed(5)},${(Math.abs(seatedHand[character][0]) * 0.94).toFixed(5)},-p.x);
+        hand *= smoothstep(-.06,.015,p.y);
+        hand *= 1.-smoothstep(.205,.26,p.z);
+        p += (target-pivot)*hand*action.w;
+        return p;
+      }
       attribute vec3 visitorBlinkDelta;
       uniform mat4 visitorRestTransform;
       ${instanced ? 'attribute float visitorInstanceRest;' : 'uniform float visitorRest;'}
@@ -140,9 +172,11 @@ export function configureVisitorMotion(
       }
       vec3 visitorPose(vec3 p) {
         vec4 state = visitorState();
-        if(visitorResting() > .5) {
+        p = mix(p, visitorStandPosition, visitorAction().x);
+        p = visitorHands(visitorGait(p));
+        if(visitorResting() > 0.) {
           ${eyelid ? 'p = mix(visitorLidOpen, p, state.x);' : 'p += visitorBlinkDelta * state.x;'}
-          p = (visitorRestTransform * vec4(p, 1.)).xyz;
+          p = mix(p, (visitorRestTransform * vec4(p, 1.)).xyz, visitorResting());
           p.y += state.z * visitorWeights.y * (1. - visitorWeights.x);
           return p;
         }
@@ -169,6 +203,7 @@ export function configureVisitorMotion(
         '#include <beginnormal_vertex>',
         `#include <beginnormal_vertex>
         vec4 visitorNormalState = visitorState();
+        objectNormal = normalize(mix(objectNormal, visitorStandNormal, visitorAction().x));
         mat3 visitorNormalTransform = visitorResting() > .5 ? mat3(visitorRestTransform) : visitorTurn(visitorNormalState.y * visitorWeights.x,
           visitorNormalState.w * visitorWeights.x);
         objectNormal = normalize(visitorNormalTransform * objectNormal);
