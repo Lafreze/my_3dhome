@@ -2135,3 +2135,20 @@ a {
 .postcard-content img { width:100%; border-radius:12px; }
 .postcard-content p { font-size:12px; margin:16px 0; }
 .postcard-content a { margin-left:12px; }
+
+/* Read-only character cards; the wardrobe is the sole appearance editor. */
+.visitor-status { display:flex; align-items:center; gap:14px; padding:18px 14px; border-radius:16px; background:#e8ebdf; }
+.visitor-status div { display:grid; gap:5px; }
+.visitor-status small { color:#858b7c; font-size:11px; }
+.visitor-status strong { font-size:16px; font-weight:500; }
+.visitor-expressions { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:10px; }
+.visitor-expressions button { display:grid; gap:5px; justify-items:center; padding:12px 4px; border:1px solid #dce0d2; border-radius:13px; color:#69755e; font-size:11px; }
+.visitor-expressions span { font-family:Georgia,serif; font-size:23px; height:28px; }
+.visitor-expressions button:hover:not(:disabled) { background:#e7eadc; }
+.visitor-expressions button:disabled { opacity:.45; }
+.visitor-social { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:10px; }
+.visitor-social button { display:grid; gap:7px; justify-items:center; padding:12px 3px; border:1px solid #dce0d2; border-radius:13px; color:#69755e; font-size:12px; }
+.visitor-social button span { font-size:22px; }
+.visitor-social button:hover:not(:disabled) { background:#e7eadc; }
+.visitor-social button:disabled { opacity:.45; }
+.visitor-social small { grid-column:1/-1; color:#858b7c; font-size:11px; text-align:center; }

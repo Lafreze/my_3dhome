@@ -1,0 +1,6 @@
+{
+  "smile": { "label": "开心", "symbol": "⌣", "color": "#b87458" },
+  "curious": { "label": "好奇", "symbol": "?", "color": "#718472" },
+  "inspired": { "label": "灵感", "symbol": "✦", "color": "#b79655" },
+  "sleepy": { "label": "困困", "symbol": "z z", "color": "#7d879d" }
+}

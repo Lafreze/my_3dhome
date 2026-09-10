@@ -336,7 +336,7 @@ export const actorSpecs = {
     start: 'study.desk',
     name: '小屋主理人',
   },
-  cat: { radius: 0.28, speed: 0.45, start: 'study.cat', name: '小黑猫' },
+  cat: { radius: 0.28, speed: 0.21, start: 'study.cat', name: '小黑猫' },
   rabbit: {
     radius: 0.25,
     speed: 0.25,
@@ -366,6 +366,16 @@ export const eventRules = {
   greeting: { cooldown: 8, duration: 3 },
 } as const;
 export const collectionCards = {
+  'story.pressedLeaf': {
+    title: '手记里的叶子',
+    mark: '叶',
+    hint: '书桌上的小手记，夹着一片安静的绿。',
+  },
+  'story.drawer': {
+    title: '未寄出的明信片',
+    mark: '笺',
+    hint: '收藏抽屉里还有一封没寄出的问候。',
+  },
   'coffee.espresso': {
     title: '一口浓缩',
     mark: '浓',

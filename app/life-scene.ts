@@ -1,6 +1,7 @@
 import { sampleVisitorJourney } from './visitor-travel.mjs';
 import { createWindowMotes } from './life-moments';
 import * as T from 'three';
+import { createRobotDock } from './robot-details';
 import { LifeEngine } from './life-engine';
 import { rememberLifeStarts, type LifeSession } from './life-session';
 export { loadLifeSession } from './life-session';
@@ -53,12 +54,10 @@ export function createLifeScene(k: Options, session: LifeSession) {
   }
   k.interactables.push(k.cat.cat);
   // Charging pad sits against the café's open perimeter, outside the bedroom/bar restrictions.
-  const dock = new T.Group();
+  const charger = createRobotDock(),
+    dock = charger.root;
   dock.position.set(1.5, 0.09, 17.65);
   k.scene.add(dock);
-  const dockGeo = new T.CylinderGeometry(0.3, 0.3, 0.025, 24),
-    dockMat = new T.MeshStandardMaterial({ color: '#716f61', roughness: 0.8 });
-  dock.add(new T.Mesh(dockGeo, dockMat));
   const pickup = new T.Group();
   pickup.position.set(1.82, 1.555, 12.7);
   k.scene.add(pickup);
@@ -228,6 +227,8 @@ export function createLifeScene(k: Options, session: LifeSession) {
       return;
     }
     dock.visible = view === 'cafe' || view === 'overview';
+    if (dock.visible && !paused)
+      charger.update(engine.actors.robot.fsm.state === 'charging', dt, reduced);
     visitorCheck += dt;
     if (
       visitorCheck > 0.2 &&
@@ -486,6 +487,27 @@ export function createLifeScene(k: Options, session: LifeSession) {
       onlinePeople = people;
       engine.setVisitors(visitorFootprints(people));
     },
+    eventBusy: () => !!engine.events.active,
+    objectMoment() {
+      // User-driven small details defer the next automatic event without interrupting
+      // a bird already flying or a coffee already being poured.
+      engine.events.nextAutomatic = Math.max(
+        engine.events.nextAutomatic,
+        engine.clock + 25,
+      );
+    },
+    ringBell() {
+      const resident = engine.actors.resident;
+      if (
+        engine.events.active ||
+        !resident.active ||
+        resident.room !== 'cafe' ||
+        resident.path.length
+      )
+        return false;
+      click('resident');
+      return true;
+    },
     claimCoffee() {
       return engine.events.start(
         'coffee',
@@ -524,9 +546,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
       }
       const i = k.interactables.indexOf(k.cat.cat);
       if (i >= 0) k.interactables.splice(i, 1);
-      dockGeo.dispose();
-      dockMat.dispose();
-      dock.removeFromParent();
+      charger.dispose();
       cupGeo.dispose();
       cupMat.dispose();
       saucerGeo.dispose();

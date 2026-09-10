@@ -1,6 +1,7 @@
 // One four-beat walking cycle, driven by ground distance rather than elapsed time.
 export const catScale = 0.6;
-export const catStride = 0.3;
+// Short steps fit the supplied kitten's stubby legs; a long generic stride tears its belly.
+export const catStride = 0.14;
 export const catStance = 0.72;
 export const catRiseTime = 0.65;
 export const catSettleTime = 0.55;
@@ -14,7 +15,7 @@ export function sampleCatPaw(distance: number, leg: number) {
   const ease = swing * swing * (3 - 2 * swing);
   return {
     z: reach * (0.5 - ease),
-    y: Math.sin(swing * Math.PI) * 0.12,
+    y: Math.sin(swing * Math.PI) * 0.048,
     grounded: false,
   };
 }

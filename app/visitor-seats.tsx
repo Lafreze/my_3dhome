@@ -9,10 +9,8 @@ import {
   LoaderCircle,
   LogOut,
   LocateFixed,
-  Pencil,
   Smile,
   Sun,
-  Moon,
 } from 'lucide-react';
 import {
   Dialog,
@@ -24,6 +22,12 @@ import { rooms, type HouseView } from './house-data';
 import { seats, seatById, type Presence } from './seat-data';
 import type { RoomApi } from './room-data';
 import VisitorWardrobe from './visitor-wardrobe';
+import {
+  expressions,
+  social,
+  type Expression,
+  type SocialKind,
+} from './visitor-expression';
 import {
   appearanceStorageKey,
   defaultAppearance,
@@ -42,7 +46,9 @@ export default function VisitorSeats({
   onCount,
   selection,
   onNotice,
+  wardrobe,
 }: {
+  wardrobe: boolean;
   api: React.RefObject<RoomApi | null>;
   ready: boolean;
   open: boolean;
@@ -60,6 +66,7 @@ export default function VisitorSeats({
     [error, setError] = useState('');
   const [appearance, setAppearance] = useState({ ...defaultAppearance });
   const [connected, setConnected] = useState(false);
+  const [activity, setActivity] = useState('坐着歇一会儿');
   const snapshot = useRef<Presence | null>(null),
     request = useRef(0),
     mounted = useRef(true);
@@ -68,6 +75,15 @@ export default function VisitorSeats({
   const seat = selected ? seatById.get(selected) : null;
   const occupant = presence?.visitors.find((p) => p.seatId === selected);
   const occupiedByOther = !!occupant && occupant.id !== presence?.me;
+  useEffect(() => {
+    const id = occupant?.id || mine?.id;
+    if (!open || wardrobe || !id) return;
+    const update = () =>
+      setActivity(api.current?.visitorStatus(id) || '坐着歇一会儿');
+    update();
+    const timer = setInterval(update, 350);
+    return () => clearInterval(timer);
+  }, [open, wardrobe, occupant?.id, mine?.id, api]);
   function accept(next: Presence, seq: number) {
     if (!mounted.current || seq < request.current) return;
     const offset = next.serverTime ? Date.now() - next.serverTime : 0;
@@ -176,13 +192,13 @@ export default function VisitorSeats({
       setName(own?.name || saved || appearanceOptions.characters[0].label);
       setAppearance(readAppearance(own?.appearance || savedAppearance));
       setError('');
-      if (!selected && own) api.current?.focusSeat(own.seatId);
+      if (!wardrobe && !selected && own) api.current?.focusSeat(own.seatId);
     });
     return () => {
       active = false;
     };
-  }, [open, selected, api]);
-  // Scene selection never opens the wardrobe for a returning visitor changing seats.
+  }, [open, selected, wardrobe, api]);
+  // Only the physical wardrobe edits appearance. Even the first empty seat places immediately.
   useEffect(() => {
     selection.current = (id) => {
       const live = snapshot.current;
@@ -203,7 +219,7 @@ export default function VisitorSeats({
       } catch {
         /* Seating still works without storage. */
       }
-      if (taken || (!own && !savedName)) {
+      if (taken) {
         onChoose(id);
         return;
       }
@@ -215,7 +231,12 @@ export default function VisitorSeats({
         undefined,
         {
           seatId: id,
-          name: own?.name || savedName,
+          name:
+            own?.name ||
+            savedName ||
+            appearanceOptions.characters.find(
+              (c) => c.id === readAppearance(savedLook).character,
+            )!.label,
           appearance: readAppearance(own?.appearance || savedLook),
         },
       );
@@ -225,8 +246,8 @@ export default function VisitorSeats({
     };
   });
   async function submit(
-    action: 'sit' | 'rest' | 'wake' | 'leave' | 'gesture',
-    kind?: 'hello' | 'heart' | 'phone' | 'coffee',
+    action: 'sit' | 'rest' | 'wake' | 'leave' | 'gesture' | 'appearance',
+    kind?: 'hello' | 'heart' | Expression | SocialKind,
     targetId?: string,
     placement?: { seatId: string; name: string; appearance: typeof appearance },
   ) {
@@ -238,6 +259,13 @@ export default function VisitorSeats({
     const controller = new AbortController(),
       timeout = setTimeout(() => controller.abort(), 8000);
     try {
+      if (action === 'appearance' && !mine) {
+        localStorage.setItem('satori-visitor-name', name.trim());
+        localStorage.setItem(appearanceStorageKey, JSON.stringify(appearance));
+        onClose();
+        onNotice('造型已收好，下次入座就会穿上。');
+        return;
+      }
       const response = await fetch('/api/presence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -245,7 +273,7 @@ export default function VisitorSeats({
           action,
           seatId: placement?.seatId || selected,
           name: placement?.name || name,
-          ...(['sit', 'rest'].includes(action)
+          ...(['sit', 'rest', 'appearance'].includes(action)
             ? { appearance: placement?.appearance || appearance }
             : {}),
           ...(action === 'gesture'
@@ -258,7 +286,7 @@ export default function VisitorSeats({
       if (!response.ok) throw new Error(next.error || '操作没有完成，请重试');
       accept(next, ++request.current);
       const own = (next as Presence).visitors.find((v) => v.id === next.me);
-      if (action === 'sit' || action === 'rest')
+      if (action === 'sit' || action === 'rest' || action === 'appearance')
         try {
           localStorage.setItem('satori-visitor-name', own?.name || name.trim());
           localStorage.setItem(
@@ -269,7 +297,7 @@ export default function VisitorSeats({
           /* Optional saved preferences. */
         }
       onClose();
-      if (action !== 'leave' && own && !own.journey)
+      if (['sit', 'rest', 'wake'].includes(action) && own && !own.journey)
         requestAnimationFrame(() => api.current?.focusSeat(own.seatId));
     } catch (e) {
       if (placement)
@@ -305,37 +333,43 @@ export default function VisitorSeats({
       }}
     >
       <DialogContent
-        className={`visitor-dialog${seat && !occupiedByOther ? ' visitor-dialog-atelier' : ''}`}
+        className={`visitor-dialog${wardrobe ? ' visitor-dialog-atelier' : ''}`}
         aria-busy={busy}
       >
         <div className="visitor-mark">
           {bed ? <BedDouble size={22} /> : <LocateFixed size={22} />}
         </div>
         <DialogTitle>
-          {seat ? (occupiedByOther ? occupant?.name : seat.name) : '此刻在这里'}
+          {wardrobe
+            ? '衣柜 · 我的造型'
+            : occupant
+              ? occupant.name
+              : '此刻在这里'}
         </DialogTitle>
         <DialogDescription>
-          {seat
-            ? `${rooms[seat.room].name} · ${occupant ? (occupant.posture === 'rest' ? '正在休息' : occupant.id === presence?.me ? '你在这里' : seat.name) : '空闲'}`
-            : mine
-              ? '找到自己，也看看朋友在哪里'
-              : '给自己找个舒服的位置'}
+          {wardrobe
+            ? '挑选今天的衣服和颜色'
+            : occupant && seat
+              ? `${rooms[seat.room].name} · ${seat.name}${occupant.id === presence?.me ? ' · 我' : ''}`
+              : mine
+                ? '找到自己，也看看朋友在哪里'
+                : '给自己找个舒服的位置'}
         </DialogDescription>
         {!connected && (
           <output className="visitor-notice">正在连接工作室…</output>
         )}
-        {seat && !occupiedByOther && (
+        {wardrobe && (
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              void submit(bed ? 'rest' : 'sit');
+              void submit('appearance');
             }}
           >
             <VisitorWardrobe
               appearance={appearance}
               onChange={setAppearance}
               disabled={busy}
-              posture={bed ? 'rest' : 'sit'}
+              posture={mine?.posture === 'rest' ? 'rest' : 'sit'}
             >
               <label className="visitor-name">
                 昵称
@@ -353,7 +387,9 @@ export default function VisitorSeats({
               className="visitor-primary"
               type="submit"
               disabled={
-                !connected ||
+                (!!mine && !connected) ||
+                (!!mine?.journey &&
+                  Date.now() < mine.journey.at + mine.journey.duration) ||
                 busy ||
                 !name.trim() ||
                 Array.from(name.trim()).length > 16
@@ -361,32 +397,24 @@ export default function VisitorSeats({
             >
               {busy ? (
                 <LoaderCircle className="spin" size={16} />
-              ) : bed ? (
-                <Moon size={16} />
               ) : (
                 <Check size={16} />
               )}
-              {bed
-                ? occupant?.posture === 'rest'
-                  ? '保存'
-                  : '躺下休息'
-                : occupant
-                  ? '保存'
-                  : mine
-                    ? '换到这里'
-                    : '坐在这里'}
+              保存造型
             </button>
           </form>
         )}
-        {bed && !occupiedByOther && (
-          <div className="visitor-actions">
-            <button onClick={() => api.current?.interact('bedsideLamp')}>
-              <Moon size={16} />
-              床头灯
-            </button>
-          </div>
+        {!wardrobe && occupant && (
+          <output className="visitor-status">
+            <span className="visitor-initial">{occupant.name.slice(0, 1)}</span>
+            <div>
+              <small>当前动作</small>
+              <strong>{activity}</strong>
+            </div>
+          </output>
         )}
-        {occupiedByOther &&
+        {!wardrobe &&
+          occupiedByOther &&
           (occupant?.posture === 'rest' ? (
             <p className="visitor-notice">正在安静休息，稍后再打招呼吧。</p>
           ) : (
@@ -394,9 +422,18 @@ export default function VisitorSeats({
               disabled={busy || !connected || !mine || !!resting}
               onHello={() => void submit('gesture', 'hello', occupant?.id)}
               onHeart={() => void submit('gesture', 'heart', occupant?.id)}
+              onSocial={(kind) => void submit('gesture', kind, occupant?.id)}
+              socialDisabled={
+                !mine ||
+                seatById.get(mine.seatId)?.room !== seat?.room ||
+                (!!mine.journey &&
+                  Date.now() < mine.journey.at + mine.journey.duration) ||
+                (!!occupant?.journey &&
+                  Date.now() < occupant.journey.at + occupant.journey.duration)
+              }
             />
           ))}
-        {!seat && (
+        {!wardrobe && !seat && (
           <div className="visitor-people">
             {mine ? (
               <section className="visitor-self">
@@ -413,13 +450,6 @@ export default function VisitorSeats({
                     </small>
                   </span>
                   <span className="visitor-locate-label">定位</span>
-                </button>
-                <button
-                  className="visitor-edit"
-                  aria-label="编辑我的角色"
-                  onClick={() => onChoose(mine.seatId)}
-                >
-                  <Pencil size={14} />
                 </button>
               </section>
             ) : (
@@ -469,7 +499,7 @@ export default function VisitorSeats({
             )}
           </div>
         )}
-        {mine && resting && (!seat || occupant?.id === mine.id) && (
+        {!wardrobe && mine && resting && !seat && (
           <button
             className="visitor-primary"
             disabled={busy || !connected}
@@ -479,35 +509,28 @@ export default function VisitorSeats({
             醒来，坐一会儿
           </button>
         )}
-        {mine && !resting && (!seat || occupant?.id === mine.id) && (
-          <div className="visitor-actions">
-            <button
-              disabled={busy || !connected}
-              onClick={() => void submit('gesture', 'phone')}
-            >
-              看看手机
-            </button>
-            <button
-              disabled={busy || !connected}
-              onClick={() => void submit('gesture', 'coffee')}
-            >
-              喝口咖啡
-            </button>
-          </div>
-        )}
-        {mine && !resting && (!seat || occupant?.id === mine.id) && (
-          <VisitorActions
-            disabled={busy || !connected}
-            onHello={() => void submit('gesture', 'hello')}
-            onHeart={() => void submit('gesture', 'heart')}
-          />
-        )}
+        {!wardrobe &&
+          mine &&
+          !resting &&
+          (!seat || occupant?.id === mine.id) && (
+            <VisitorActions
+              disabled={
+                busy ||
+                !connected ||
+                (!!mine.journey &&
+                  Date.now() < mine.journey.at + mine.journey.duration)
+              }
+              onHello={() => void submit('gesture', 'hello')}
+              onHeart={() => void submit('gesture', 'heart')}
+              onExpression={(kind) => void submit('gesture', kind)}
+            />
+          )}
         {error && (
           <p className="visitor-error" role="alert">
             {error}
           </p>
         )}
-        {seat && (
+        {!wardrobe && seat && (
           <button
             className="visitor-secondary"
             onClick={() => onChoose('')}
@@ -516,7 +539,7 @@ export default function VisitorSeats({
             查看在线角色
           </button>
         )}
-        {mine && (
+        {!wardrobe && !seat && mine && (
           <button
             className="visitor-leave"
             disabled={busy || !connected}
@@ -535,21 +558,58 @@ function VisitorActions({
   disabled,
   onHello,
   onHeart,
+  onExpression,
+  onSocial,
+  socialDisabled = false,
 }: {
+  onExpression?: (kind: Expression) => void;
+  onSocial?: (kind: SocialKind) => void;
+  socialDisabled?: boolean;
   disabled: boolean;
   onHello: () => void;
   onHeart: () => void;
 }) {
   return (
-    <div className="visitor-actions">
-      <button disabled={disabled} onClick={onHello}>
-        <Smile size={16} />
-        点头致意
-      </button>
-      <button disabled={disabled} onClick={onHeart}>
-        <Heart size={16} />
-        送个心意
-      </button>
+    <div>
+      <div className="visitor-actions">
+        <button disabled={disabled} onClick={onHello}>
+          <Smile size={16} />
+          点头致意
+        </button>
+        <button disabled={disabled} onClick={onHeart}>
+          <Heart size={16} />
+          送个心意
+        </button>
+      </div>
+      {onSocial && (
+        <div className="visitor-social">
+          {Object.entries(social).map(([kind, item]) => (
+            <button
+              key={kind}
+              disabled={disabled || socialDisabled}
+              onClick={() => onSocial(kind as SocialKind)}
+            >
+              <span aria-hidden="true">{item.symbol}</span>
+              {item.label}
+            </button>
+          ))}
+          {socialDisabled && <small>在同一房间坐好后，就可以互动了。</small>}
+        </div>
+      )}
+      {onExpression && (
+        <div className="visitor-expressions" aria-label="选择表情">
+          {Object.entries(expressions).map(([kind, expression]) => (
+            <button
+              key={kind}
+              disabled={disabled}
+              onClick={() => onExpression(kind as Expression)}
+            >
+              <span aria-hidden="true">{expression.symbol}</span>
+              {expression.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

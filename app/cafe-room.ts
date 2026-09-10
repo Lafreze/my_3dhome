@@ -7,7 +7,7 @@ import {
 } from './coffee-state';
 import { createSteamEffect } from './steam-effect';
 import type { InteriorBreeze } from './interior-atmosphere';
-import { addOakFloor } from './house-finishes';
+import { addOakFloor, makeSurface } from './house-finishes';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -67,7 +67,7 @@ export function buildCafe(k: Kit) {
       m,
       localPbr(k.assets, textures, 'leather_white', new T.Vector2(2, 2), false),
     );
-    m.normalScale.set(0.3, 0.3);
+    m.normalScale.set(0.16, 0.16);
   }
   const green = mat('#829077', 0.78),
     plaster = k.cream,
@@ -83,6 +83,10 @@ export function buildCafe(k: Kit) {
     crumb = mat('#ce8b44', 0.85),
     cocoa = mat('#4f2c20', 0.8),
     leaf = mat('#456644', 0.88);
+  const steelFinish = makeSurface('brushed-metal', textures);
+  steel.bumpMap = steelFinish.bumpMap;
+  steel.bumpScale = steelFinish.bumpScale;
+  steel.roughnessMap = steelFinish.roughnessMap;
   k.breeze.add(leaf);
   const glass = k.glass;
   const stone = mat('#ddd2bc', 0.45);
@@ -116,8 +120,11 @@ export function buildCafe(k: Kit) {
   mineral.anisotropy = 8;
   textures.push(mineral);
   stone.map = mineral;
-  stone.bumpMap = mineral;
-  stone.bumpScale = 0.004;
+  const mineralRelief = mineral.clone();
+  mineralRelief.colorSpace = T.NoColorSpace;
+  textures.push(mineralRelief);
+  stone.bumpMap = mineralRelief;
+  stone.bumpScale = 0.0015;
   const glow = mat('#fff2d7', 0.4);
   glow.emissive.set('#ffcb82');
   glow.emissiveIntensity = 0.65;
@@ -316,6 +323,8 @@ export function buildCafe(k: Kit) {
     paint(lines);
     return paint;
   }
+  const cupGlazes = [ceramic, mat('#879885', 0.28), mat('#8e9eaa', 0.29)];
+  const cork = mat('#ae946e', 0.97);
   const warmCups: { group: T.Group; size: number }[] = [];
   function cup(
     p: T.Object3D,
@@ -326,8 +335,14 @@ export function buildCafe(k: Kit) {
     latte = false,
     filled = true,
     saucer = true,
+    glaze = ceramic,
+    coaster = false,
   ) {
     const g = child(p, x, y, z);
+    if (coaster) {
+      g.position.y += 0.017;
+      cyl(g, size * 1.65, size * 1.65, 0.014, 0, -0.029, 0, cork);
+    }
     if (filled && warmCups.length < 8) warmCups.push({ group: g, size });
     lathe(
       g,
@@ -341,7 +356,7 @@ export function buildCafe(k: Kit) {
         [size * 0.64, 0.04],
         [0, 0.04],
       ],
-      ceramic,
+      glaze,
     );
     // An open C-shaped handle joins the outside wall; a full torus used to protrude into the drink.
     tube(
@@ -354,7 +369,7 @@ export function buildCafe(k: Kit) {
         [size * 0.8, size * 0.38, 0],
       ],
       size * 0.115,
-      ceramic,
+      glaze,
     );
     if (filled)
       cyl(
@@ -379,7 +394,7 @@ export function buildCafe(k: Kit) {
           [size, 0.022],
           [0, 0.019],
         ],
-        ceramic,
+        glaze,
         0,
         -0.022,
         0,
@@ -491,6 +506,7 @@ export function buildCafe(k: Kit) {
   k.cutaways.add([east], { x: 11.91, z: 14.2, nx: -1, nz: 0 }, ['cafe']);
   // Shared northern walls are built by the house shell. These are the cafe-side finishes.
   const north = child(root);
+  north.name = 'cafe/north-wall';
   for (const [a, b] of [
     [-7.9, -2.07],
     [-0.63, 4.88],
@@ -624,8 +640,20 @@ export function buildCafe(k: Kit) {
       box(north, 0.04, 0.32, 0.035, x, y - 0.16, -3.82, black);
       rod(north, [x, y - 0.28, -3.82], [x, y - 0.035, -3.49], 0.012, black);
     }
-    for (let i = 0; i < 7; i++)
-      cup(north, -7.34 + i * 0.24, y + 0.056, -3.59, 0.075, false, false);
+    for (const i of [0, 1, 2, 4, 5]) {
+      const c = cup(
+        north,
+        -7.34 + i * 0.27,
+        y + 0.056,
+        -3.59,
+        0.075,
+        false,
+        false,
+        true,
+        cupGlazes[(i + Math.round(y)) % 3],
+      );
+      c.rotation.y = [0.3, -0.6, 0.9][i % 3];
+    }
   }
   // Slim menu boards form a coherent backdrop, with a changeable daily special.
   const menu = object('cafeMenu');
@@ -1057,19 +1085,32 @@ export function buildCafe(k: Kit) {
   const pour = child(brew);
   const pourStream = cyl(pour, 0.006, 0.006, 1, 0, 0, 0, steel, 8);
   pour.visible = false;
-  // Merchandise is part of the back bar, with folded bags, valve seals and shelf labels.
+  // A supported group on the free left side of the back counter, clear of the sink.
+  const coffeeStorage = child(back, -1.5, 1.44, 0.04);
+  coffeeStorage.name = 'coffee-storage-tray';
+  box(coffeeStorage, 1.04, 0.012, 0.26, 0, 0.006, 0, wood, 0.012);
   for (let i = 0; i < 4; i++) {
-    const x = -2.76 + i * 0.22;
-    box(north, 0.17, 0.3, 0.11, x, 1.6, -3.36, i % 2 ? green : tan, 0.012);
-    box(north, 0.16, 0.03, 0.13, x, 1.76, -3.36, brass, 0.004);
+    const x = -0.33 + i * 0.22;
+    box(
+      coffeeStorage,
+      0.17,
+      0.3,
+      0.11,
+      x,
+      0.163,
+      0,
+      i % 2 ? green : tan,
+      0.012,
+    );
+    box(coffeeStorage, 0.18, 0.03, 0.13, x, 0.323, 0, brass, 0.004);
     textPanel(
-      north,
+      coffeeStorage,
       [i % 2 ? 'BLEND' : 'ORIGIN'],
       0.115,
       0.15,
       x,
-      1.6,
-      -3.294,
+      0.163,
+      0.058,
       '#ece0bd',
       '#294936',
     );
@@ -1154,8 +1195,32 @@ export function buildCafe(k: Kit) {
   }
   for (const [index, t] of cafeBistroTables.entries()) {
     const g = table(t.x, t.z, t.width, t.depth);
-    if (index === 0) cup(g, 0.18, 1.239, -0.18, 0.11, true);
-    if (index === 1) cup(g, 0.18, 1.239, -0.18, 0.11, false, false);
+    if (index === 0)
+      cup(
+        g,
+        0.18,
+        1.239,
+        -0.18,
+        0.11,
+        true,
+        true,
+        true,
+        cupGlazes[1],
+        true,
+      ).rotation.y = -0.4;
+    if (index === 1)
+      cup(
+        g,
+        0.18,
+        1.239,
+        -0.18,
+        0.11,
+        false,
+        false,
+        true,
+        cupGlazes[2],
+        true,
+      ).rotation.y = 1.2;
     if (index !== 0) continue;
     box(g, 0.21, 0.01, 0.3, -0.22, 1.231, 0.16, plaster, 0.002);
     cyl(g, 0.055, 0.05, 0.14, -0.25, 1.304, -0.2, ceramic);

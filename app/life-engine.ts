@@ -1096,6 +1096,8 @@ export class LifeEngine {
                   : 0),
           ),
         );
+        if (robot.fsm.state === 'charging' && robot.battery < 90)
+          robot.stayUntil = Math.max(robot.stayUntil, this.clock + 5);
         if (!robot.path.length && this.clock > robot.stayUntil) {
           const goal =
             robot.battery < 25

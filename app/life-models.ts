@@ -1,4 +1,6 @@
 import * as T from 'three';
+import { attachRobotHardware } from './robot-details';
+import { humanHeight } from './character-scale.mjs';
 import { appearanceOptions } from './visitor-appearance';
 import type { ActorId, ActorState } from './life-data';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
@@ -102,7 +104,6 @@ export async function attachActorAsset(
 export function createActorModel(id: Exclude<ActorId, 'cat'>): ActorModel {
   const root = new T.Group();
   root.name = `life/${id}`;
-  if (id === 'resident') root.scale.set(0.78, 1.16, 0.78);
   root.userData.actorId = id;
   const geos = new Set<T.BufferGeometry>(),
     mats = new Set<T.Material>();
@@ -252,6 +253,7 @@ export function createActorModel(id: Exclude<ActorId, 'cat'>): ActorModel {
     ball(body, 0, 0.179, -0.12, 0.036, 0.006, 0.011, mat('#839f86'));
     head.visible = false;
   }
+  const hardware = id === 'robot' ? attachRobotHardware(body) : null;
   // Secondary actors use one inexpensive contact disc, not moving shadow-map casters.
   const shadowGeo = new T.CircleGeometry(
     id === 'resident' ? 0.28 : id === 'robot' ? 0.26 : 0.18,
@@ -277,10 +279,21 @@ export function createActorModel(id: Exclude<ActorId, 'cat'>): ActorModel {
         (o.geometry.index?.count ?? o.geometry.getAttribute('position').count) /
         3;
   });
+  if (id === 'resident') {
+    const size = new T.Box3().setFromObject(body).getSize(new T.Vector3());
+    root.scale.setScalar(humanHeight / size.y);
+  }
   return {
     root,
     triangles,
     animate(state, t, dt, reduced, seated = false, motion) {
+      hardware?.update(
+        motion?.travelDistance ?? 0,
+        !!motion?.moving,
+        state === 'charging',
+        dt,
+        reduced,
+      );
       const wave = reduced ? 0 : Math.sin(t * 3),
         walking = ['walk', 'hop', 'cleaning', 'returnToDock'].includes(state);
       body.position.set(0, 0, 0);
@@ -384,6 +397,7 @@ export function createActorModel(id: Exclude<ActorId, 'cat'>): ActorModel {
       }
     },
     dispose() {
+      hardware?.dispose();
       geos.forEach((g) => g.dispose());
       mats.forEach((m) => m.dispose());
       root.removeFromParent();

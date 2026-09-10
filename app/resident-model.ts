@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { humanScale } from './character-scale.mjs';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
 import { assetManifest } from './asset-url';
 import type { ActorModel } from './life-models';
@@ -124,7 +125,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
   model.root.children.forEach((o) => {
     o.visible = o instanceof T.Mesh && o.geometry instanceof T.CircleGeometry;
   });
-  model.root.scale.setScalar(1.05);
+  model.root.scale.setScalar(humanScale('resident'));
   model.root.add(avatar);
   model.triangles = triangles;
   model.root.userData.assetId = residentAssetId;
@@ -156,13 +157,12 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
             ((motion?.travelDistance ?? t * 0.62) / 0.68) * Math.PI * 2,
           ) *
           (1 - sitBlend) *
-          0.22
+          0.08
         : 0;
     legs.forEach((leg, i) => {
       const stride = walk * (i ? 1 : -1);
       leg.thigh.rotation.x = 1.38 * sitBlend + 0.6 * crouchBlend + stride;
-      leg.shin.rotation.x =
-        -1.38 * sitBlend - 1.05 * crouchBlend - Math.max(0, -stride) * 0.7;
+      leg.shin.rotation.x = -1.38 * sitBlend - 1.05 * crouchBlend;
       leg.foot.rotation.x = 0.08 * sitBlend + 0.35 * crouchBlend;
     });
     spine.rotation.x = 0.2 * crouchBlend;

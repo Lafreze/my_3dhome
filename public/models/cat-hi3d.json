@@ -12,6 +12,6 @@
   "sourceBones": 0,
   "sourceAnimations": [],
   "textures": "1024px original PBR colors",
-  "animation": "Existing distance-driven four-paw gait, runtime body/head/tail and 4 two-link legs; no second cat controller.",
-  "runtimeBones": 16
+  "animation": "Existing distance-driven short four-paw gait; 4 measured rigid paw controls with soft upper-leg weights and body/head/tail controls; no second cat controller.",
+  "runtimeBones": 8
 }

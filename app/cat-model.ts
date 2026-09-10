@@ -79,29 +79,17 @@ export async function loadCatVisual(
   const head = add('cat.head', [0, 0.46, -0.24]);
   const tail = add('cat.tail', [0, 0.31, 0.27]);
   const tip = add('cat.tailTip', [0, 0.5, 0.43]);
-  const legs = [0, 1, 2, 3].map((i) => {
-    const side = i % 2 ? 1 : -1,
-      front = i < 2;
-    const x = side * (front ? 0.11 : 0.115),
-      z = front ? -0.255 : 0.235;
-    const hip = new T.Vector3(x, 0.285, z);
-    const knee = new T.Vector3(x, 0.155, z + (front ? 0.025 : -0.045));
-    const paw = new T.Vector3(x, 0.05, z + (front ? -0.025 : 0.025));
-    const upper = add(`cat.upper.${i}`, hip.toArray()),
-      lower = add(`cat.lower.${i}`, knee.toArray()),
-      foot = add(`cat.paw.${i}`, paw.toArray());
-    return {
-      front,
-      hip,
-      knee,
-      paw,
-      upper,
-      lower,
-      foot,
-      upperAxis: knee.clone().sub(hip).normalize(),
-      lowerAxis: paw.clone().sub(knee).normalize(),
-    };
-  });
+  // Four measured paw anchors from this asymmetric sculpture. Keep each paw rigid.
+  // The previous generic two-link IK bent the belly and used legs longer than the mesh.
+  const legs = [
+    [-0.145, 0.045, -0.195],
+    [0.057, 0.045, -0.232],
+    [-0.082, 0.045, 0.302],
+    [0.136, 0.045, 0.236],
+  ].map((position, i) => ({
+    paw: new T.Vector3(...position),
+    foot: add(`cat.paw.${i}`, position),
+  }));
   root.updateMatrixWorld(true);
   const skeleton = new T.Skeleton(bones);
   let triangles = 0;
@@ -124,19 +112,26 @@ export async function loadCatVisual(
       const tailWeight = smooth(0.23, 0.35, z) * smooth(0.29, 0.4, y);
       const headWeight =
         smooth(0.38, 0.49, y) * (1 - smooth(0.06, 0.17, z)) * (1 - tailWeight);
-      const legWeight =
-        (1 - smooth(0.19, 0.31, y)) * (1 - tailWeight) * (1 - headWeight);
-      const leg = legs[(z < 0 ? 0 : 2) + (x > 0 ? 1 : 0)];
-      const lower = 1 - smooth(0.13, 0.2, y),
-        paw = 1 - smooth(0.065, 0.105, y);
       const tailTip = smooth(0.43, 0.59, y);
       weight(tail, tailWeight * (1 - tailTip));
       weight(tip, tailWeight * tailTip);
       weight(head, headWeight);
-      weight(leg.upper, legWeight * (1 - lower));
-      weight(leg.lower, legWeight * lower * (1 - paw));
-      weight(leg.foot, legWeight * lower * paw);
-      weight(body, Math.max(0, 1 - tailWeight - headWeight - legWeight));
+      const pawWeights = legs.map((leg) => {
+        const radial = Math.hypot(x - leg.paw.x, z - leg.paw.z);
+        // Bind the whole paw; blend only in the furry upper leg. The central
+        // underside belongs to the torso, never whichever quadrant it falls in.
+        return (
+          (1 - smooth(0.065, 0.255, y)) *
+          (1 - smooth(0.072, 0.21, radial)) *
+          (1 - tailWeight) *
+          (1 - headWeight)
+        );
+      });
+      const totalPaws = pawWeights.reduce((sum, w) => sum + w, 0);
+      const available = Math.max(0, 1 - tailWeight - headWeight);
+      const factor = totalPaws > available ? available / totalPaws : 1;
+      legs.forEach((leg, k) => weight(leg.foot, pawWeights[k] * factor));
+      weight(body, Math.max(0, available - totalPaws * factor));
       influences.sort((a, b) => b[1] - a[1]);
       const top = influences.slice(0, 4),
         sum = top.reduce((s, v) => s + v[1], 0);
@@ -163,54 +158,24 @@ export async function loadCatVisual(
     mesh.bind(skeleton, new T.Matrix4());
     triangles += (geometry.index?.count ?? positions.count) / 3;
   }
-  const hip = new T.Vector3(),
-    knee = new T.Vector3(),
-    paw = new T.Vector3(),
-    axis = new T.Vector3();
   const animate = (pose: CatRigPose) => {
-    const drop = -0.12 * (1 - pose.standing),
-      breath = pose.reduced ? 0 : Math.sin(pose.time * 1.3) * 0.002;
+    // A sculpture's resting posture needs a small crouch, not a flattened torso.
+    const drop = -0.024 * (1 - pose.standing),
+      breath = pose.reduced ? 0 : Math.sin(pose.time * 1.3) * 0.0015;
     body.position.y = 0.3 + drop + breath;
     head.position.y = 0.46 + drop + breath;
-    head.rotation.set(-pose.headPitch * 0.45, pose.headYaw * 0.6, 0);
+    head.rotation.set(-pose.headPitch * 0.32, pose.headYaw * 0.4, 0);
     tail.position.y = 0.31 + drop;
     tip.position.y = 0.5 + drop;
-    const sway = pose.reduced ? 0 : Math.sin(pose.time * 0.8) * 0.025;
+    const sway = pose.reduced ? 0 : Math.sin(pose.time * 0.8) * 0.018;
     tail.rotation.z = sway;
     tip.rotation.z = sway * 1.5;
-    for (let i = 0; i < legs.length; i++) {
-      const leg = legs[i],
-        step = sampleCatPaw(pose.distance, i);
-      hip.copy(leg.hip);
-      hip.y += drop + breath;
-      paw.copy(leg.paw);
-      paw.z += step.z * pose.standing;
-      paw.y += step.y * pose.standing * pose.movement;
-      const dy = paw.y - hip.y,
-        dz = paw.z - hip.z,
-        reach = Math.max(0.001, Math.hypot(dy, dz));
-      const bend = Math.sqrt(Math.max(0, 0.17 ** 2 - (reach * 0.5) ** 2)),
-        direction = leg.front ? -1 : 1;
-      knee.set(
-        hip.x,
-        Math.max(
-          0.07,
-          (hip.y + paw.y) * 0.5 - ((direction * dz) / reach) * bend,
-        ),
-        (hip.z + paw.z) * 0.5 + ((direction * dy) / reach) * bend,
-      );
-      leg.upper.position.copy(hip);
-      leg.lower.position.copy(knee);
-      leg.foot.position.copy(paw);
-      leg.upper.quaternion.setFromUnitVectors(
-        leg.upperAxis,
-        axis.subVectors(knee, hip).normalize(),
-      );
-      leg.lower.quaternion.setFromUnitVectors(
-        leg.lowerAxis,
-        axis.subVectors(paw, knee).normalize(),
-      );
-    }
+    legs.forEach((leg, i) => {
+      const step = sampleCatPaw(pose.distance, i);
+      leg.foot.position.copy(leg.paw);
+      leg.foot.position.z += step.z * pose.standing;
+      leg.foot.position.y += step.y * pose.standing * pose.movement;
+    });
     root.updateMatrixWorld(true);
     skeleton.update();
   };

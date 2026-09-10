@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { BufferGeometry, Float32BufferAttribute, Box3, Vector3 } from 'three';
 import { visitorRestMatrix, prepareRestGeometry } from '../app/visitor-rest.ts';
+import { humanScale } from '../app/character-scale.mjs';
 import seats from '../app/seat-catalog.json' with { type: 'json' };
 import poses from '../app/visitor-rest-poses.json' with { type: 'json' };
 import appearances from '../app/visitor-appearance.json' with { type: 'json' };
@@ -166,6 +167,8 @@ for (const { id: character } of appearances.characters) {
       standing.max.x - standing.min.x > 1,
       'Original nine tails stay full-width',
     );
+  resting.min.multiplyScalar(humanScale(character));
+  resting.max.multiplyScalar(humanScale(character));
   for (const bed of seats.filter((s) => s.kind === 'bed')) {
     assert(
       bed.offset[0] + resting.min.x > -1.395 &&

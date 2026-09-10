@@ -16,6 +16,9 @@ import { createWallCutaways } from './wall-cutaway';
 import { attachSeats, createSeatScene, type SeatAnchors } from './seat-scene';
 import { seatById, seats } from './seat-data';
 import { buildHouse } from './house-rooms';
+import { createLivedInDetails } from './lived-in-details';
+import { RecordMechanism } from './record-mechanism';
+import { createQuietObjects } from './quiet-objects';
 import {
   rooms,
   roomAt,
@@ -1163,7 +1166,36 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         x = -0.98 + i * 0.155;
       const book = new T.Group();
       shelf.add(book);
-      book.position.set(x, base, 0);
+      const lean = i === 6 - level ? -0.11 : 0;
+      book.position.set(x, base + (w / 2) * Math.sin(Math.abs(lean)), 0);
+      book.rotation.z = lean;
+      if (lean) {
+        const end = x + (Math.cos(lean) * w) / 2 - Math.sin(lean) * h + 0.008;
+        box(
+          shelf,
+          0.016,
+          h + 0.018,
+          0.38,
+          end,
+          base + h / 2,
+          0.065,
+          charcoal,
+          0.004,
+        );
+        box(
+          shelf,
+          0.11,
+          0.016,
+          0.38,
+          end + 0.047,
+          base + 0.008,
+          0.065,
+          charcoal,
+          0.004,
+        );
+      }
+      if (i === 2)
+        box(book, 0.016, 0.075, 0.005, 0, h + 0.007, 0.16, terra, 0.001);
       box(book, w, h, 0.36, 0, h / 2, 0.07, bookMats[(i + level) % 5], 0.009);
       box(book, w - 0.022, h - 0.027, 0.323, 0, h / 2, 0.079, cream, 0.004);
       box(book, w, h, 0.025, 0, h / 2, 0.253, bookMats[(i + level) % 5], 0.006);
@@ -1196,7 +1228,61 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         );
     } else {
       const linenBox = textile(level === 0 ? '#a0a18a' : '#b8ab8c');
-      box(shelf, 0.66, 0.4, 0.47, 0.67, base + 0.2, 0.02, linenBox, 0.025);
+      if (level === 0)
+        box(shelf, 0.66, 0.4, 0.47, 0.67, base + 0.2, 0.02, linenBox, 0.025);
+      else {
+        box(
+          shelf,
+          0.66,
+          0.026,
+          0.47,
+          0.67,
+          base + 0.013,
+          0.02,
+          linenBox,
+          0.008,
+        );
+        for (const side of [-1, 1]) {
+          box(
+            shelf,
+            0.024,
+            0.38,
+            0.47,
+            0.67 + side * 0.318,
+            base + 0.2,
+            0.02,
+            linenBox,
+            0.007,
+          );
+          box(
+            shelf,
+            0.615,
+            0.38,
+            0.024,
+            0.67,
+            base + 0.2,
+            0.02 + side * 0.223,
+            linenBox,
+            0.007,
+          );
+        }
+        const lid = new T.Group();
+        shelf.add(lid);
+        lid.position.set(0.67, base + 0.405, -0.215);
+        lid.rotation.x = -0.3;
+        box(lid, 0.68, 0.026, 0.49, 0, 0, 0.235, linenBox, 0.008);
+        for (let i = 0; i < 3; i++)
+          paperBook(
+            shelf,
+            0.47,
+            0.3,
+            0.045,
+            0.67,
+            base + 0.045 + i * 0.05,
+            0.02,
+            bookMats[i],
+          );
+      }
       box(shelf, 0.15, 0.05, 0.018, 0.67, base + 0.27, 0.262, darkWood, 0.009);
       box(shelf, 0.12, 0.022, 0.02, 0.67, base + 0.27, 0.27, brass, 0.004);
     }
@@ -1381,6 +1467,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   }
   cylinder(deck, 0.028, 0.028, 0.022, 0.35, 0.143, 0.19, brass);
   sphere(deck, 0.008, 0.37, 0.143, 0.1, mat('#d59954'), 1, 0.4, 1);
+  const studyRecord = new RecordMechanism(0.05, -0.25);
   const tonearm = new T.Group();
   deck.add(tonearm);
   tonearm.position.set(0.31, 0.17, -0.18);
@@ -1436,8 +1523,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     const head = cylinder(rail, 0.045, 0.05, 0.13, x, -0.16, 0.21, brass);
     head.rotation.x = 0.6;
   }
-  const about = group('about', -1.04, 1.315, 0.25);
-  desk.add(about);
+  const about = group('about', 0.62, 2.964, 0.06);
+  shelf.add(about);
   about.rotation.x = -0.09;
   box(about, 0.3, 0.37, 0.025, 0, 0.14, 0, darkWood, 0.008);
   box(about, 0.25, 0.32, 0.008, 0, 0.14, 0.02, cream, 0.001);
@@ -1554,8 +1641,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       0.007,
       i % 2 ? oak : charcoal,
     );
-  paperBook(desk, 0.26, 0.33, 0.037, 0.62, 1.275, -0.28, terra).rotation.y =
-    -0.12;
+  // The bound journal is installed after all five rooms have been built.
   const taskLamp = group('taskLamp');
   desk.add(taskLamp);
   taskLamp.position.set(-1.09, 1.28, -0.27);
@@ -1865,6 +1951,26 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     lifePaused = false,
     lifeAudio: AudioContext | null = null,
     lifeVisitors: Visitor[] = [];
+  const livedDetails = createLivedInDetails({
+    roots: house.roots,
+    groups,
+    interactables,
+    materials,
+    textures,
+    bubble: options.onLifeBubble,
+  });
+  const quietObjects = createQuietObjects({
+    groups,
+    interactables,
+    materials,
+    textures,
+    camera,
+    audio: () => lifeAudio,
+    bubble: options.onLifeBubble,
+    collect: options.onCollections,
+    moment: () => life?.objectMoment(),
+    bellReply: () => life?.ringBell() ?? false,
+  });
   breeze.add(leafMat);
   house.setView('study');
   if (seatAnchors.size !== seats.length)
@@ -1880,6 +1986,14 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     Object.assign(window, {
       __kuroVisitors: {
         snapshot: visitors.snapshots,
+        idle: visitors.idleSnapshot,
+        objects: quietObjects.snapshot,
+        devices: livedDetails.snapshot,
+        record: () => ({
+          phase: studyRecord.phase,
+          yaw: studyRecord.yaw,
+          lift: studyRecord.lift,
+        }),
         seatPoint: (id: string) => {
           const a = seatAnchors.get(id);
           if (!a) return null;
@@ -2138,7 +2252,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       last = now;
       return;
     }
-    const dt = Math.min((now - last) / 1000, 0.05);
+    const dt = Math.max(0, Math.min((now - last) / 1000, 0.05));
     last = now;
     const t = (now - start) / 1000;
     if (tween) {
@@ -2227,7 +2341,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     atmosphere.setView(activeView);
     atmosphere.update(t, dt, reduced, environment);
     house.update(t, dt, reduced, night, camera);
-    visitors.update(t, motionPreference.matches);
+    visitors.update(
+      t,
+      motionPreference.matches,
+      dt,
+      lifePaused,
+      life?.eventBusy() ?? false,
+    );
+    quietObjects.update(dt, lifePaused, motionPreference.matches, activeView);
+    livedDetails.update(dt, lifePaused, motionPreference.matches, activeView);
     if (cutaways.update(activeView, camera.position)) refreshShadows();
     lampLight.intensity = T.MathUtils.lerp(
       lampLight.intensity,
@@ -2250,17 +2372,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       a,
     );
     bulb.emissiveIntensity = masterLight && taskLit ? 1.2 : 0;
-    if (music && !reduced) vinyl.rotation.y += dt * 1.5;
-    tonearm.rotation.z = T.MathUtils.lerp(
-      tonearm.rotation.z,
-      music ? 0 : -0.09,
-      1 - Math.exp(-dt * 1.3),
-    );
-    tonearm.rotation.y = T.MathUtils.lerp(
-      tonearm.rotation.y,
-      music ? 0.05 : -0.55,
-      a,
-    );
+    if (root.visible) {
+      studyRecord.update(dt, music, reduced);
+      vinyl.rotation.y = studyRecord.angle;
+      tonearm.rotation.y = studyRecord.yaw;
+      tonearm.rotation.z = studyRecord.lift;
+    }
     drawer.position.z = T.MathUtils.lerp(
       drawer.position.z,
       drawerOpen ? drawerTravel : 0,
@@ -2341,6 +2458,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     greetResident() {
       life?.click('resident');
     },
+    visitorStatus: (id) => visitors.status(id),
     lifeSnapshot: () => life?.snapshot(),
     setProjects: (projects) => house.setProjects(projects),
     retryAssets: () => {
@@ -2509,6 +2627,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       }
       controls.maxPolarAngle = Math.PI / 2.15;
       const smallDetail = [
+        'deskFan',
+        'cafePendulum',
+        'deskJournal',
+        'cafeBell',
         'livingCup',
         'livingRemote',
         'bedroomClock',
@@ -2517,7 +2639,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       controls.minDistance = smallDetail ? 0.7 : 2.4;
       const bounds = new T.Box3().setFromObject(g);
       const center = bounds.getCenter(new T.Vector3());
-      if (smallDetail)
+      if (smallDetail && id !== 'deskFan' && id !== 'cafePendulum')
         g.getWorldPosition(center).add(
           new T.Vector3(
             0,
@@ -2526,33 +2648,43 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           ),
         );
       const dir = (
-        id === 'cafeEspresso'
-          ? new T.Vector3(0.6, 0.48, -1)
-          : id === 'cafePourOver'
-            ? new T.Vector3(0.45, 0.38, 1)
-            : id === 'livingWindow' || id === 'galleryWindow'
-              ? new T.Vector3(-1, 0.5, 0.65)
-              : id === 'wardrobe'
-                ? new T.Vector3(-1, 0.5, 0.65)
-                : [
-                      'television',
-                      'switch',
-                      'console',
-                      'mediaDrawer',
-                      'livingSpeakers',
-                      'bedroomClock',
-                    ].includes(id)
-                  ? new T.Vector3(0, 0.38, 1)
-                  : id === 'chair' || id === 'record' || id === 'sculpture'
-                    ? new T.Vector3(-1, 0.72, 0.64)
-                    : entering
-                      ? new T.Vector3(1, 0.85, 1.2)
-                      : camera.position.clone().sub(controls.target)
+        id === 'deskFan' || id === 'cafePendulum'
+          ? new T.Vector3(0.2, 0.24, 1)
+          : id === 'deskJournal'
+            ? new T.Vector3(0.25, 1.2, 0.8)
+            : id === 'cafeBell'
+              ? new T.Vector3(0.5, 0.7, 1)
+              : id === 'cafeEspresso'
+                ? new T.Vector3(0.6, 0.48, -1)
+                : id === 'cafePourOver'
+                  ? new T.Vector3(0.45, 0.38, 1)
+                  : id === 'livingWindow' || id === 'galleryWindow'
+                    ? new T.Vector3(-1, 0.5, 0.65)
+                    : id === 'wardrobe'
+                      ? new T.Vector3(-1, 0.5, 0.65)
+                      : [
+                            'television',
+                            'switch',
+                            'console',
+                            'mediaDrawer',
+                            'livingSpeakers',
+                            'bedroomClock',
+                          ].includes(id)
+                        ? new T.Vector3(0, 0.38, 1)
+                        : id === 'chair' ||
+                            id === 'record' ||
+                            id === 'sculpture'
+                          ? new T.Vector3(-1, 0.72, 0.64)
+                          : entering
+                            ? new T.Vector3(1, 0.85, 1.2)
+                            : camera.position.clone().sub(controls.target)
       ).normalize();
       const distance = smallDetail
-        ? id === 'bedroomClock'
-          ? 1.65
-          : 1.3
+        ? id === 'cafePendulum'
+          ? 2.25
+          : id === 'bedroomClock'
+            ? 1.65
+            : 1.3
         : id === 'frame'
           ? 9
           : Math.max(
@@ -2608,6 +2740,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       if (id === 'coffee') steamUntil = performance.now() + 180000;
       if (id === 'stool') chairPulled = !chairPulled;
       if (id === 'drawer') drawerOpen = !drawerOpen;
+      quietObjects.interact(id, drawerOpen);
+      livedDetails.interact(id);
       if (id === 'sculpture') sculptAngle += Math.PI / 2;
     },
     prepareCoffee(drink) {
@@ -2669,6 +2803,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       });
     },
     dispose() {
+      quietObjects.dispose();
       coffeeSteam.dispose();
       disposed = true;
       life?.dispose();
@@ -2715,6 +2850,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       .then(async ({ createLifeScene, loadLifeSession }) => {
         const session = await loadLifeSession();
         if (disposed) return;
+        visitors.setActivitySeed(session.seed);
         life = createLifeScene(
           {
             assets,

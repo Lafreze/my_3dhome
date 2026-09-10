@@ -16,8 +16,8 @@ for (let d = 0; d < catStride * 3; d += 0.001) {
   const paws = [0, 1, 2, 3].map((i) => sampleCatPaw(d, i));
   assert(paws.filter((p) => p.grounded).length >= 2);
   paws.forEach((p, i) => {
-    assert(p.y >= 0 && p.y <= 0.12);
-    if (p.y > 0.05) lifted.add(i);
+    assert(p.y >= 0 && p.y <= 0.048);
+    if (p.y > 0.025) lifted.add(i);
     const next = sampleCatPaw(d + 0.001, i);
     if (p.grounded && next.grounded) {
       const worldZ = -d + p.z * catScale;

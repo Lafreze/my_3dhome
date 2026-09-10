@@ -1,4 +1,5 @@
 import routes from '../config/visitor-routes.json' with { type: 'json' };
+import { humanScale } from './character-scale.mjs';
 export const visitorTravelNodes = routes.nodes;
 export const footLift = {
   bear: 0.46098,
@@ -26,16 +27,18 @@ export function createVisitorJourney(
   if (!path) path = routes.routes[`${toSeat}|${fromSeat}`]?.toReversed();
   if (fromSeat === toSeat) path = [];
   if (!path) return null;
+  const walkSpeed = 0.96,
+    approachSpeed = 0.68;
   const walk =
-    path.slice(1).reduce((sum, p, i) => sum + dist(path[i], p), 0) / 0.72;
+    path.slice(1).reduce((sum, p, i) => sum + dist(path[i], p), 0) / walkSpeed;
   const exit = path.length
-    ? Math.max(1.4, dist(from.position, from.approach) / 0.46)
+    ? Math.max(0.75, dist(from.position, from.approach) / approachSpeed)
     : 0;
   const enter = path.length
-    ? Math.max(1.4, dist(to.position, to.approach) / 0.46)
+    ? Math.max(0.75, dist(to.position, to.approach) / approachSpeed)
     : 0;
-  const rise = fromPosture === 'rest' ? 3.0 : 1.6,
-    settle = toPosture === 'rest' ? 3.2 : 1.8;
+  const rise = fromPosture === 'rest' ? 1.15 : 0.7,
+    settle = toPosture === 'rest' ? 1.25 : 0.8;
   return {
     fromSeat,
     toSeat,
@@ -43,6 +46,8 @@ export function createVisitorJourney(
     toPosture,
     at,
     path,
+    walkSpeed,
+    approachSpeed,
     rise,
     exit,
     walk,
@@ -56,7 +61,7 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
     from = routes.nodes[j.fromSeat],
     to = routes.nodes[j.toSeat];
   const total = Math.max(0, (now - j.at) / 1000),
-    floor = 0.085 + footLift[character];
+    floor = 0.085 + footLift[character] * humanScale(character);
   const base = {
     position: [...from.position],
     yaw: from.yaw,
@@ -67,6 +72,8 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
     phase: 'rise',
     seatId: j.fromSeat,
   };
+  const walkSpeed = j.walkSpeed ?? 0.72,
+    approachSpeed = j.approachSpeed ?? 0.46;
   let t = total;
   if (!j.path.length) {
     const v = ease(Math.min(1, total / (j.rise + j.settle)));
@@ -113,12 +120,12 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
       phase: 'exit',
       position: blend(start, a, v),
       yaw: angle(from.yaw, exitYaw, Math.min(1, v * 3)),
-      gait: ((t * 0.46) / 0.36) * Math.PI * 2,
+      gait: ((t * approachSpeed) / 0.36) * Math.PI * 2,
     };
   }
   t -= j.exit;
   if (t < j.walk) {
-    let remaining = t * 0.72;
+    let remaining = t * walkSpeed;
     for (let i = 1; i < j.path.length; i++) {
       const a = j.path[i - 1],
         b = j.path[i],
@@ -138,7 +145,7 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
           phase: 'walk',
           position: p,
           yaw: angle(prev, yaw, Math.min(1, remaining / 0.16)),
-          gait: ((j.exit * 0.46 + t * 0.72) / 0.36) * Math.PI * 2,
+          gait: ((j.exit * approachSpeed + t * walkSpeed) / 0.36) * Math.PI * 2,
         };
       }
       remaining -= length;
@@ -161,7 +168,11 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
       seatId: j.toSeat,
       position: blend(b, end, v),
       yaw: angle(entryYaw, to.yaw, v),
-      gait: ((j.exit * 0.46 + j.walk * 0.72 + t * 0.46) / 0.36) * Math.PI * 2,
+      gait:
+        ((j.exit * approachSpeed + j.walk * walkSpeed + t * approachSpeed) /
+          0.36) *
+        Math.PI *
+        2,
     };
   }
   t -= j.enter;

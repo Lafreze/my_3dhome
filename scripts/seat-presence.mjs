@@ -5,6 +5,8 @@ import {
 import { createHmac, randomBytes } from 'node:crypto';
 import { isIP } from 'node:net';
 import catalog from '../app/seat-catalog.json' with { type: 'json' };
+import expressions from '../app/visitor-expressions.json' with { type: 'json' };
+import social from '../app/visitor-social.json' with { type: 'json' };
 import appearanceCatalog from '../app/visitor-appearance.json' with { type: 'json' };
 
 export function validateAppearance(
@@ -67,6 +69,7 @@ export function createPresenceStore({
     catalog.filter((seat) => seat.kind === 'bed').map((seat) => seat.id),
   );
   const people = new Map();
+  const receivedSocial = new Map();
   let revision = 0;
   const identity = (ip) =>
     createHmac('sha256', secret)
@@ -77,6 +80,7 @@ export function createPresenceStore({
     for (const [id, person] of people)
       if (now() - person.seen > ttl) {
         people.delete(id);
+        receivedSocial.delete(id);
         revision++;
       }
     for (const person of people.values())
@@ -91,7 +95,12 @@ export function createPresenceStore({
       revision,
       serverTime: now(),
       visitors: [...people.values()].map(
-        ({ seen: _seen, lastGesture: _lastGesture, ...person }) => ({
+        ({
+          seen: _seen,
+          lastGesture: _lastGesture,
+          lastSocial: _lastSocial,
+          ...person
+        }) => ({
           ...person,
           appearance: { ...person.appearance },
         }),
@@ -108,6 +117,7 @@ export function createPresenceStore({
     }
     if (data.action === 'leave') {
       if (people.delete(id)) revision++;
+      receivedSocial.delete(id);
       return snapshot(ip);
     }
     if (
@@ -118,6 +128,29 @@ export function createPresenceStore({
       throw Object.assign(new Error('正在走向新位置，等入座后再操作。'), {
         status: 409,
       });
+    if (data.action === 'appearance') {
+      if (!current)
+        throw Object.assign(new Error('请先入座，或在衣柜保存下次使用的造型'), {
+          status: 409,
+        });
+      const name =
+        typeof data.name === 'string'
+          ? data.name.normalize('NFKC').trim().replace(/\s+/g, ' ')
+          : '';
+      if (!name || [...name].length > 16 || /[\p{Cc}\p{Cf}<>]/u.test(name))
+        throw Object.assign(new Error('请输入 1–16 个字的名字'), {
+          status: 400,
+        });
+      const appearance = validateAppearance(
+        data.appearance,
+        current.appearance,
+      );
+      current.name = name;
+      current.appearance = appearance;
+      current.seen = now();
+      revision++;
+      return snapshot(ip);
+    }
     if (data.action === 'wake') {
       if (!current || current.posture !== 'rest')
         throw Object.assign(new Error('你现在没有躺下休息'), { status: 409 });
@@ -141,13 +174,27 @@ export function createPresenceStore({
         });
       if (current.posture === 'rest')
         throw Object.assign(new Error('先醒来再打招呼吧'), { status: 409 });
-      if (!['hello', 'heart', 'phone', 'coffee'].includes(data.kind))
+      if (
+        ![
+          'hello',
+          'heart',
+          'phone',
+          'coffee',
+          ...Object.keys(expressions),
+          ...Object.keys(social),
+        ].includes(data.kind)
+      )
         throw Object.assign(new Error('不支持的互动'), { status: 400 });
       if (
         current.lastGesture !== undefined &&
         now() - current.lastGesture < 2500
       )
         throw Object.assign(new Error('稍等一下再互动'), { status: 429 });
+      if (data.targetId !== undefined && Object.hasOwn(expressions, data.kind))
+        throw Object.assign(new Error('只能选择自己的表情'), { status: 400 });
+      const isSocial = Object.hasOwn(social, data.kind);
+      if (isSocial && !data.targetId)
+        throw Object.assign(new Error('先选择一位访客'), { status: 400 });
       if (data.targetId !== undefined) {
         const target = people.get(data.targetId);
         if (!target || target.id === id)
@@ -156,6 +203,30 @@ export function createPresenceStore({
           throw Object.assign(new Error('对方正在休息，让 TA 安静睡一会儿'), {
             status: 409,
           });
+        if (isSocial) {
+          if (
+            target.journey &&
+            now() < target.journey.at + target.journey.duration
+          )
+            throw Object.assign(new Error('等对方坐好再互动吧'), {
+              status: 409,
+            });
+          const from = catalog.find((s) => s.id === current.seatId),
+            to = catalog.find((s) => s.id === target.seatId);
+          if (from.room !== to.room)
+            throw Object.assign(new Error('到同一个房间后再互动吧'), {
+              status: 409,
+            });
+          if (
+            now() - (current.lastSocial ?? -Infinity) < 8000 ||
+            now() - (receivedSocial.get(target.id) ?? -Infinity) < 4000
+          )
+            throw Object.assign(new Error('让对方先收下这份心意，稍后再试'), {
+              status: 429,
+            });
+          current.lastSocial = now();
+          receivedSocial.set(target.id, now());
+        }
       }
       current.lastGesture = now();
       current.seen = now();
@@ -166,7 +237,12 @@ export function createPresenceStore({
         ...(data.targetId ? { targetId: data.targetId } : {}),
         at: now(),
         expiresAt:
-          now() + (['phone', 'coffee'].includes(data.kind) ? 10000 : 6500),
+          now() +
+          (isSocial
+            ? 9000
+            : ['phone', 'coffee'].includes(data.kind)
+              ? 10000
+              : 6500),
       };
       return snapshot(ip);
     }

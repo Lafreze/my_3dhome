@@ -61,6 +61,8 @@ export const houseBounds = {
   maxZ: Math.max(...roomIds.map((id) => rooms[id].z + rooms[id].depth / 2)),
 };
 export const newObjects = {
+  cafePendulum: { name: '木作摆钟', kind: 'TIME', action: '看看时间' },
+  cafeBell: { name: '咖啡台铃', kind: 'BRASS', action: '轻按台铃' },
   galleryRabbit: {
     name: '皇冠兔 · 建模练习',
     kind: '3D SCULPTURE',
@@ -102,7 +104,7 @@ export const newObjects = {
   livingWindow: { name: '客厅东窗', kind: 'E · 街巷', action: '时间与天气' },
   sleepBed: { name: '柔软的床', kind: 'REST', action: '更换床品' },
   bedsideLamp: { name: '床头灯', kind: 'LIGHT', action: '开灯 / 关灯' },
-  wardrobe: { name: '木作衣柜', kind: 'WARDROBE', action: '打开 / 合上柜门' },
+  wardrobe: { name: '木作衣柜', kind: 'WARDROBE', action: '更换角色造型' },
   bedroomWindow: { name: '卧室西窗', kind: 'W · 庭院', action: '时间与天气' },
   bedroomBook: { name: '睡前读物', kind: 'READING', action: '翻开手记' },
   galleryArt: { name: '个人作品展', kind: 'SELECTED WORK', action: '浏览作品' },
@@ -126,6 +128,8 @@ export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
   bedroomCurtains: 'bedroom',
   galleryRabbit: 'gallery',
   cafeEspresso: 'cafe',
+  cafeBell: 'cafe',
+  cafePendulum: 'cafe',
   cafePastry: 'cafe',
   cafeMenu: 'cafe',
   cafeSeat: 'cafe',

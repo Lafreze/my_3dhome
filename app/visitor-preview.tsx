@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import * as T from 'three';
+import { humanScale } from './character-scale.mjs';
 import { pillowGeometry } from './bed-linen';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
@@ -208,6 +209,13 @@ export default function VisitorPreview({
           mesh.frustumCulled = false;
           mesh.matrixAutoUpdate = false;
           mesh.matrix.copy(part.matrix);
+          mesh.matrix.premultiply(
+            new T.Matrix4().makeScale(
+              humanScale(part.character),
+              humanScale(part.character),
+              humanScale(part.character),
+            ),
+          );
           mesh.name = part.name;
           scene.add(mesh);
           meshes.push({ mesh, part });

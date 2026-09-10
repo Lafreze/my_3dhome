@@ -1,3 +1,4 @@
+import { RecordMechanism } from './record-mechanism';
 import { createInteriorDoor } from './interior-doors';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { appearanceColor } from './studio-settings';
@@ -1256,6 +1257,7 @@ export function buildHouse(k: Kit) {
   b(listening, 0.94, 0.07, 0.76, 0, 0.73, 0, oak, 0.04);
   b(listening, 0.84, 0.13, 0.61, 0, 0.83, 0, darkWood, 0.03);
   b(listening, 0.8, 0.016, 0.57, 0, 0.904, 0, charcoal, 0.008);
+  const livingRecord = new RecordMechanism(0, -0.34);
   const recordPivot = child(listening, -0.08, 0.92, 0.015);
   cyl(recordPivot, 0.242, 0.242, 0.017, 0, 0, 0, black);
   cyl(recordPivot, 0.062, 0.062, 0.003, 0, 0.01, 0, ivoryCloth);
@@ -1329,7 +1331,15 @@ export function buildHouse(k: Kit) {
   cushion(bed, 2.75, 0.065, 0.22, 0, 0.966, -0.46, bedCloth);
   for (const x of [-0.72, 0.72]) {
     for (const [w, h, d, y, z, angle, material] of [
-      [1.16, 0.2, 0.66, 0.952, -1.05, x * 0.06, bedCloth],
+      [
+        x < 0 ? 1.16 : 1.1,
+        0.2,
+        0.66,
+        0.952,
+        x < 0 ? -1.05 : -1.09,
+        x * 0.1,
+        bedCloth,
+      ],
       [0.9, 0.17, 0.51, 0.98, -0.72, -x * 0.05, ivoryCloth],
     ] as const) {
       const pillow = child(bed, x, y, z);
@@ -1645,7 +1655,51 @@ export function buildHouse(k: Kit) {
   chairPillow.rotation.z = -0.15;
   plant(roots.bedroom, -2.9, 0.08, 2.38, 1.25);
   const basket = child(roots.bedroom, 2.73, 0.08, 2.55);
-  cyl(basket, 0.3, 0.25, 0.42, 0, 0.21, 0, ivoryCloth);
+  mesh(
+    basket,
+    new T.LatheGeometry(
+      [
+        [0, 0],
+        [0.25, 0],
+        [0.3, 0.42],
+        [0.282, 0.42],
+        [0.232, 0.025],
+        [0, 0.025],
+      ].map(([x, y]) => new T.Vector2(x, y)),
+      40,
+    ),
+    ivoryCloth,
+    0,
+    0,
+    0,
+  );
+  for (const side of [-1, 1])
+    line(
+      basket,
+      [
+        [side * 0.28, 0.31, -0.075],
+        [side * 0.32, 0.45, -0.07],
+        [side * 0.32, 0.45, 0.07],
+        [side * 0.28, 0.31, 0.075],
+      ],
+      0.012,
+      paleWood,
+    );
+  const garment = new T.PlaneGeometry(0.27, 0.58, 16, 28),
+    gp = garment.getAttribute('position');
+  for (let i = 0; i < gp.count; i++) {
+    const x = gp.getX(i),
+      v = gp.getY(i) + 0.29;
+    gp.setXYZ(
+      i,
+      x,
+      0.445 + Math.sin(x * 39 + v * 10) * 0.009 - Math.max(0, v - 0.3) * 0.95,
+      Math.min(v, 0.3) +
+        Math.sin(Math.min(Math.max(0, v - 0.3) / 0.035, Math.PI / 2)) * 0.025,
+    );
+  }
+  garment.computeVertexNormals();
+  mesh(basket, garment, blanketCloth, 0, 0, 0);
   for (let i = 0; i < 9; i++) {
     const ring = torus(
       basket,
@@ -1658,7 +1712,7 @@ export function buildHouse(k: Kit) {
     );
     ring.rotation.x = Math.PI / 2;
   }
-  cushion(basket, 0.36, 0.17, 0.39, 0, 0.44, 0, bedCloth);
+  cushion(basket, 0.3, 0.12, 0.3, -0.055, 0.31, -0.04, bedCloth);
 
   // GALLERY. Wall pieces, independent pedestals and a viewing bench with clear circulation.
   const projectGallery = createProjectGallery({
@@ -2215,17 +2269,12 @@ export function buildHouse(k: Kit) {
       viewer: T.Camera,
     ) {
       now = t;
-      if (musicOn && !reduced) recordPivot.rotation.y += dt * 1.5;
-      recordArm.rotation.y = T.MathUtils.lerp(
-        recordArm.rotation.y,
-        musicOn ? 0 : -0.55,
-        1 - Math.exp(-dt * 1.4),
-      );
-      recordArm.rotation.z = T.MathUtils.lerp(
-        recordArm.rotation.z,
-        musicOn ? 0 : -0.09,
-        1 - Math.exp(-dt * 1.4),
-      );
+      if (roots.living.visible) {
+        livingRecord.update(dt, musicOn, reduced);
+        recordPivot.rotation.y = livingRecord.angle;
+        recordArm.rotation.y = livingRecord.yaw;
+        recordArm.rotation.z = livingRecord.lift;
+      }
       sofaSeats.forEach((cushion, i) => {
         const occupied = occupiedSeats.has(`living-sofa-${i + 1}`);
         const a = 1 - Math.exp(-dt * 5);

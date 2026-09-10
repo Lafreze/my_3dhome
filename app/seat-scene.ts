@@ -1,7 +1,14 @@
+import {
+  expressions,
+  social,
+  paintExpression,
+  paintSocial,
+} from './visitor-expression';
 import { roomAt } from './house-data';
+import { humanScale } from './character-scale.mjs';
 import { sampleVisitorJourney, visitorTravelNodes } from './visitor-travel.mjs';
-import { createVisitorProps, sampleSeatedActivity } from './visitor-props';
-import { motionRig } from './visitor-motion';
+import { createVisitorProps } from './visitor-props';
+import { SeatedIdle } from './seated-idle';
 import * as T from 'three';
 import type { RoomAssets } from './asset-loading';
 import type { Character } from './visitor-appearance';
@@ -52,6 +59,7 @@ export function createSeatScene(
     current: Visitor[] = [],
     me = '',
     hovered: string | null = null;
+  const idle = new SeatedIdle(Date.now());
   const crowd = new T.Group();
   crowd.name = 'Seated visitors';
   scene.add(crowd);
@@ -106,6 +114,7 @@ export function createSeatScene(
     const anchor = visitorFrame(person.id).root;
     if (!anchor) return;
     const key = person.id;
+    if ((reactions.get(key)?.event.at ?? 0) > event.at) return;
     if (reactions.get(key)?.event.id === event.id) {
       anchor.add(reactions.get(key)!.sprite);
       return;
@@ -124,7 +133,11 @@ export function createSeatScene(
       event.kind === 'heart' ? '64px sans-serif' : '500 38px system-ui';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(event.kind === 'heart' ? '♥' : '你好', 96, 59);
+    if (
+      !paintSocial(ctx, event.kind, event.targetId === person.id) &&
+      !paintExpression(ctx, event.kind)
+    )
+      ctx.fillText(event.kind === 'heart' ? '♥' : '你好', 96, 59);
     const texture = new T.CanvasTexture(canvas);
     texture.colorSpace = T.SRGBColorSpace;
     const sprite = new T.Sprite(
@@ -353,8 +366,28 @@ export function createSeatScene(
     anchor.add(sprite);
     labels.set(visitor.seatId, { sprite, signature });
   }
-  function update(t: number, reduced: boolean) {
+  function update(
+    t: number,
+    reduced: boolean,
+    dt = 0,
+    paused = false,
+    busy = false,
+  ) {
     const now = Date.now();
+    const eligible = current
+      .filter((v) => {
+        const anchor = anchors.get(v.seatId);
+        return (
+          anchor &&
+          isVisible(anchor) &&
+          v.posture !== 'rest' &&
+          !(v.journey && now < v.journey.at + v.journey.duration) &&
+          !(v.gesture && now < v.gesture.expiresAt)
+        );
+      })
+      .map((v) => v.id);
+    // A model finishing its async load only rebuilds instance transforms.
+    if (dt > 0) idle.update(dt, eligible, paused, busy, reduced);
     for (const [id, { sprite, event, height }] of reactions) {
       if (now > event.expiresAt) {
         clearReaction(id);
@@ -457,6 +490,7 @@ export function createSeatScene(
         frame.root.visible = isVisible(anchor);
       }
       frame.root.userData.moving = moving;
+      frame.root.scale.setScalar(humanScale(appearance.character));
       frame.root.updateMatrixWorld(true);
       let state = states.get(visitor.id);
       if (!state) {
@@ -466,13 +500,8 @@ export function createSeatScene(
       sampleVisitorMotion(t, state.seed, reduced, state.value);
       const activity = moving
         ? { kind: 0, amount: 0 }
-        : sampleSeatedActivity(visitor, t, reduced);
-      frame.props.update(
-        activity.kind,
-        activity.amount,
-        motionRig[appearance.character].neck,
-        appearance.character,
-      );
+        : idle.sample(visitor.id);
+      frame.props.update(activity.kind, activity.amount, appearance.character);
       if (rest > 0)
         state.value.set(
           rest,
@@ -480,9 +509,10 @@ export function createSeatScene(
           reduced ? 0 : Math.sin(t * 1.18 + (state.seed % 100)) * 0.0018,
           0,
         );
-      else if (activity.kind)
-        state.value.w += activity.amount * (activity.kind === 1 ? 0.12 : -0.03);
-      else if (visitor.gesture && !reduced) {
+      else if (activity.kind) {
+        state.value.y = T.MathUtils.lerp(state.value.y, -0.16, activity.amount);
+        state.value.w += activity.amount * (activity.kind === 1 ? 0.1 : 0.04);
+      } else if (visitor.gesture && !reduced) {
         const age = (now - visitor.gesture.at) / 1000;
         if (age >= 0 && age < 5.2)
           state.value.w +=
@@ -557,6 +587,48 @@ export function createSeatScene(
   }
 
   return {
+    status(id: string) {
+      const person = current.find((v) => v.id === id);
+      if (!person) return '已经离开';
+      const now = Date.now();
+      if (person.journey && now < person.journey.at + person.journey.duration) {
+        const phase = sampleVisitorJourney(
+          person.journey,
+          now,
+          readAppearance(person.appearance).character,
+        ).phase;
+        return phase === 'rise'
+          ? '正在起身'
+          : phase === 'settle'
+            ? '正在坐下'
+            : '走向新位置';
+      }
+      if (person.posture === 'rest') return '躺着休息';
+      const incoming = current
+        .filter(
+          (v) =>
+            v.gesture?.targetId === id &&
+            v.gesture.expiresAt > now &&
+            Object.hasOwn(social, v.gesture.kind),
+        )
+        .sort((a, b) => b.gesture!.at - a.gesture!.at)[0];
+      if (incoming?.gesture && incoming.gesture.at > (person.gesture?.at ?? 0))
+        return social[incoming.gesture.kind as keyof typeof social].received;
+      if (person.gesture && now < person.gesture.expiresAt)
+        return (
+          expressions[person.gesture.kind as keyof typeof expressions]?.label ||
+          social[person.gesture.kind as keyof typeof social]?.sent ||
+          '正在打招呼'
+        );
+      const activity = idle.sample(id);
+      return activity.kind === 1
+        ? '看看手机'
+        : activity.kind === 2
+          ? '捧杯休息'
+          : '坐着歇一会儿';
+    },
+    idleSnapshot: () => idle.snapshot(),
+    setActivitySeed: (seed: number) => idle.setSeed(seed),
     shouldFocusSeat: (id: string) =>
       !current.some((v) => v.id === me) || current.some((v) => v.seatId === id),
     snapshots: () =>
@@ -615,7 +687,12 @@ export function createSeatScene(
       for (const person of visitors)
         if (
           person.gesture &&
-          ['hello', 'heart'].includes(person.gesture.kind) &&
+          [
+            'hello',
+            'heart',
+            ...Object.keys(expressions),
+            ...Object.keys(social),
+          ].includes(person.gesture.kind) &&
           person.gesture.expiresAt > Date.now()
         ) {
           showReaction(person, person.gesture);

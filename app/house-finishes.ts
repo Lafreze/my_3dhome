@@ -11,16 +11,26 @@ type Surface =
   | 'suede'
   | 'lime'
   | 'clay'
-  | 'mineral';
+  | 'mineral'
+  | 'brushed-metal';
 export function makeSurface(kind: Surface, textures: T.Texture[]) {
   const size = 512,
     color = document.createElement('canvas'),
-    relief = document.createElement('canvas');
-  color.width = color.height = relief.width = relief.height = size;
+    relief = document.createElement('canvas'),
+    roughness = document.createElement('canvas');
+  color.width =
+    color.height =
+    relief.width =
+    relief.height =
+    roughness.width =
+    roughness.height =
+      size;
   const c = color.getContext('2d')!,
-    h = relief.getContext('2d')!;
+    h = relief.getContext('2d')!,
+    r = roughness.getContext('2d')!;
   const pixels = c.createImageData(size, size),
-    heights = h.createImageData(size, size);
+    heights = h.createImageData(size, size),
+    rough = r.createImageData(size, size);
   let seed =
     kind.split('').reduce((a, v) => a * 7 + v.charCodeAt(0), 13) % 2147483647;
   const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -43,8 +53,17 @@ export function makeSurface(kind: Surface, textures: T.Texture[]) {
           Math.sin(v * 5 + Math.sin(u * 2) * 0.45) * 5 +
           (random() > 0.984 ? -50 : 0);
       if (kind === 'boucle')
-        n += Math.sin(u * 85) * Math.sin(v * 85) * 7 + noise * 5;
-      if (kind === 'cotton') n += (x % 4 < 2 ? 2 : -2) + (y % 6 < 3 ? 2 : -2);
+        n +=
+          Math.sin(u * 64 + Math.sin(v * 3) * 0.8) *
+            Math.sin(v * 72 + Math.sin(u * 5) * 0.6) *
+            5 +
+          noise * 3;
+      if (kind === 'cotton')
+        n +=
+          Math.sin(u * 100) * 1.7 +
+          Math.sin(v * 110 + Math.sin(u * 3) * 0.25) * 1.4;
+      if (kind === 'brushed-metal')
+        n += Math.sin(v * 125 + Math.sin(u) * 0.15) * 3 + noise;
       if (kind === 'suede') n += Math.sin(u * 120 + v * 90) * 4 + noise * 5;
       if (['lime', 'clay', 'mineral'].includes(kind))
         n +=
@@ -54,15 +73,19 @@ export function makeSurface(kind: Surface, textures: T.Texture[]) {
       for (let j = 0; j < 3; j++) {
         pixels.data[i + j] = 242 + n;
         heights.data[i + j] = 128 + n * 2;
+        // Non-colour data: broad sheen stays soft, fine fibres/pores vary only up close.
+        rough.data[i + j] = 245 + n * (kind === 'brushed-metal' ? 1.6 : 0.6);
       }
-      pixels.data[i + 3] = heights.data[i + 3] = 255;
+      pixels.data[i + 3] = heights.data[i + 3] = rough.data[i + 3] = 255;
     }
   c.putImageData(pixels, 0, 0);
   h.putImageData(heights, 0, 0);
+  r.putImageData(rough, 0, 0);
   const map = new T.CanvasTexture(color),
-    bumpMap = new T.CanvasTexture(relief);
+    bumpMap = new T.CanvasTexture(relief),
+    roughnessMap = new T.CanvasTexture(roughness);
   map.colorSpace = T.SRGBColorSpace;
-  for (const t of [map, bumpMap]) {
+  for (const t of [map, bumpMap, roughnessMap]) {
     t.name = kind;
     t.wrapS = t.wrapT = T.RepeatWrapping;
     t.anisotropy = 8;
@@ -72,8 +95,9 @@ export function makeSurface(kind: Surface, textures: T.Texture[]) {
     map,
     bumpMap,
     normalMap: null,
-    roughnessMap: null,
-    bumpScale: kind === 'boucle' ? 0.004 : 0.0015,
+    roughnessMap,
+    bumpScale:
+      kind === 'boucle' ? 0.003 : kind === 'brushed-metal' ? 0.00035 : 0.0015,
   };
 }
 export function houseFinishes(

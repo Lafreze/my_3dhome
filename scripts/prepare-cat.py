@@ -27,6 +27,6 @@ bpy.ops.object.select_all(action='DESELECT')
 for o in meshes:o.select_set(True)
 out=root/'public/models/cat-hi3d.glb'
 bpy.ops.export_scene.gltf(filepath=str(out),export_format='GLB',use_selection=True,export_image_format='JPEG',export_jpeg_quality=90,export_yup=True,export_animations=False)
-report={'source':source.name,'sourceSha256':hashlib.sha256(source.read_bytes()).hexdigest(),'sourceBytes':source.stat().st_size,'sourceTriangles':original,'triangles':sum(len(o.data.polygons) for o in meshes),'bytes':out.stat().st_size,'height':.9,'runtimeScale':.6,'runtimeHeight':.54,'forward':'-Z','runtimeBones':16,'sourceBones':0,'sourceAnimations':[],'textures':'1024px original PBR colors','animation':'Existing distance-driven four-paw gait, runtime body/head/tail and 4 two-link legs; no second cat controller.'}
+report={'source':source.name,'sourceSha256':hashlib.sha256(source.read_bytes()).hexdigest(),'sourceBytes':source.stat().st_size,'sourceTriangles':original,'triangles':sum(len(o.data.polygons) for o in meshes),'bytes':out.stat().st_size,'height':.9,'runtimeScale':.6,'runtimeHeight':.54,'forward':'-Z','runtimeBones':8,'sourceBones':0,'sourceAnimations':[],'textures':'1024px original PBR colors','animation':'Existing distance-driven short four-paw gait; 4 measured rigid paw controls with soft upper-leg weights and body/head/tail controls; no second cat controller.'}
 (root/'public/models/cat-hi3d.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps(report,ensure_ascii=False),flush=True)

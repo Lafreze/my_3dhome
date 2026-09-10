@@ -2,6 +2,12 @@ import houseDefaults from '../config/house-defaults.json';
 import { newObjects } from './house-data';
 export const objects = {
   ...newObjects,
+  deskFan: { name: '摇头小风扇', kind: 'BREEZE', action: '开关风扇' },
+  deskJournal: {
+    name: '压叶手记',
+    kind: 'FIELD NOTES',
+    action: '翻开 / 合上手记',
+  },
   studyCurtains: { name: '书房窗帘', kind: 'LINEN', action: '开合窗帘' },
   studyArt1: { name: '书房画作一', kind: 'ART', action: '查看 / 更换画作' },
   studyArt2: { name: '书房画作二', kind: 'ART', action: '查看 / 更换画作' },
@@ -46,6 +52,7 @@ export type Profile = {
 };
 export const defaultProfile: Profile = houseDefaults.profile;
 export type RoomApi = {
+  visitorStatus: (id: string) => string;
   prepareCoffee: (drink: import('./coffee-state').Drink) => boolean;
   clearCoffee: () => void;
   coffeeSnapshot: () => import('./coffee-state').CoffeeSnapshot;

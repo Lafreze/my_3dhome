@@ -217,6 +217,7 @@ function StudioHome() {
       ]);
     }).collect(id, 'house', room);
   };
+  const [wardrobePanel, setWardrobePanel] = useState(false);
   const [seatPanel, setSeatPanel] = useState(false),
     [seatSelected, setSeatSelected] = useState<string | null>(null),
     [visitorCount, setVisitorCount] = useState(0);
@@ -331,6 +332,11 @@ function StudioHome() {
               if (
                 id &&
                 [
+                  'deskFan',
+                  'cafePendulum',
+                  'wardrobe',
+                  'deskJournal',
+                  'cafeBell',
                   'livingSpeakers',
                   'livingRemote',
                   'livingCup',
@@ -508,6 +514,16 @@ function StudioHome() {
       : profile.projects[index]?.title || '待布置展位';
   };
   const action = (id: ObjectId) => {
+    if (id === 'wardrobe') {
+      api.current?.focus('wardrobe');
+      api.current?.interact('wardrobe');
+      setSelected(null);
+      setModal(null);
+      setWardrobePanel(true);
+      setSeatSelected(null);
+      setSeatPanel(true);
+      return;
+    }
     if (['cafeMenu', 'cafeEspresso', 'cafePourOver'].includes(id)) {
       setCoffeeState(api.current?.coffeeSnapshot() || coffeeState);
       setModal('coffeeMenu');
@@ -1072,6 +1088,7 @@ function StudioHome() {
         }}
       />
       <VisitorSeats
+        wardrobe={wardrobePanel}
         selection={seatSelection}
         onNotice={notify}
         api={api}
@@ -1079,8 +1096,12 @@ function StudioHome() {
         open={seatPanel}
         selected={seatSelected}
         view={view}
-        onClose={() => setSeatPanel(false)}
+        onClose={() => {
+          setSeatPanel(false);
+          setWardrobePanel(false);
+        }}
         onChoose={(id) => {
+          setWardrobePanel(false);
           setSeatSelected(id || null);
           setSeatPanel(true);
           if (id) api.current?.focusSeat(id);

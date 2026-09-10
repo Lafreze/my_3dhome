@@ -195,7 +195,7 @@
     },
     {
       "path": "public/models/cat-hi3d.json",
-      "bytes": 590,
+      "bytes": 638,
       "classification": "excluded-unused-or-documentation"
     },
     {
@@ -225,7 +225,7 @@
     },
     {
       "path": "public/models/resident-hi3d.json",
-      "bytes": 617,
+      "bytes": 628,
       "classification": "excluded-unused-or-documentation"
     },
     {

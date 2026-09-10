@@ -60,7 +60,8 @@ export function createInteriorDoor(
   }
   box(door, 1.64, 0.13, 0.3, 0, 2.77, 0, oak);
   const side = center > 0 ? -1 : 1;
-  box(door, 2.8, 0.095, 0.08, side * 0.69, 2.67, 0.15, oak);
+  // Pocket track stays inside the lintel; the leaf retracts into the wall.
+  box(door, 1.3, 0.06, 0.06, 0, 2.67, 0, edge);
   const leaf = new T.Group();
   leaf.position.set(0, 0, 0);
   door.add(leaf);

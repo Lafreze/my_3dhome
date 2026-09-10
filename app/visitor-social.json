@@ -1,0 +1,23 @@
+{
+  "offerCoffee": {
+    "label": "请喝咖啡",
+    "sent": "请你喝咖啡",
+    "received": "收到一杯咖啡",
+    "symbol": "☕",
+    "color": "#8d6b48"
+  },
+  "applaud": {
+    "label": "为你鼓掌",
+    "sent": "为你鼓掌",
+    "received": "收到了掌声",
+    "symbol": "✦",
+    "color": "#b38b49"
+  },
+  "thanks": {
+    "label": "说声谢谢",
+    "sent": "谢谢你",
+    "received": "有人向你致谢",
+    "symbol": "♡",
+    "color": "#b47770"
+  }
+}

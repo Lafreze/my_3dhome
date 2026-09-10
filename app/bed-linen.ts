@@ -54,7 +54,12 @@ export function pillowPiping(width: number, depth: number) {
 }
 
 /** A continuous duvet with a rounded shoulder, hanging sides and an irregular sewn hem. */
-export function drapedLinen(width: number, depth: number, drop = 0.36) {
+export function drapedLinen(
+  width: number,
+  depth: number,
+  drop = 0.36,
+  asymmetric = false,
+) {
   const geometry = new T.PlaneGeometry(width + drop * 2, depth + drop, 64, 56);
   const p = geometry.getAttribute('position');
   for (let i = 0; i < p.count; i++) {
@@ -80,11 +85,31 @@ export function drapedLinen(width: number, depth: number, drop = 0.36) {
     p.setXYZ(
       i,
       x + Math.sin(v * 6 + 0.7) * overX * 0.025,
-      folds * 0.48 - Math.max(overX, overZ) * 0.95,
+      folds * 0.48 -
+        Math.max(overX * (asymmetric && u < 0 ? 0.75 : 1), overZ) * 0.95,
       z + Math.sin(u * 5.2) * overZ * 0.03,
     );
   }
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
+  return geometry;
+}
+
+/** A soft corner folded back on itself, confined to the duvet edge. */
+export function turnedDuvetCorner() {
+  const geometry = new T.PlaneGeometry(0.48, 0.48, 18, 18);
+  const p = geometry.getAttribute('position');
+  for (let i = 0; i < p.count; i++) {
+    const u = p.getX(i) + 0.24,
+      v = p.getY(i) + 0.24;
+    const edge = Math.max(0, u + v - 0.48);
+    p.setXYZ(
+      i,
+      u - edge,
+      Math.sin(Math.PI * Math.min(1, edge / 0.48)) * 0.058 + 0.007,
+      v - edge,
+    );
+  }
+  geometry.computeVertexNormals();
   return geometry;
 }

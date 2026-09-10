@@ -23,7 +23,13 @@ export type Visitor = {
   posture?: 'sit' | 'rest';
   gesture?: {
     id: string;
-    kind: 'hello' | 'heart' | 'phone' | 'coffee';
+    kind:
+      | 'hello'
+      | 'heart'
+      | 'phone'
+      | 'coffee'
+      | keyof typeof import('./visitor-social.json')
+      | import('./visitor-expression').Expression;
     targetId?: string;
     at: number;
     expiresAt: number;
