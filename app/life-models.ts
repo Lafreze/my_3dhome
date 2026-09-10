@@ -2,6 +2,7 @@ import * as T from 'three';
 import { appearanceOptions } from './visitor-appearance';
 import type { ActorId, ActorState } from './life-data';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
+import { sampleRabbitHop } from './rabbit-motion';
 
 export type ActorModel = {
   root: T.Group;
@@ -11,6 +12,7 @@ export type ActorModel = {
     dt: number,
     reduced: boolean,
     seated?: boolean,
+    motion?: { hopTime: number; moving: boolean; crouched?: boolean },
   ) => void;
   dispose: () => void;
   triangles: number;
@@ -273,7 +275,7 @@ export function createActorModel(id: Exclude<ActorId, 'cat'>): ActorModel {
   return {
     root,
     triangles,
-    animate(state, t, dt, reduced, seated = false) {
+    animate(state, t, dt, reduced, seated = false, motion) {
       const wave = reduced ? 0 : Math.sin(t * 3),
         walking = ['walk', 'hop', 'cleaning', 'returnToDock'].includes(state);
       body.position.set(0, 0, 0);
@@ -344,8 +346,9 @@ export function createActorModel(id: Exclude<ActorId, 'cat'>): ActorModel {
           head.rotation.x = Math.sin(t * 0.7) * 0.02;
       } else if (id === 'rabbit') {
         if (state === 'hop' && !reduced) {
-          body.position.y = Math.max(0, Math.sin(t * 5)) * 0.11;
-          body.rotation.x = Math.sin(t * 5) * 0.08;
+          const hop = sampleRabbitHop(motion?.hopTime ?? t);
+          body.position.y = hop.height / 0.55;
+          body.rotation.x = Math.sin(hop.flight * Math.PI * 2) * 0.08;
         }
         if (['sleep', 'sit', 'hide'].includes(state))
           body.scale.y = state === 'sit' ? 0.92 : 0.74;

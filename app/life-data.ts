@@ -336,7 +336,7 @@ export const actorSpecs = {
   cat: { radius: 0.28, speed: 0.45, start: 'study.cat', name: '小黑猫' },
   rabbit: {
     radius: 0.25,
-    speed: 0.38,
+    speed: 0.25,
     start: 'gallery.centerPlinth',
     name: '白兔',
   },

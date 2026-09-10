@@ -725,6 +725,24 @@
       "sourceUrl": "",
       "modifications": "28k triangles, 1K original PBR textures, 0.9 scene units facing -Z; existing cat gait with lightweight runtime skin",
       "approval": "pending"
+    },
+    {
+      "id": "character.rabbit",
+      "source": "public/models/rabbit-hi3d.glb",
+      "path": "models/characters/rabbit/hi3d.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied Hi3D model",
+      "sourceUrl": "",
+      "modifications": "24k triangles, 1K original PBR textures, 0.82 scene units facing -Z; lightweight runtime ears, limbs, wings and tail rig with grounded hop cycle",
+      "approval": "pending"
     }
   ]
 }

@@ -6,7 +6,7 @@ import {
   catRiseTime,
 } from '../app/cat-gait.ts';
 import { LifeEngine } from '../app/life-engine.ts';
-import { distance, floorClear } from '../app/life-navigation.ts';
+import { distance, floorClear, worldPoint } from '../app/life-navigation.ts';
 
 // Each planted paw stays in the same world position as the body moves forward.
 // Every paw must lift during its own swing, with at least two paws supporting the cat.
@@ -48,6 +48,13 @@ for (const a of Object.values(e.actors))
     a.stayUntil = Infinity;
   }
 const cat = e.actors.cat;
+Object.assign(cat, {
+  node: 'study.bookshelf',
+  room: 'study',
+  position: worldPoint(e.node('study.bookshelf')),
+});
+e.occupancy.release('cat');
+cat.fsm.set('sleep');
 cat.rotation = Math.PI;
 const initial = [...cat.position];
 assert(e.go(cat, e.node('study.aisle')));
@@ -109,6 +116,12 @@ const blocked = new LifeEngine(14, hooks);
 blocked.clock = 20;
 blocked.nextCheck = Infinity;
 const b = blocked.actors.cat;
+Object.assign(b, {
+  node: 'study.bookshelf',
+  room: 'study',
+  position: worldPoint(blocked.node('study.bookshelf')),
+});
+blocked.occupancy.release('cat');
 assert(blocked.go(b, blocked.node('study.aisle')));
 blocked.setVisitors([{ id: 'nearby', seatId: '', position: [...b.position] }]);
 const blockedStart = [...b.position];
@@ -132,6 +145,9 @@ Object.assign(ride.actors.cat, {
   stayUntil: 1000,
 });
 Object.assign(ride.actors.robot, {
+  node: 'robot.dock',
+  room: 'cafe',
+  position: [1.5, 0.085, 17.65],
   path: [[1.5, 0.085, 17.2]],
   stayUntil: 1000,
 });

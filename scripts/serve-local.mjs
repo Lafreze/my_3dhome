@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
@@ -66,6 +67,26 @@ const server = createServer(async (req, res) => {
     const path = decodeURIComponent(
       new URL(req.url, 'http://localhost').pathname,
     );
+    if (path === '/api/life/seed') {
+      const serverTime = Date.now();
+      // Server clock plus per-request entropy: concurrent arrivals get different routines.
+      const seed =
+        (randomBytes(4).readUInt32LE() ^
+          serverTime ^
+          Math.floor(serverTime / 0x100000000)) >>>
+        0;
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+      });
+      res.end(
+        req.method === 'HEAD'
+          ? undefined
+          : JSON.stringify({ version: 1, seed, serverTime }),
+      );
+      return;
+    }
     if (path === '/healthz') {
       res.writeHead(200, {
         'Content-Type': 'text/plain; charset=utf-8',

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "ba70db2e6798904e",
+  "version": "5dd9284eaf5e0988",
   "assets": {
     "character.bear.rest": {
       "type": "model",
@@ -124,6 +124,23 @@
       "logicalPath": "models/characters/fox/sit.glb",
       "size": 3650860,
       "sha256": "738c8b0ad4d0b6f024c044c693baea35501e97f8690ca3ab958eb8add49c04bb",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.rabbit": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/rabbit/hi3d.eb2e154be0642430.glb",
+      "logicalPath": "models/characters/rabbit/hi3d.glb",
+      "size": 805788,
+      "sha256": "eb2e154be064243099d63342da4eccd8b9bbb14a4093f8e9d9bed26f22fa31fa",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false

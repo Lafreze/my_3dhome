@@ -1,7 +1,10 @@
 import * as T from 'three';
 import { LifeEngine } from './life-engine';
+import { rememberLifeStarts, type LifeSession } from './life-session';
+export { loadLifeSession } from './life-session';
 import { attachResident, residentAssetId } from './resident-model';
 import { catAssetId, loadCatVisual } from './cat-model';
+import { rabbitAssetId, attachRabbit } from './rabbit-model';
 import type { RoomAssets } from './asset-loading';
 import { createActorModel, type ActorModel } from './life-models';
 import { createCollectionStore } from './life-collections';
@@ -27,12 +30,13 @@ type Options = {
   camera: T.Camera;
   interactables: T.Object3D[];
   seats: SeatAnchors;
+  visitors: Visitor[];
   cat: ReturnType<typeof interiorAtmosphere>;
   coffee: () => void;
   bubble: (text: string) => void;
   collections: (data: CollectionData, message: string) => void;
 };
-export function createLifeScene(k: Options) {
+export function createLifeScene(k: Options, session: LifeSession) {
   const models = new Map<ActorId, ActorModel>();
   const poseClock = new Map<ActorId, { dt: number; state: string }>();
   const mobile = window.matchMedia('(pointer: coarse)').matches;
@@ -81,6 +85,9 @@ export function createLifeScene(k: Options) {
     const visual = await loadCatVisual(() => !disposed);
     if (visual) k.cat.attachVisual(visual);
   })();
+  void k.assets.register('shared', rabbitAssetId, () =>
+    attachRabbit(models.get('rabbit')!, () => !disposed),
+  )();
   const tones = new Set<{ osc: OscillatorNode; gain: GainNode }>();
   const sound = (kind: string, point: Point) => {
     if (!audio || audio.state !== 'running' || paused || document.hidden)
@@ -123,19 +130,39 @@ export function createLifeScene(k: Options) {
       `${collectionCards[id].title}${saved ? '' : ' · 本次访问已记下'}`,
     ),
   );
-  const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-  const engine = new LifeEngine(seed, {
-    collect: (...args) => collections.collect(...args),
-    bubble: (_actor, text) => k.bubble(text),
-    sound,
-    coffee: (atPickup) => {
-      if (atPickup) {
-        pickupAt = engine.clock + 3;
-        pickupUntil = engine.clock + 45;
-        sound('cup', [1.82, 1.555, 12.7]);
-      } else k.coffee();
+  const visitorFootprints = (people: Visitor[]) =>
+    people.flatMap((p) => {
+      const anchor = k.seats.get(p.seatId);
+      if (!anchor) return [];
+      anchor.updateWorldMatrix(true, false);
+      return [
+        {
+          id: p.id,
+          seatId: p.seatId,
+          position: anchor.getWorldPosition(new T.Vector3()).toArray() as Point,
+        },
+      ];
+    });
+  const engine = new LifeEngine(
+    session.seed,
+    {
+      collect: (...args) => collections.collect(...args),
+      bubble: (_actor, text) => k.bubble(text),
+      sound,
+      coffee: (atPickup) => {
+        if (atPickup) {
+          pickupAt = engine.clock + 3;
+          pickupUntil = engine.clock + 45;
+          sound('cup', [1.82, 1.555, 12.7]);
+        } else k.coffee();
+      },
     },
-  });
+    session.previous,
+    visitorFootprints(k.visitors),
+  );
+  rememberLifeStarts(
+    Object.fromEntries(Object.values(engine.actors).map((a) => [a.id, a.node])),
+  );
   const stopHum = () => {
     if (hum) {
       hum.stop();
@@ -284,14 +311,14 @@ export function createLifeScene(k: Options) {
           a.position[0] > 6.4 &&
           a.position[0] < 9.35 &&
           a.position[2] > 8.3 &&
-          a.position[2] < 9.5 &&
-          a.fsm.state === 'hop';
+          a.position[2] < 9.5;
         model.animate(
-          duck ? 'sit' : a.fsm.state,
+          a.fsm.state,
           a.animationTime,
           pose.dt,
           reduced,
           a.seated,
+          { hopTime: a.hopTime, moving: a.path.length > 0, crouched: duck },
         );
         pose.dt = 0;
         pose.state = a.fsm.state;
@@ -358,6 +385,8 @@ export function createLifeScene(k: Options) {
     },
     snapshot: () => ({
       ...engine.snapshot(),
+      seedSource: session.source,
+      serverTime: session.serverTime,
       catPose: k.cat.catPose(),
       render: { ...k.renderer.info.render },
       memory: { ...k.renderer.info.memory },
@@ -392,22 +421,7 @@ export function createLifeScene(k: Options) {
       reduced = value;
     },
     setVisitors(people: Visitor[]) {
-      engine.setVisitors(
-        people.flatMap((p) => {
-          const anchor = k.seats.get(p.seatId);
-          if (!anchor) return [];
-          anchor.updateWorldMatrix(true, false);
-          return [
-            {
-              id: p.id,
-              seatId: p.seatId,
-              position: anchor
-                .getWorldPosition(new T.Vector3())
-                .toArray() as Point,
-            },
-          ];
-        }),
-      );
+      engine.setVisitors(visitorFootprints(people));
     },
     claimCoffee() {
       return engine.events.start(

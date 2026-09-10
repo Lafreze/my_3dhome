@@ -101,6 +101,13 @@ const before = JSON.stringify(engine.snapshot()),
 engine.update(20, { ...input, paused: true });
 assert.equal(engine.clock, beforeClock, 'active clock freezes');
 assert.equal(JSON.stringify({ ...engine.snapshot(), paused: false }), before);
+Object.assign(engine.actors.resident, {
+  node: 'study.desk',
+  room: 'study',
+  position: worldPoint(n('study.desk')),
+  seated: true,
+});
+engine.occupancy.release('resident');
 engine.setVisitors([
   { id: 'online', seatId: 'study-work', position: [0.93, 0.77, -1.22] },
 ]);
@@ -190,6 +197,9 @@ Object.assign(ride.actors.cat, {
   stayUntil: 1000,
 });
 Object.assign(ride.actors.robot, {
+  node: 'robot.dock',
+  room: 'cafe',
+  position: [1.5, 0.085, 17.65],
   path: [[1.5, 0.085, 17.2]],
   stayUntil: 1000,
 });

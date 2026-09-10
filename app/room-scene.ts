@@ -2600,22 +2600,27 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   setTimeout(() => {
     if (disposed) return;
     void import('./life-scene')
-      .then(({ createLifeScene }) => {
+      .then(async ({ createLifeScene, loadLifeSession }) => {
+        const session = await loadLifeSession();
         if (disposed) return;
-        life = createLifeScene({
-          assets,
-          renderer,
-          groups,
-          scene,
-          roots: house.roots,
-          camera,
-          interactables,
-          seats: seatAnchors,
-          cat: atmosphere,
-          coffee: () => house.interact('cafeEspresso'),
-          bubble: options.onLifeBubble,
-          collections: options.onCollections,
-        });
+        life = createLifeScene(
+          {
+            assets,
+            renderer,
+            groups,
+            scene,
+            roots: house.roots,
+            camera,
+            interactables,
+            seats: seatAnchors,
+            visitors: lifeVisitors,
+            cat: atmosphere,
+            coffee: () => house.interact('cafeEspresso'),
+            bubble: options.onLifeBubble,
+            collections: options.onCollections,
+          },
+          session,
+        );
         life.setPaused(lifePaused);
         life.setAudio(lifeAudio);
         life.setVisitors(lifeVisitors);

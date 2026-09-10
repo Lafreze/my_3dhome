@@ -1,0 +1,17 @@
+{
+  "source": "Hi3D_Untitled_allparts_20260910_103848.glb",
+  "sourceSha256": "48c4bc20c0017afd7277c79f4ea83dc71e3ffff8064e759875e96ec2ae514775",
+  "sourceBytes": 79068712,
+  "sourceTriangles": 1998910,
+  "triangles": 24000,
+  "bytes": 805788,
+  "height": 0.82,
+  "runtimeScale": 0.55,
+  "runtimeHeight": 0.451,
+  "forward": "-Z",
+  "runtimeBones": 12,
+  "sourceBones": 0,
+  "sourceAnimations": [],
+  "textures": "1024px original PBR colors",
+  "animation": "Runtime ears, head, wings, tail, arms and feet; planted anticipation, safe forward hop and landing, grooming and quiet breathing."
+}

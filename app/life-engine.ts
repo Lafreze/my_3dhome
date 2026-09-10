@@ -1,6 +1,7 @@
 import { roomAt, type RoomId, type HouseView } from './house-data.ts';
 import type { Environment } from './environment-data';
 import { catRiseTime, catSettleTime } from './cat-gait.ts';
+import { sampleRabbitHop } from './rabbit-motion.ts';
 import {
   navigationNodes,
   actorSpecs,
@@ -100,6 +101,7 @@ export type LifeActor = {
   actionUntil: number;
   travelDistance: number;
   turnDistance: number;
+  hopTime: number;
 };
 type Hooks = {
   collect: (id: CollectionId, actor: ActorId, room: RoomId) => void;
@@ -134,6 +136,7 @@ export class LifeEngine {
   nextCheck = 15;
   rabbitEligible: boolean;
   rabbitSeen = false;
+  private rabbitPoseAt = 0;
   birdWitness = false;
   birdRoomCooldown = new Map<RoomId, number>();
   private lastView: HouseView = 'study';
@@ -146,52 +149,81 @@ export class LifeEngine {
     elapsed: number;
   } | null = null;
   private hooks: Hooks;
-  constructor(seed: number, hooks: Hooks) {
+  readonly sessionSeed: number;
+  constructor(
+    seed: number,
+    hooks: Hooks,
+    previous: Partial<Record<ActorId, string>> = {},
+    visitors: { id: string; seatId: string; position: Point }[] = [],
+  ) {
     this.hooks = hooks;
+    this.occupancy.setVisitors(visitors);
+    this.sessionSeed = seed >>> 0;
     this.random = new SeededRandom(seed);
     this.rabbitEligible = this.random.next() < eventRules.rabbit.visitChance;
-    this.actors = Object.fromEntries(
-      (Object.keys(actorSpecs) as ActorId[]).map((id) => {
-        const n = this.node(
-          id === 'cat' ? 'study.bookshelf' : actorSpecs[id].start,
-        );
-        const fsm = new BehaviorStateMachine();
-        fsm.set(
-          id === 'resident'
-            ? 'type'
-            : id === 'cat'
-              ? 'sleep'
-              : id === 'robot'
-                ? 'docked'
-                : 'idle',
-        );
-        return [
-          id,
-          {
-            id,
-            node: n.id,
-            target: null,
-            position: worldPoint(n),
-            rotation: n.rotation,
-            room: n.room,
-            active: ['resident', 'cat', 'robot'].includes(id),
-            visible: false,
-            fsm,
-            path: [],
-            stayUntil: id === 'resident' ? 40 : id === 'robot' ? 65 : 35,
-            seated: id === 'resident',
-            blockedFor: 0,
-            expires: 0,
-            animationTime: 0,
-            battery: 100,
-            actionUntil: 0,
-            travelDistance: 0,
-            turnDistance: 0,
-          },
-        ];
-      }),
-    ) as unknown as Record<ActorId, LifeActor>;
-    this.occupancy.reserve(this.node('study.desk'), 'resident');
+    this.nextCheck = this.random.between(14, 28);
+    this.actors = {} as Record<ActorId, LifeActor>;
+    // Select active actors first, registering each footprint before selecting the next.
+    // Room-first sampling avoids bias toward the café's larger number of nodes.
+    for (const id of ['resident', 'cat', 'robot', 'rabbit', 'bird'] as const) {
+      let candidates = navigationNodes.filter(
+        (n) =>
+          n.allowedActors.includes(id) &&
+          (id === 'bird' || floorClear(worldPoint(n), id)) &&
+          this.occupancy.available(n, id),
+      );
+      const different = candidates.filter((n) => n.id !== previous[id]);
+      if (different.length) candidates = different;
+      const room = this.random.choose([
+        ...new Set(candidates.map((n) => n.room)),
+      ]);
+      const n = this.random.choose(candidates.filter((n) => n.room === room));
+      if (!n) throw new Error(`No safe starting node for ${id}`);
+      const fsm = new BehaviorStateMachine();
+      const active = ['resident', 'cat', 'robot'].includes(id);
+      const seated = id === 'resident' && !!n.seatId;
+      fsm.set(
+        id === 'cat'
+          ? this.random.choose<ActorState>(['sleep', 'sit'])!
+          : id === 'robot'
+            ? n.id === 'robot.dock'
+              ? 'charging'
+              : 'idle'
+            : seated
+              ? ['type', 'read'].includes(n.posture)
+                ? n.posture
+                : 'sit'
+              : 'idle',
+      );
+      this.actors[id] = {
+        id,
+        node: n.id,
+        target: null,
+        position: worldPoint(n),
+        rotation: n.rotation,
+        room: n.room,
+        active,
+        visible: false,
+        fsm,
+        path: [],
+        stayUntil: this.random.between(id === 'robot' ? 16 : 20, 60),
+        seated,
+        blockedFor: 0,
+        expires: 0,
+        animationTime: this.random.between(0, 30),
+        battery: id === 'robot' ? this.random.between(45, 95) : 100,
+        actionUntil: 0,
+        travelDistance: 0,
+        turnDistance: 0,
+        hopTime: 0,
+      };
+      this.occupancy.actors.set(id, {
+        position: this.actors[id].position,
+        radius: actorSpecs[id].radius,
+        active: active && id !== 'bird',
+      });
+      if (active) this.occupancy.reserve(n, id);
+    }
   }
   node(id: string) {
     const n = navigationNodes.find((n) => n.id === id);
@@ -308,6 +340,7 @@ export class LifeEngine {
     actor.path = path;
     actor.target = target.id;
     actor.blockedFor = 0;
+    if (actor.id === 'rabbit') actor.hopTime = 0;
     actor.fsm.set(
       actor.id === 'cat'
         ? 'rise'
@@ -368,7 +401,7 @@ export class LifeEngine {
   private move(a: LifeActor, dt: number) {
     const next = a.path[0];
     if (!next) return;
-    if (a.id === 'cat') {
+    if (a.id === 'cat' || a.id === 'rabbit') {
       // Rise on the spot before taking a step. Face a corner before advancing.
       if (a.fsm.state === 'rise' && a.fsm.elapsed < catRiseTime) return;
       const heading = Math.atan2(
@@ -387,8 +420,14 @@ export class LifeEngine {
         return;
       }
     }
+    const oldHop = sampleRabbitHop(a.hopTime);
+    if (a.id === 'rabbit') a.hopTime += dt;
+    const advance =
+      a.id === 'rabbit'
+        ? sampleRabbitHop(a.hopTime).distance - oldHop.distance
+        : actorSpecs[a.id].speed * dt;
     const d = distance(a.position, next),
-      step = Math.min(d, actorSpecs[a.id].speed * dt),
+      step = Math.min(d, advance),
       k = d ? step / d : 1;
     const p: Point = [
       a.position[0] + (next[0] - a.position[0]) * k,
@@ -435,7 +474,7 @@ export class LifeEngine {
           ? 'hop'
           : 'walk',
     );
-    if (d > 0.01 && a.id !== 'cat')
+    if (d > 0.01 && !['cat', 'rabbit'].includes(a.id))
       a.rotation = Math.atan2(
         -(next[0] - a.position[0]),
         -(next[2] - a.position[2]),
@@ -531,7 +570,9 @@ export class LifeEngine {
   startRabbit(room: RoomId) {
     const a = this.actors.rabbit;
     if (a.active || !rabbitRooms.includes(room)) return false;
-    const n = this.random.choose(this.eligible('rabbit', room));
+    const candidates = this.eligible('rabbit', room);
+    const n =
+      candidates.find((n) => n.id === a.node) ?? this.random.choose(candidates);
     if (
       !n ||
       !this.events.start(
@@ -549,7 +590,10 @@ export class LifeEngine {
     a.room = room;
     a.rotation = n.rotation;
     a.fsm.set('lookAround');
-    a.stayUntil = this.clock + 24;
+    a.animationTime = 0;
+    a.hopTime = 0;
+    a.stayUntil = this.clock + this.random.between(20, 38);
+    this.rabbitPoseAt = this.clock + this.random.between(8, 16);
     a.expires = this.clock + this.random.between(60, 180);
     a.path = [];
     this.occupancy.reserve(n, 'rabbit');
@@ -707,6 +751,12 @@ export class LifeEngine {
     this.paused = input.paused;
     if (this.paused) return;
     this.clock += dt;
+    const movingEvent = this.events.active;
+    if (
+      movingEvent?.kind.startsWith('move.') &&
+      this.actors[movingEvent.actor].path.length
+    )
+      movingEvent.until = Math.max(movingEvent.until, this.clock + 1);
     this.events.tick(this.clock);
     if (this.lastView !== this.view) {
       this.birdWitness = false;
@@ -828,6 +878,22 @@ export class LifeEngine {
       }
     }
     if (rabbit.active) {
+      if (
+        !rabbit.path.length &&
+        this.clock > this.rabbitPoseAt &&
+        this.clock < rabbit.expires - 5 &&
+        !rabbit.actionUntil &&
+        (!this.events.active || this.events.active.actor === 'rabbit')
+      ) {
+        rabbit.fsm.set(
+          this.random.choose<ActorState>(
+            ['lookAround', 'sniff', 'groom', 'sit', 'sleep'].filter(
+              (s) => s !== rabbit.fsm.state,
+            ) as ActorState[],
+          )!,
+        );
+        this.rabbitPoseAt = this.clock + this.random.between(8, 16);
+      }
       if (rabbit.visible && rabbit.fsm.elapsed > 1.5) this.discoverRabbit();
       if (this.clock > rabbit.expires) {
         rabbit.active = false;
@@ -996,7 +1062,7 @@ export class LifeEngine {
                 ])!
               : this.view;
           if (this.rabbitEligible && !this.rabbitSeen && this.clock > 45)
-            this.startRabbit(room);
+            this.startRabbit(rabbit.room);
           else if (
             this.random.next() < eventRules.bird.chance[this.environment.time]
           )
@@ -1008,6 +1074,7 @@ export class LifeEngine {
   snapshot() {
     return {
       clock: this.clock,
+      seed: this.sessionSeed,
       event: this.events.active,
       paused: this.paused,
       rabbitEligible: this.rabbitEligible,
