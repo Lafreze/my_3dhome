@@ -2,11 +2,12 @@ import * as T from 'three';
 import type { Character } from './visitor-appearance';
 import type { VisitorPart } from './visitor-model';
 import { prepareMotionGeometry } from './visitor-motion';
+import figures from './visitor-figure-profiles.json';
 
 // Traced along each original sculpt's upper and lower eyelid, including asymmetry.
 // These landmarks are authored in an orthographic front portrait (1500px / 1.96m).
 // They are converted to model metres once; they never depend on viewport dimensions.
-const eyes: Record<Character, number[][][]> = {
+const eyes: Record<'bear' | 'cat' | 'fox', number[][][]> = {
   bear: [
     [
       [170, 453, 453],
@@ -74,11 +75,21 @@ export function createVisitorEyelids(
   parts: VisitorPart[],
   character: Character,
 ): VisitorPart {
-  const allLandmarks = eyes[character].flat();
-  const minY =
-    1.11 - (Math.max(...allLandmarks.map((p) => p[2])) * 1.96) / 1500 - 0.026;
-  const maxY =
-    1.11 - (Math.min(...allLandmarks.map((p) => p[1])) * 1.96) / 1500 + 0.026;
+  const newFigure = character === 'noir' || character === 'rose';
+  const traced =
+    character === 'noir' || character === 'rose'
+      ? figures[character].eyelids
+      : eyes[character].map((eye) =>
+          eye.map(([x, upper, lower]) => [
+            ((x - 750) * 1.96) / 1500 -
+              { bear: -0.64, cat: 0, fox: 0.64 }[character],
+            1.11 - (upper * 1.96) / 1500,
+            1.11 - (lower * 1.96) / 1500,
+          ]),
+        );
+  const allLandmarks = traced.flat();
+  const minY = Math.min(...allLandmarks.map((p) => p[2])) - 0.026;
+  const maxY = Math.max(...allLandmarks.map((p) => p[1])) + 0.026;
   const objects = parts.map((part) => {
     // Raycast only the small facial patch, not the whole 100k-triangle figurine.
     const geometry = new T.BufferGeometry();
@@ -108,7 +119,9 @@ export function createVisitorEyelids(
     T.Texture,
     { pixels: Uint8ClampedArray; width: number; height: number }
   >();
-  const fallback = new T.Color(character === 'fox' ? '#dcc0ac' : '#d7b89a');
+  const fallback = new T.Color(
+    newFigure ? '#e6dcd9' : character === 'fox' ? '#dcc0ac' : '#d7b89a',
+  );
   function surface(x: number, y: number) {
     ray.ray.origin.set(x, y, 2);
     let hit = ray.intersectObjects(objects, false)[0];
@@ -177,16 +190,9 @@ export function createVisitorEyelids(
     colors: number[] = [],
     normal: number[] = [],
     indices: number[] = [];
-  const offset = { bear: -0.64, cat: 0, fox: 0.64 }[character];
-  const scale = 1.96 / 1500;
   const rows = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 0.96, 0.99, 1];
   const lash = new T.Color(character === 'bear' ? '#352116' : '#30252a');
-  for (const landmarks of eyes[character]) {
-    const points = landmarks.map(([x, upper, lower]) => [
-      (x - 750) * scale - offset,
-      1.11 - upper * scale,
-      1.11 - lower * scale,
-    ]);
+  for (const points of traced) {
     const cx = (points[0][0] + points.at(-1)![0]) / 2;
     const cy =
       points.reduce((s, p) => s + (p[1] + p[2]) / 2, 0) / points.length;
@@ -279,7 +285,12 @@ export function createVisitorEyelids(
           (1 - T.MathUtils.smoothstep(y, top + 0.006, top + 0.018));
         const surfaceZ = surface(x, y).point.z;
         if (z < surfaceZ - 0.022) continue; // Do not pull the back of the head or nearby hair.
-        delta.setXYZ(i, 0, 0, -0.016 * xWeight * yWeight);
+        delta.setXYZ(
+          i,
+          0,
+          0,
+          (newFigure ? -0.028 : -0.016) * xWeight * yWeight,
+        );
       }
     }
     // Use nearby bare skin, rejecting iris, liner, hair and red facial markings.
@@ -291,9 +302,9 @@ export function createVisitorEyelids(
         if (
           srgb.r > 0.42 &&
           srgb.g > 0.28 &&
-          srgb.r > srgb.g * 1.04 &&
+          srgb.r > srgb.g * (newFigure ? 0.99 : 1.04) &&
           srgb.r < srgb.g * 1.55 &&
-          srgb.g > srgb.b * 1.03
+          srgb.g > srgb.b * (newFigure ? 0.96 : 1.03)
         )
           skinSamples.push(sample);
       }
@@ -315,10 +326,12 @@ export function createVisitorEyelids(
         const x = cx + (T.MathUtils.lerp(a[0], b[0], f) - cx) * 1.08,
           top =
             T.MathUtils.lerp(a[1], b[1], f) +
-            Math.sin((col / (columns - 1)) * Math.PI) * 0.013,
+            Math.sin((col / (columns - 1)) * Math.PI) *
+              (newFigure ? 0.006 : 0.013),
           bottom =
             T.MathUtils.lerp(a[2], b[2], f) -
-            Math.sin((col / (columns - 1)) * Math.PI) * 0.001;
+            Math.sin((col / (columns - 1)) * Math.PI) *
+              (newFigure ? 0.006 : 0.001);
         const edgeY = upper ? top : bottom;
         const closeY = T.MathUtils.lerp(top, bottom, 0.81);
         const origin = surface(x, edgeY).point;

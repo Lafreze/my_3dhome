@@ -1815,7 +1815,7 @@ a {
 .visitor-options .visitor-name { margin: 0; gap: 7px; }
 .visitor-options .visitor-name input { padding: 10px 12px; font-size: 14px; }
 .visitor-option-row { display: grid; gap: 8px; font-size: 12px; color: #757e6e; }
-.visitor-segments, .visitor-hair-choices { display: flex; gap: 5px; padding: 4px; border-radius: 12px; background: #eae9de; }
+.visitor-segments, .visitor-hair-choices { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px; border-radius: 12px; background: #eae9de; }
 .visitor-segments button, .visitor-hair-choices button { flex: 1; padding: 8px 4px; color: #818774; font-size: 12px; border-radius: 9px; white-space: nowrap; transition: background .16s, color .16s; }
 .visitor-segments button[aria-pressed="true"], .visitor-hair-choices button[aria-pressed="true"] { background: #fffcf2; color: #3e5540; box-shadow: 0 2px 5px #3e553012; }
 .visitor-hood { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #757e6e; cursor: pointer; }

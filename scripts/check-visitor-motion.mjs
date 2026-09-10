@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Vector3, Vector4, Matrix4 } from 'three';
+import appearances from '../app/visitor-appearance.json' with { type: 'json' };
 import {
   sampleVisitorMotion,
   visitorSeed,
@@ -61,7 +62,7 @@ for (const seed of seeds) {
 }
 assert.equal(signatures.size, 29, 'Visitors must not move in lockstep');
 const fits = [];
-for (const character of ['bear', 'cat', 'fox']) {
+for (const { id: character } of appearances.characters) {
   const buffer = readFileSync(
     new URL(
       `../public/models/studio-visitor-${character}-v3.glb`,

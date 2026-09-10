@@ -1,5 +1,5 @@
 import catalog from './visitor-appearance.json';
-export type Character = 'bear' | 'cat' | 'fox';
+export type Character = 'bear' | 'cat' | 'fox' | 'noir' | 'rose';
 export type Appearance = {
   character: Character;
   gender: 'female' | 'male';

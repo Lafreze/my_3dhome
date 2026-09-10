@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "893a3b24940396f3",
+  "version": "ca89e695364fe8c3",
   "assets": {
     "character.bear.rest": {
       "type": "model",
@@ -128,6 +128,42 @@
       "dependencies": [],
       "publish": false
     },
+    "character.noir.rest": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/noir/rest.fd30c2d4a7c3c5d4.glb",
+      "logicalPath": "models/characters/noir/rest.glb",
+      "size": 1715072,
+      "sha256": "fd30c2d4a7c3c5d4a0cce72c853330146319a65df8b6df37ccfb83f526693f31",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.noir.sit": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/noir/sit.23e3e180dc5becb1.glb",
+      "logicalPath": "models/characters/noir/sit.glb",
+      "size": 1715072,
+      "sha256": "23e3e180dc5becb18f0bee079939ea6e083e3a0028ec87c10ab85b7dc2bd6293",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
     "character.rabbit": {
       "type": "model",
       "room": "common",
@@ -158,6 +194,42 @@
       "logicalPath": "models/characters/resident/hi3d.glb",
       "size": 1677604,
       "sha256": "ee0974d8ad8151aa74d21f1bc2b59b6039c1cabba7802a4b6c9a94ef899568c4",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.rose.rest": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/rose/rest.ca9bf75cbdf4b882.glb",
+      "logicalPath": "models/characters/rose/rest.glb",
+      "size": 1764580,
+      "sha256": "ca9bf75cbdf4b882a4ec89f1362bb4c241d6db30a8adb7a9d2b3ed2d6735dedc",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.rose.sit": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/rose/sit.9bfe6c551a36d1fa.glb",
+      "logicalPath": "models/characters/rose/sit.glb",
+      "size": 1764580,
+      "sha256": "9bfe6c551a36d1fabbeb582d16655a9fcbb64def46fac8070473a4bcfb9b5a47",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false

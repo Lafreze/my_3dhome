@@ -19,5 +19,19 @@
     "lift": 0.3476844,
     "lengthOffset": 0,
     "labelHeight": 0.82
+  },
+  "noir": {
+    "scale": 1,
+    "pitch": 0.14,
+    "lift": 0.1878837,
+    "lengthOffset": 0,
+    "labelHeight": 0.69
+  },
+  "rose": {
+    "scale": 1,
+    "pitch": 0.14,
+    "lift": 0.1639687,
+    "lengthOffset": 0,
+    "labelHeight": 0.61
   }
 }

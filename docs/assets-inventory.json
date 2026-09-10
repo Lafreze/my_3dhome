@@ -1,5 +1,5 @@
 {
-  "version": "893a3b24940396f3",
+  "version": "ca89e695364fe8c3",
   "roomSizes": {
     "study": {
       "bytes": 4493340,
@@ -23,8 +23,8 @@
     }
   },
   "commonCharacters": {
-    "files": 9,
-    "bytes": 24351324
+    "files": 13,
+    "bytes": 31310628
   },
   "pending": [
     "character.bear.sit",
@@ -36,7 +36,11 @@
     "room.gallery.sculpture",
     "character.resident",
     "character.cat",
-    "character.rabbit"
+    "character.rabbit",
+    "character.noir.sit",
+    "character.noir.rest",
+    "character.rose.sit",
+    "character.rose.rest"
   ],
   "inventory": [
     {
@@ -255,6 +259,26 @@
       "classification": "excluded-unused-or-documentation"
     },
     {
+      "path": "public/models/studio-visitor-noir-standing-v5.glb",
+      "bytes": 1715072,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-noir-v3.glb",
+      "bytes": 1715072,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-rose-standing-v5.glb",
+      "bytes": 1764580,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-rose-v3.glb",
+      "bytes": 1764580,
+      "classification": "catalogued-production"
+    },
+    {
       "path": "public/models/studio-visitor-v2.glb",
       "bytes": 4307744,
       "classification": "excluded-unused-or-documentation"
@@ -262,6 +286,16 @@
     {
       "path": "public/models/studio-visitor.glb",
       "bytes": 1477064,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/visitor-noir.json",
+      "bytes": 1535,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/visitor-rose.json",
+      "bytes": 1513,
       "classification": "excluded-unused-or-documentation"
     },
     {

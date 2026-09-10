@@ -158,6 +158,16 @@
       "id": "fox",
       "label": "九尾狐",
       "labelHeight": 1.0
+    },
+    {
+      "id": "noir",
+      "label": "暗黑少年",
+      "labelHeight": 1.04
+    },
+    {
+      "id": "rose",
+      "label": "角饰女孩",
+      "labelHeight": 0.89
     }
   ],
   "characterColors": {
@@ -178,6 +188,18 @@
       "eyeColor": "#c86f9d",
       "topColor": "#262329",
       "bottomColor": "#29262d"
+    },
+    "noir": {
+      "hairColor": "#52505c",
+      "eyeColor": "#777080",
+      "topColor": "#38363e",
+      "bottomColor": "#34313a"
+    },
+    "rose": {
+      "hairColor": "#ecdbe7",
+      "eyeColor": "#ac7495",
+      "topColor": "#38363e",
+      "bottomColor": "#34313a"
     }
   }
 }

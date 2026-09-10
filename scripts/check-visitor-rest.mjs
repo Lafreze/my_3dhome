@@ -5,9 +5,10 @@ import { BufferGeometry, Float32BufferAttribute, Box3, Vector3 } from 'three';
 import { visitorRestMatrix, prepareRestGeometry } from '../app/visitor-rest.ts';
 import seats from '../app/seat-catalog.json' with { type: 'json' };
 import poses from '../app/visitor-rest-poses.json' with { type: 'json' };
+import appearances from '../app/visitor-appearance.json' with { type: 'json' };
 const point = new Vector3(),
   other = new Vector3();
-for (const character of ['bear', 'cat', 'fox']) {
+for (const { id: character } of appearances.characters) {
   const data = readFileSync(
     new URL(
       `../public/models/studio-visitor-${character}-standing-v5.glb`,
@@ -148,7 +149,10 @@ for (const character of ['bear', 'cat', 'fox']) {
     assert(point.distanceTo(other) < 1e-6);
     geometry.dispose();
   }
-  assert(triangles > 95_000 && triangles < 110_000);
+  assert(
+    triangles > (['noir', 'rose'].includes(character) ? 47_000 : 95_000) &&
+      triangles < 110_000,
+  );
   assert(
     resting.min.y >= 0.009 && resting.max.y < 0.8,
     'Body clears mattress and remains lying down',

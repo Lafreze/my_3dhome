@@ -39,6 +39,7 @@ export default function VisitorPreview({
   useEffect(() => {
     const element = host.current;
     if (!element) return;
+    queueMicrotask(() => setStatus('正在整理衣橱…'));
     let renderedPosture: 'sit' | 'rest' | undefined;
     let stopped = false,
       release: (() => void) | undefined,
@@ -178,7 +179,7 @@ export default function VisitorPreview({
       }
       render();
     };
-    void acquireVisitorModel()
+    void acquireVisitorModel([appearance.character])
       .then(({ parts, release: free }) => {
         if (stopped) {
           free();
@@ -238,7 +239,7 @@ export default function VisitorPreview({
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, []);
+  }, [appearance.character]);
   return (
     <figure
       className="visitor-preview"

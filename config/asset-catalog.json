@@ -743,6 +743,82 @@
       "sourceUrl": "",
       "modifications": "24k triangles, 1K original PBR textures, 0.82 scene units facing -Z; lightweight runtime ears, limbs, wings and tail rig with grounded hop cycle",
       "approval": "pending"
+    },
+    {
+      "id": "character.noir.sit",
+      "source": "public/models/studio-visitor-noir-v3.glb",
+      "path": "models/characters/noir/sit.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User supplied 20260910 model; ~48k triangles, 1K original textures; continuous seated derivative or intact body for rigid rest",
+      "approval": "pending"
+    },
+    {
+      "id": "character.noir.rest",
+      "source": "public/models/studio-visitor-noir-standing-v5.glb",
+      "path": "models/characters/noir/rest.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User supplied 20260910 model; ~48k triangles, 1K original textures; continuous seated derivative or intact body for rigid rest",
+      "approval": "pending"
+    },
+    {
+      "id": "character.rose.sit",
+      "source": "public/models/studio-visitor-rose-v3.glb",
+      "path": "models/characters/rose/sit.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User supplied 20260910 model; ~48k triangles, 1K original textures; continuous seated derivative or intact body for rigid rest",
+      "approval": "pending"
+    },
+    {
+      "id": "character.rose.rest",
+      "source": "public/models/studio-visitor-rose-standing-v5.glb",
+      "path": "models/characters/rose/rest.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User supplied 20260910 model; ~48k triangles, 1K original textures; continuous seated derivative or intact body for rigid rest",
+      "approval": "pending"
     }
   ]
 }

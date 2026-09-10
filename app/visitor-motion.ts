@@ -1,12 +1,15 @@
 import * as T from 'three';
 import type { Character } from './visitor-appearance';
 import { visitorRestMatrix } from './visitor-rest.ts';
+import figures from './visitor-figure-profiles.json' with { type: 'json' };
 
 // Metres in the seated model's coordinate system; the cushion is y = 0.
 export const motionRig = {
   bear: { neck: 0.303, neckZ: 0.005, headStart: 0.27, headEnd: 0.35 },
   cat: { neck: 0.29, neckZ: 0.012, headStart: 0.245, headEnd: 0.355 },
   fox: { neck: 0.237, neckZ: 0.085, headStart: 0.19, headEnd: 0.3 },
+  noir: figures.noir.motionRig,
+  rose: figures.rose.motionRig,
 } satisfies Record<Character, object>;
 
 const smooth = (a: number, b: number, x: number) => {

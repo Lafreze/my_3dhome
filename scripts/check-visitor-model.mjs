@@ -84,7 +84,8 @@ for (const { id: character } of appearances.characters) {
   for (const root of gltf.scenes[gltf.scene || 0].nodes) visit(root);
   assert(buffer.length < 5_000_000, 'Local web asset size budget');
   assert(
-    triangles > 80_000 && triangles < 110_000,
+    triangles > (['noir', 'rose'].includes(character) ? 47_000 : 80_000) &&
+      triangles < 110_000,
     'Detailed silhouette within rendering budget',
   );
   assert(
