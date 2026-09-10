@@ -1,5 +1,5 @@
 {
-  "version": "80e8a304ca2f80d2",
+  "version": "ba70db2e6798904e",
   "roomSizes": {
     "study": {
       "bytes": 4493340,
@@ -23,8 +23,8 @@
     }
   },
   "commonCharacters": {
-    "files": 7,
-    "bytes": 22505240
+    "files": 8,
+    "bytes": 23412500
   },
   "pending": [
     "character.bear.sit",
@@ -34,7 +34,8 @@
     "character.fox.sit",
     "character.fox.rest",
     "room.gallery.sculpture",
-    "character.resident"
+    "character.resident",
+    "character.cat"
   ],
   "inventory": [
     {
@@ -166,6 +167,16 @@
       "path": "public/materials/wood_table_001/nor_gl.jpg",
       "bytes": 51927,
       "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/cat-hi3d.glb",
+      "bytes": 907260,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/cat-hi3d.json",
+      "bytes": 590,
+      "classification": "excluded-unused-or-documentation"
     },
     {
       "path": "public/models/gallery-figure.glb",

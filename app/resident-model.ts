@@ -126,9 +126,18 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     assetManifest.assets[residentAssetId].size;
   model.root.userData.bones = bones.length;
   let sitBlend = 0,
-    crouchBlend = 0;
+    crouchBlend = 0,
+    headPitch = 0,
+    headYaw = 0,
+    gestureTime = 0,
+    previousState = '';
   const oldDispose = model.dispose;
   model.animate = (state, t, dt, reduced, seated = false) => {
+    if (previousState !== state) {
+      previousState = state;
+      gestureTime = 0;
+    }
+    gestureTime += Math.min(dt, 0.1);
     const blend = reduced ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 7);
     sitBlend += ((seated ? 1 : 0) - sitBlend) * blend;
     crouchBlend +=
@@ -146,14 +155,22 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
         -1.38 * sitBlend - 1.05 * crouchBlend - Math.max(0, -stride) * 0.7;
       leg.foot.rotation.x = 0.08 * sitBlend + 0.35 * crouchBlend;
     });
-    spine.rotation.x = 0.04 * sitBlend + 0.2 * crouchBlend;
-    if (['type', 'read', 'brewCoffee', 'cleanCup'].includes(state))
-      head.rotation.x = -0.12;
-    if (['wave', 'lookAround', 'drinkCoffee'].includes(state))
-      head.rotation.x = reduced ? -0.07 : Math.sin(t * 2.8) * 0.09;
-    if (state === 'inspectArtwork')
-      head.rotation.y = reduced ? 0 : Math.sin(t * 0.45) * 0.16;
-    if (!reduced) spine.rotation.z = Math.sin(t * 0.7) * 0.005;
+    spine.rotation.x = 0.2 * crouchBlend;
+    // The supplied sculpture has a small baked head roll. Correct that bind pose
+    // and return to a neutral neck after a single brief greeting, not a loop.
+    const nod =
+      !reduced &&
+      ['wave', 'lookAround', 'drinkCoffee'].includes(state) &&
+      gestureTime < 1.2
+        ? -Math.sin((gestureTime / 1.2) * Math.PI) * 0.06
+        : 0;
+    const gaze =
+      !reduced && state === 'inspectArtwork' && gestureTime < 2.5
+        ? Math.sin((gestureTime / 2.5) * Math.PI) * 0.08
+        : 0;
+    headPitch += (nod - headPitch) * blend;
+    headYaw += (gaze - headYaw) * blend;
+    head.rotation.set(headPitch, headYaw, -0.12);
     avatar.updateMatrixWorld(true);
     skeleton.update();
   };

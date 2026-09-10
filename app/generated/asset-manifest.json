@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "80e8a304ca2f80d2",
+  "version": "ba70db2e6798904e",
   "assets": {
     "character.bear.rest": {
       "type": "model",
@@ -34,6 +34,24 @@
       "logicalPath": "models/characters/bear/sit.glb",
       "size": 3590200,
       "sha256": "4177e7e313840844629a5fa26c2cf45dd52748d2da523a6b3d77c0e863923f8b",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.cat": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/cat/hi3d.47e9a0dade2efc11.glb",
+      "logicalPath": "models/characters/cat/hi3d.glb",
+      "size": 907260,
+      "sha256": "47e9a0dade2efc112be2acc7b252b79f897ce5d1931ee9a07f51d8ad762d390a",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false

@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { LifeEngine } from './life-engine';
 import { attachResident, residentAssetId } from './resident-model';
+import { catAssetId, loadCatVisual } from './cat-model';
 import type { RoomAssets } from './asset-loading';
 import { createActorModel, type ActorModel } from './life-models';
 import { createCollectionStore } from './life-collections';
@@ -76,6 +77,10 @@ export function createLifeScene(k: Options) {
   void k.assets.register('shared', residentAssetId, () =>
     attachResident(models.get('resident')!, () => !disposed),
   )();
+  void k.assets.register('shared', catAssetId, async () => {
+    const visual = await loadCatVisual(() => !disposed);
+    if (visual) k.cat.attachVisual(visual);
+  })();
   const tones = new Set<{ osc: OscillatorNode; gain: GainNode }>();
   const sound = (kind: string, point: Point) => {
     if (!audio || audio.state !== 'running' || paused || document.hidden)
@@ -433,6 +438,7 @@ export function createLifeScene(k: Options) {
       });
       document.removeEventListener('visibilitychange', visibility);
       k.cat.setCatDirective(null);
+      k.cat.releaseVisual();
       for (const m of models.values()) {
         const i = k.interactables.indexOf(m.root);
         if (i >= 0) k.interactables.splice(i, 1);

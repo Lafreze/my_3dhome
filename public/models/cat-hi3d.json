@@ -1,0 +1,17 @@
+{
+  "source": "Hi3D_可爱卡通3D黑猫咪模型_allparts_20260910_100912.glb",
+  "sourceSha256": "b86c8e67b7dde97f0665f03077b970278c60d85363b4c9481f400b60e3cca757",
+  "sourceBytes": 59892792,
+  "sourceTriangles": 2000000,
+  "triangles": 28000,
+  "bytes": 907260,
+  "height": 0.9,
+  "runtimeScale": 0.6,
+  "runtimeHeight": 0.54,
+  "forward": "-Z",
+  "sourceBones": 0,
+  "sourceAnimations": [],
+  "textures": "1024px original PBR colors",
+  "animation": "Existing distance-driven four-paw gait, runtime body/head/tail and 4 two-link legs; no second cat controller.",
+  "runtimeBones": 16
+}

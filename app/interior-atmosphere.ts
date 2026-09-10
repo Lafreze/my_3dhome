@@ -4,6 +4,7 @@ import type { ObjectId } from './room-data';
 import type { HouseView, RoomId } from './house-data';
 import type { ActorState, Point } from './life-data';
 import { catScale, sampleCatPaw } from './cat-gait';
+import type { CatVisual } from './cat-model';
 export type CatDirective = {
   position: Point;
   rotation: number;
@@ -242,6 +243,7 @@ export function interiorAtmosphere(
   const occupied = new Set<string>();
   const tint = new T.Color('#fff1d0');
   let directive: CatDirective | null = null;
+  let visual: CatVisual | null = null;
   let standing = 0,
     movement = 0,
     lastDistance = 0,
@@ -270,12 +272,49 @@ export function interiorAtmosphere(
   hit.position.y = 0.22;
   cat.add(hit);
   materials.push(hit.material);
+  const blob = new T.Mesh(
+    new T.PlaneGeometry(0.72, 1.02),
+    new T.MeshBasicMaterial({
+      map,
+      color: '#332d25',
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+    }),
+  );
+  blob.name = 'cat/contact-shadow';
+  blob.rotation.x = -Math.PI / 2;
+  blob.position.set(0, 0.002, -0.015);
+  blob.raycast = () => {};
+  cat.add(blob);
+  materials.push(blob.material);
   return {
     cat,
+    attachVisual(next: CatVisual) {
+      visual?.dispose();
+      // Swap only this cat's visible mesh; keep its identity, hit target and AI.
+      cat.children.forEach((child) => {
+        if (child !== hit && child !== blob) child.visible = false;
+      });
+      visual = next;
+      cat.add(next.root);
+      cat.userData.assetId = 'character.cat';
+    },
+    releaseVisual() {
+      visual?.dispose();
+      visual = null;
+      cat.children.forEach((child) => {
+        if (child !== hit) child.visible = true;
+      });
+    },
     catPose: () => ({
       standing,
       distance: lastDistance,
-      paws: legs.map((leg) => leg.paw.position.toArray()),
+      paws:
+        visual?.snapshot().paws ??
+        legs.map((leg) => leg.paw.position.toArray()),
+      model: visual ? 'Hi3D' : 'fallback',
+      resource: visual?.snapshot() ?? null,
     }),
     setCatDirective(value: CatDirective | null) {
       directive = value;
@@ -462,6 +501,17 @@ export function interiorAtmosphere(
           );
         }
       }
+      if (cat.visible)
+        visual?.animate({
+          standing,
+          movement,
+          distance: gaitDistance,
+          time: catTime,
+          state,
+          headPitch: head.rotation.x,
+          headYaw: head.rotation.y,
+          reduced,
+        });
       tint.set(environment.time === 'night' ? '#91a2b4' : '#fff1d0');
       fur.color.lerp(tint.multiplyScalar(0.016), 1 - Math.exp(-dt));
     },
