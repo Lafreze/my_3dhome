@@ -12,6 +12,7 @@ import BarRoomPanel, {
 import GameRoomPanel, { type PlaySelection } from './game-room-panel';
 import { gameObjectIds, type GameId } from './game-engine';
 import { portalDestinations } from './game-layout';
+import { houseDoorLayout } from './house-door-layout';
 import CollectionAlbum from './collection-album';
 import { type CoffeeSnapshot } from './coffee-state';
 /* Local data-URL previews are already resized on upload; no image optimization server is used. */
@@ -375,10 +376,16 @@ function StudioHome() {
               }
               if (id === 'computer') setModal('computer');
               if (id && id in portalDestinations) {
+                api.current?.interact(id);
                 setSelected(null);
                 api.current?.setView(
                   portalDestinations[id as keyof typeof portalDestinations],
                 );
+                return;
+              }
+              if (id && houseDoorLayout.some((d) => d.id === id)) {
+                api.current?.interact(id);
+                setSelected(null);
                 return;
               }
               if (
@@ -570,7 +577,14 @@ function StudioHome() {
   };
   const choose = (id: ObjectId) => {
     if (id in portalDestinations) {
+      api.current?.interact(id);
       visit(portalDestinations[id as keyof typeof portalDestinations]);
+      setModal(null);
+      return;
+    }
+    if (houseDoorLayout.some((d) => d.id === id)) {
+      api.current?.interact(id);
+      setSelected(null);
       setModal(null);
       return;
     }

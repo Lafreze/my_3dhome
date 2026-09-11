@@ -106,6 +106,41 @@ export const houseBounds = {
   maxZ: Math.max(...roomIds.map((id) => rooms[id].z + rooms[id].depth / 2)),
 };
 export const newObjects = {
+  doorStudyLiving: {
+    name: '书房与客厅 · 长虹玻璃门',
+    kind: 'DOOR',
+    action: '打开 / 关上房门',
+  },
+  doorBedroomGallery: {
+    name: '卧室与展示区 · 木门',
+    kind: 'DOOR',
+    action: '打开 / 关上房门',
+  },
+  doorStudyBedroom: {
+    name: '书房与卧室 · 木门',
+    kind: 'DOOR',
+    action: '打开 / 关上房门',
+  },
+  doorLivingGallery: {
+    name: '客厅与展示区 · 玻璃门',
+    kind: 'DOOR',
+    action: '打开 / 关上房门',
+  },
+  doorBedroomCafe: {
+    name: '卧室与咖啡厅 · 木门',
+    kind: 'DOOR',
+    action: '打开 / 关上房门',
+  },
+  doorGalleryCafe: {
+    name: '展示区与咖啡厅 · 格栅门',
+    kind: 'DOOR',
+    action: '打开 / 关上房门',
+  },
+  cafeEntranceDoor: {
+    name: '咖啡厅南侧入口门',
+    kind: 'DOOR',
+    action: '打开 / 关上房门',
+  },
   libraryGardenDoor: {
     name: '藏书室 → 植物园',
     kind: 'CONSERVATORY',
@@ -329,6 +364,13 @@ export const newObjects = {
   galleryWindow: { name: '展厅东窗', kind: 'E · 连廊画廊', action: '望向连廊' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
+  doorStudyLiving: 'study',
+  doorBedroomGallery: 'bedroom',
+  doorStudyBedroom: 'study',
+  doorLivingGallery: 'living',
+  doorBedroomCafe: 'bedroom',
+  doorGalleryCafe: 'gallery',
+  cafeEntranceDoor: 'cafe',
   libraryGardenDoor: 'library',
   gameGardenDoor: 'gaming',
   barGardenDoor: 'bar',

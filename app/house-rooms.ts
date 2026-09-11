@@ -1,5 +1,7 @@
 import { RecordMechanism } from './record-mechanism';
 import { createInteriorDoor } from './interior-doors';
+import { houseDoorLayout } from './house-door-layout';
+import { addRoomLifeDetails } from './room-life-details';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { appearanceColor } from './studio-settings';
 import { wallArtUrl } from './wall-art-images';
@@ -78,7 +80,6 @@ export function buildHouse(k: Kit) {
     brass,
     charcoal,
   } = k;
-  const passageDoors: ReturnType<typeof createInteriorDoor>[] = [];
   let disposed = false;
   const drapes: { room: RoomId; mesh: T.Mesh; side: number; width: number }[] =
     [];
@@ -507,11 +508,6 @@ export function buildHouse(k: Kit) {
       // East extension: the existing window becomes an interior glazed bay beside a real doorway.
       b(g, 0.3, 3.65, 0.17, 3.25, 1.83, 0, wallMaterial);
       b(g, 1.46, 0.95, 0.17, 2.37, 3.175, 0, wallMaterial);
-      const door = createInteriorDoor(g, 2.4, oak, brass, materials);
-      passageDoors.push(door);
-      door.root.userData.id = 'galleryEastDoor';
-      k.groups.set('galleryEastDoor', door.root);
-      k.interactables.push(door.root);
     } else
       b(
         g,
@@ -1875,7 +1871,6 @@ export function buildHouse(k: Kit) {
     }
     b(upper, 1.47, 0.07, 0.2, door, 2.74, 0, oak, 0.012);
     b(base, 1.4, 0.025, 0.26, door, 0.09, 0, paleWood, 0.005);
-    passageDoors.push(createInteriorDoor(upper, door, oak, brass, k.materials));
     partitions.push({ base, upper, neighbours });
     k.cutaways.add(
       [upper],
@@ -1927,6 +1922,34 @@ export function buildHouse(k: Kit) {
     ...k,
     root: roots.gaming,
     corridor: roots.corridor,
+  });
+  // One physical door per opening, shared by its two rooms and independent of wall cutaways.
+  const passageDoors = houseDoorLayout.map((spec) => {
+    const mount = new T.Group();
+    mount.position.set(spec.x, 0, spec.z);
+    mount.rotation.y = spec.yaw;
+    k.scene.add(mount);
+    const timber = oak.clone();
+    timber.color.set(
+      (spec.rooms as RoomId[]).includes('bar')
+        ? '#6f5036'
+        : (spec.rooms as RoomId[]).includes('gaming')
+          ? '#728066'
+          : spec.style === 'solid'
+            ? '#a88762'
+            : '#a08c6d',
+    );
+    materials.push(timber);
+    const door = createInteriorDoor(mount, 0, timber, brass, materials, {
+      style: spec.style,
+      side: spec.side,
+    });
+    door.root.name = `Room door / ${spec.id}`;
+    door.root.userData.id = spec.id;
+    k.interactables.push(door.root);
+    k.groups.set(spec.id as ObjectId, door.root);
+    if (spec.other) k.groups.set(spec.other as ObjectId, door.root);
+    return { spec, mount, ...door };
   });
   for (const id of ['livingArt1', 'livingArt2'] as const)
     k.cutaways.add(
@@ -2119,6 +2142,7 @@ export function buildHouse(k: Kit) {
     batch(p.base);
     batch(p.upper);
   }
+  addRoomLifeDetails({ ...k, roots });
   let pulled = false,
     joyOut = false,
     consoleOn = false,
@@ -2244,7 +2268,22 @@ export function buildHouse(k: Kit) {
       ceilingLighting.set(on);
       cafe.setLamp(on);
     },
+    doorSnapshot: () =>
+      passageDoors.map((d) => ({
+        id: d.spec.id,
+        rooms: d.spec.rooms,
+        visible: d.mount.visible,
+        position: d.mount.position.toArray(),
+        ...d.snapshot(),
+      })),
     setView(view: HouseView) {
+      passageDoors.forEach((d) => {
+        d.mount.visible =
+          view === 'overview' ||
+          (d.spec.rooms as RoomId[]).includes(view as RoomId);
+        d.root.userData.id =
+          d.spec.other && view === d.spec.rooms[1] ? d.spec.other : d.spec.id;
+      });
       gameRoom.setView(view);
       bar.setView(view);
       library.setView(view);
@@ -2289,6 +2328,12 @@ export function buildHouse(k: Kit) {
       blanketCloth.color.copy(bedCloth.color).multiplyScalar(0.7);
     },
     interact(id: ObjectId, detail?: 'appearance') {
+      for (const d of passageDoors)
+        if (d.spec.id === id || d.spec.other === id) {
+          if (d.spec.other) d.openFor();
+          else d.toggle();
+        }
+
       gameRoom.interact(id);
       bar.interact(id);
       garden.interact(id);
@@ -2386,11 +2431,17 @@ export function buildHouse(k: Kit) {
       k.scene.getObjectByName('Seated visitors')?.children.forEach((o) => {
         if (o.userData.moving) passers.push(o.position);
       });
-      for (const id of ['resident', 'rabbit', 'robot']) {
+      for (const id of ['resident', 'rabbit', 'robot', 'cat']) {
         const actor = k.scene.getObjectByName(`life/${id}`);
         if (actor?.userData.moving) passers.push(actor.position);
       }
-      passageDoors.forEach((door) => door.update(dt, reduced, passers));
+      let doorMoving = false;
+      passageDoors.forEach((door) => {
+        const before = door.snapshot().opening;
+        door.update(dt, reduced, passers);
+        doorMoving ||= Math.abs(before - door.snapshot().opening) > 0.002;
+      });
+      if (doorMoving) k.onModelReady();
       cafe.update(t, dt, reduced, night, viewer);
       padSticks.forEach((stick, i) => {
         stick.rotation.x =

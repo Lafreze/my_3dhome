@@ -85,3 +85,7 @@ The original files and source records above remain intact. `config/asset-catalog
 Draco and Basis Universal runtime decoders use Apache-2.0, and Meshoptimizer uses MIT; official license texts are retained in `config/asset-licenses/` and included as hashed production license objects. Decoder runtimes are copied from the installed, lockfile-pinned Three.js package and are requested only for assets using those compression extensions. Sources and license links appear in the generated Credits data and the About panel.
 
 The six character pose GLBs and the gallery sculpture remain `pending` for R2 public redistribution. Prior GitHub/Railway publication authorization is recorded above, but is not represented as an independent public model license or silently extended to R2. They continue to load from the local origin and are excluded from R2 upload until the rights holder's authorization is confirmed. See `docs/third-party-model-license-template.md`.
+
+## Room details (2026-09-11)
+
+[Book Pattern](https://polyhaven.com/a/book_pattern), by Rob Tuytel / Poly Haven, is used under [CC0](https://polyhaven.com/license) on the study archive box, listening journal, portable console pouch, library blotter and garden seed wallet. The 1K color, OpenGL normal and roughness maps are stored locally; source URLs, sizes and SHA-256 hashes are recorded in `public/materials/manifest.json` and the production catalog. No third-party image host is required at runtime. New door geometry, flower arrangements, paper labels and room props are original procedural models.

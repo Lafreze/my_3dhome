@@ -1,5 +1,6 @@
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { makeSurface } from './house-finishes';
+import { houseDoorLayout } from './house-door-layout';
 import { appearanceColor } from './studio-settings';
 import { wallArtUrl, loadFramedArt } from './wall-art-images';
 import { createSteamEffect } from './steam-effect';
@@ -72,6 +73,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     alpha: true,
     powerPreference: 'high-performance',
   });
+  renderer.localClippingEnabled = true;
   setAssetRenderer(renderer);
   renderer.setPixelRatio(
     Math.min(
@@ -2000,6 +2002,20 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         bar: () => house.barSnapshot(),
         library: () => house.librarySnapshot(),
         garden: () => house.gardenSnapshot(),
+        doors: () => house.doorSnapshot(),
+        doorPoint: (id: ObjectId) => {
+          const g = groups.get(id);
+          if (!g || !houseDoorLayout.some((d) => d.id === id || d.other === id))
+            return null;
+          const p = g
+              .localToWorld(new T.Vector3(0.75, 1.4, 0.14))
+              .project(camera),
+            r = renderer.domElement.getBoundingClientRect();
+          return {
+            x: r.left + ((p.x + 1) * r.width) / 2,
+            y: r.top + ((1 - p.y) * r.height) / 2,
+          };
+        },
         flowers: () => {
           const plants: { species: string; position: number[] }[] = [];
           scene.traverse((o) => {
@@ -2636,6 +2652,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       moveTo(controls.target.clone().add(delta), controls.target.clone());
     },
     focus(id) {
+      // A shared doorway belongs to the room currently being viewed; opening it does not move the camera.
+      if (houseDoorLayout.some((d) => d.id === id || d.other === id)) return;
       const room = roomForObject(id);
       const entering = activeView !== room;
       if (activeView !== room && id !== 'floor' && id !== 'wall')

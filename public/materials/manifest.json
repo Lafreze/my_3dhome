@@ -214,5 +214,32 @@
     "bytes": 743210,
     "sha256": "a105351706d9d9e74a315309004bb38447eccf0ef13223be18f16530d2777d44",
     "license": "CC0-1.0"
+  },
+  {
+    "asset": "book_pattern",
+    "map": "Diffuse",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/book_pattern/book_pattern_col1_1k.jpg",
+    "path": "public/materials/book_pattern/Diffuse.jpg",
+    "bytes": 357132,
+    "sha256": "30661c007bd43e5fda5c11a8edb49e0949e19b1b55fdbe3baf7139fb3a0f8a70",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "book_pattern",
+    "map": "nor_gl",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/book_pattern/book_pattern_nor_gl_1k.jpg",
+    "path": "public/materials/book_pattern/nor_gl.jpg",
+    "bytes": 178809,
+    "sha256": "db5d5a1e2bc68125857d3c0cc62502036a54168b646722892638b390ce0545d7",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "book_pattern",
+    "map": "Rough",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/book_pattern/book_pattern_rough_1k.jpg",
+    "path": "public/materials/book_pattern/Rough.jpg",
+    "bytes": 554891,
+    "sha256": "f6e0fa087ba7003ad5c3884e360303e71688d0bbb3d5e01f085bfffa976bee3a",
+    "license": "CC0-1.0"
   }
 ]

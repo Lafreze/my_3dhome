@@ -410,5 +410,71 @@
       "gallery"
     ],
     "attributionRequired": false
+  },
+  {
+    "id": "texture.book_pattern.Diffuse",
+    "name": "Book Pattern / woven book cloth",
+    "author": "Rob Tuytel / Poly Haven",
+    "sourceUrl": "https://polyhaven.com/a/book_pattern",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "Original 1K JPG; col1 used as Diffuse. Runtime lossless WebP when smaller; original JPG otherwise.",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.book_pattern.nor_gl",
+    "name": "Book Pattern / woven book cloth",
+    "author": "Rob Tuytel / Poly Haven",
+    "sourceUrl": "https://polyhaven.com/a/book_pattern",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "Original 1K JPG; col1 used as Diffuse. Runtime lossless WebP when smaller; original JPG otherwise.",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "texture.book_pattern.Rough",
+    "name": "Book Pattern / woven book cloth",
+    "author": "Rob Tuytel / Poly Haven",
+    "sourceUrl": "https://polyhaven.com/a/book_pattern",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "Original 1K JPG; col1 used as Diffuse. Runtime lossless WebP when smaller; original JPG otherwise.",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
   }
 ]

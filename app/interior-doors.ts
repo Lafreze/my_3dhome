@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import type { DoorStyle } from './house-door-layout';
 
 /** Sliding leaves open before approaching actors reach the existing 1.4-unit portal. */
 export function createInteriorDoor(
@@ -8,6 +9,7 @@ export function createInteriorDoor(
   oak: T.Material,
   brass: T.Material,
   materials: T.Material[],
+  options: { style?: DoorStyle; side?: 1 | -1 } = {},
 ) {
   const door = new T.Group();
   door.name = 'Oak and reeded glass sliding door';
@@ -59,7 +61,7 @@ export function createInteriorDoor(
     box(door, 0.018, 2.59, 0.04, side * 0.671, 1.395, 0, edge, 0.004);
   }
   box(door, 1.64, 0.13, 0.3, 0, 2.77, 0, oak);
-  const side = center > 0 ? -1 : 1;
+  const side = options.side ?? (center > 0 ? -1 : 1);
   // Pocket track stays inside the lintel; the leaf retracts into the wall.
   box(door, 1.3, 0.06, 0.06, 0, 2.67, 0, edge);
   const leaf = new T.Group();
@@ -73,10 +75,22 @@ export function createInteriorDoor(
   ])
     box(leaf, 1.27, h, 0.066, 0, y, 0, oak);
   box(leaf, 1.05, 0.64, 0.041, 0, 0.535, 0, oak);
-  box(leaf, 1.06, 1.54, 0.025, 0, 1.715, 0, glass, 0.005);
+  const style = options.style ?? 'reeded';
+  if (style === 'solid') {
+    box(leaf, 1.06, 1.54, 0.04, 0, 1.715, 0, oak);
+    for (const face of [-1, 1])
+      for (const x of [-0.46, 0.46])
+        box(leaf, 0.025, 1.36, 0.015, x, 1.715, face * 0.035, edge);
+  } else box(leaf, 1.06, 1.54, 0.025, 0, 1.715, 0, glass, 0.005);
   // Fine reeding catches oblique light; no tiled noisy texture or transmission render pass.
-  for (let i = -9; i <= 9; i++)
-    box(leaf, 0.009, 1.52, 0.031, i * 0.054, 1.715, 0, glass, 0.003);
+  if (style === 'reeded')
+    for (let i = -9; i <= 9; i++)
+      box(leaf, 0.009, 1.52, 0.031, i * 0.054, 1.715, 0, glass, 0.003);
+  if (style === 'lattice') {
+    box(leaf, 0.038, 1.54, 0.052, 0, 1.715, 0, oak);
+    for (const y of [1.47, 1.99]) box(leaf, 1.06, 0.035, 0.052, 0, y, 0, oak);
+  }
+  if (style === 'clear') glass.opacity = 0.22;
   for (const face of [-1, 1]) {
     box(leaf, 0.031, 0.29, 0.028, -side * 0.43, 1.23, face * 0.065, brass);
     for (const y of [1.1, 1.36])
@@ -93,11 +107,59 @@ export function createInteriorDoor(
     leaf.add(wheel);
   }
   const centerWorld = new T.Vector3();
-  let hold = 0;
+  // Clip only the moving leaf at the pocket mouth; it never appears through a cutaway wall.
+  const planes = [new T.Plane(), new T.Plane()],
+    direction = new T.Vector3(),
+    point = new T.Vector3();
+  const clipped = new Map<T.Material, T.Material>();
+  leaf.traverse((o) => {
+    if (o instanceof T.Mesh) {
+      const original = o.material as T.Material;
+      let m = clipped.get(original);
+      if (!m) {
+        m = original.clone();
+        m.clippingPlanes = planes;
+        m.clipShadows = true;
+        clipped.set(original, m);
+        materials.push(m);
+      }
+      o.material = m;
+      // Raycasting must respect the same pocket clipping as the visible mesh.
+      const raycast = o.raycast.bind(o);
+      o.raycast = function (raycaster, hits) {
+        const candidates: T.Intersection[] = [];
+        raycast(raycaster, candidates);
+        for (const hit of candidates)
+          if (planes.every((p) => p.distanceToPoint(hit.point) >= 0))
+            hits.push(hit);
+      };
+    }
+  });
+  leaf.name = 'Independent pocket door leaf';
+  let hold = 0,
+    pinned = false,
+    opening = 0;
   return {
     root: door,
+    toggle() {
+      pinned = !pinned;
+    },
+    openFor(seconds = 4) {
+      hold = Math.max(hold, seconds);
+    },
+    snapshot: () => ({ opening, pinned, leafX: leaf.position.x, style }),
     update(dt: number, reduced: boolean, passers: T.Vector3[]) {
+      if (!Number.isFinite(dt) || dt < 0) return;
       door.getWorldPosition(centerWorld);
+      direction.set(1, 0, 0).transformDirection(door.matrixWorld);
+      planes[0].setFromNormalAndCoplanarPoint(
+        direction,
+        point.copy(centerWorld).addScaledVector(direction, -0.665),
+      );
+      planes[1].setFromNormalAndCoplanarPoint(
+        direction.clone().negate(),
+        point.copy(centerWorld).addScaledVector(direction, 0.665),
+      );
       if (
         passers.some(
           (p) => Math.hypot(p.x - centerWorld.x, p.z - centerWorld.z) < 2.15,
@@ -105,11 +167,13 @@ export function createInteriorDoor(
       )
         hold = 2.5;
       else hold = Math.max(0, hold - dt);
-      leaf.position.x = T.MathUtils.lerp(
-        leaf.position.x,
-        hold > 0 ? side * 1.46 : 0,
+      opening = T.MathUtils.lerp(
+        opening,
+        pinned || hold > 0 ? 1 : 0,
         reduced ? 1 : 1 - Math.exp(-dt * 5),
       );
+      leaf.position.x = side * 1.46 * opening;
+      leaf.visible = opening < 0.999;
     },
   };
 }

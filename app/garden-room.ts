@@ -376,7 +376,7 @@ export function buildGarden(k: Kit) {
         0.64,
         Math.cos(seed + i * 1.7) * 0.065,
         0.6 + (i % 4) * 0.045,
-        i % 3 === 0 ? 'vine' : 'flowers',
+        i === 0 ? 'vine' : 'flowers',
         seed + i,
       );
     return g;
@@ -527,7 +527,7 @@ export function buildGarden(k: Kit) {
   // Hanging baskets are attached above head height to the glazed wall and follow its cutaway.
   for (const [i, z] of [-9.9, -6.8, -3.8, -0.9, 2.6, 5.5, 8.8, 11].entries()) {
     const g = group(east, z, 2.82, 0.45);
-    bot.plant(g, 0, 0, 0, 0.84, i % 3 === 0 ? 'flowers' : 'vine', 43 + i);
+    bot.plant(g, 0, 0, 0, 0.84, i % 3 === 1 ? 'vine' : 'flowers', 43 + i);
     for (const x of [-0.15, 0.15])
       rod(g, [x, 0.3, 0], [0, 0.75, -0.15], 0.006, brass);
   }
@@ -970,12 +970,25 @@ export function buildGarden(k: Kit) {
       0.9,
       0,
       0.64,
-      i % 2 ? 'fern' : 'broad',
+      i % 3 === 0 ? 'fern' : 'flowers',
       100 + i,
     );
   for (let i = 0; i < 5; i++) {
     const p = group(rack, -2.1 + i, 0.28, 0.02);
+    if (i === 2) continue; // The central shelf holds a seed wallet instead of another empty pot.
     bot.pot(p, 0.22, 0.31);
+  }
+  // Flowering upper shelf leaves the terrarium and hydroponic bottles clear.
+  for (const [i, x] of [-2.55, -0.92, -0.1, 0.72].entries())
+    bot.plant(rack, x, 1.64, 0, 0.5 + (i % 2) * 0.06, 'flowers', 117 + i);
+  // Three small window brackets add bloom clusters without using floor circulation.
+  for (const [i, z] of [-7.8, 4.95, 10.7].entries()) {
+    const ledge = group(east, z, 1.05, 0.18);
+    box(ledge, 0.82, 0.06, 0.48, 0, 0, 0.1, wood);
+    for (const x of [-0.28, 0.28])
+      rod(ledge, [x, -0.22, -0.1], [x, -0.03, 0.24], 0.018, brass);
+    bot.plant(ledge, -0.16, 0.03, 0.1, 0.56, 'flowers', 130 + i);
+    bot.plant(ledge, 0.23, 0.03, 0.13, 0.38, 'flowers', 137 + i);
   }
   const hydro = group(rack, 1.82, 1.65, 0);
   for (let i = 0; i < 3; i++) {

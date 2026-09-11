@@ -324,7 +324,7 @@ export function buildGameRoom(k: Kit) {
   wall(root, 6.8, -4.5, 0, Math.PI / 2, 'gaming', -2.4);
   const exitDoor = object('gameExitDoor', -4.42, 2.4);
   exitDoor.rotation.y = Math.PI / 2;
-  label(exitDoor, 'EAST WALK →', 1.2, 0, 2.35, 0.03);
+  label(exitDoor, 'EAST WALK →', 1.2, 0, 3.04, 0.03);
   k.cutaways.add([exitDoor], { x: 14.08, z: 9.2, nx: 1, nz: 0 }, ['gaming']);
   label(north, 'PLAY A LITTLE · STAY A WHILE', 3.15, 0.1, 3.16, 0.09);
   // A framed miniature pixel landscape above the pinball machine.
@@ -907,7 +907,11 @@ export function buildGameRoom(k: Kit) {
       gold,
     );
   // Headphones hang where the controllers are used, including the coiled cable.
-  const headphones = group(root, 4.28, 2.15, 2.31);
+  const headphones = group(root, 4.28, 2.3, -2.55);
+  headphones.name = 'Game headphones / solid wall beside television';
+  k.cutaways.add([headphones], { x: 22.78, z: 4.25, nx: -1, nz: 0 }, [
+    'gaming',
+  ]);
   headphones.rotation.y = -Math.PI / 2;
   rod(headphones, [0, 0.2, -0.04], [0, 0.2, 0.1], 0.024, brass);
   tube(

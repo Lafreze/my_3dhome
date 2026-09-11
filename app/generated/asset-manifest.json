@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "8df5f455625f5ff7",
+  "version": "54b31e89478623d1",
   "assets": {
     "art.botanical-study": {
       "type": "image",
@@ -403,6 +403,75 @@
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false
+    },
+    "texture.book_pattern.Diffuse": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe",
+        "gaming",
+        "bar",
+        "library",
+        "garden",
+        "corridor"
+      ],
+      "path": "textures/shared/book_pattern/Diffuse.30661c007bd43e5f.jpg",
+      "logicalPath": "textures/shared/book_pattern/Diffuse.webp",
+      "size": 357132,
+      "sha256": "30661c007bd43e5fda5c11a8edb49e0949e19b1b55fdbe3baf7139fb3a0f8a70",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.book_pattern.nor_gl": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe",
+        "gaming",
+        "bar",
+        "library",
+        "garden",
+        "corridor"
+      ],
+      "path": "textures/shared/book_pattern/nor_gl.db5d5a1e2bc68125.jpg",
+      "logicalPath": "textures/shared/book_pattern/nor_gl.webp",
+      "size": 178809,
+      "sha256": "db5d5a1e2bc68125857d3c0cc62502036a54168b646722892638b390ce0545d7",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
+    },
+    "texture.book_pattern.Rough": {
+      "type": "texture",
+      "room": "shared",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe",
+        "gaming",
+        "bar",
+        "library",
+        "garden",
+        "corridor"
+      ],
+      "path": "textures/shared/book_pattern/Rough.f6e0fa087ba7003a.jpg",
+      "logicalPath": "textures/shared/book_pattern/Rough.webp",
+      "size": 554891,
+      "sha256": "f6e0fa087ba7003ad5c3884e360303e71688d0bbb3d5e01f085bfffa976bee3a",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": true
     },
     "texture.brown_leather.Diffuse": {
       "type": "texture",

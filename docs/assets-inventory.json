@@ -1,25 +1,25 @@
 {
-  "version": "8df5f455625f5ff7",
+  "version": "54b31e89478623d1",
   "roomSizes": {
     "study": {
-      "bytes": 4515416,
-      "files": 13
+      "bytes": 5606248,
+      "files": 16
     },
     "living": {
-      "bytes": 2781910,
-      "files": 10
+      "bytes": 3872742,
+      "files": 13
     },
     "bedroom": {
-      "bytes": 2759834,
-      "files": 7
+      "bytes": 3850666,
+      "files": 10
     },
     "gallery": {
-      "bytes": 6354006,
-      "files": 11
+      "bytes": 7444838,
+      "files": 14
     },
     "cafe": {
-      "bytes": 6520148,
-      "files": 18
+      "bytes": 7610980,
+      "files": 21
     }
   },
   "commonCharacters": {
@@ -62,6 +62,21 @@
       "path": "public/favicon.svg",
       "bytes": 233,
       "classification": "entry-asset-retained-on-railway"
+    },
+    {
+      "path": "public/materials/book_pattern/Diffuse.jpg",
+      "bytes": 357132,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/book_pattern/Rough.jpg",
+      "bytes": 554891,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/book_pattern/nor_gl.jpg",
+      "bytes": 178809,
+      "classification": "catalogued-production"
     },
     {
       "path": "public/materials/brown_leather/Diffuse.jpg",
@@ -125,7 +140,7 @@
     },
     {
       "path": "public/materials/manifest.json",
-      "bytes": 8808,
+      "bytes": 9873,
       "classification": "excluded-unused-or-documentation"
     },
     {

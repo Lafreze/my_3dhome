@@ -12,7 +12,6 @@ import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { ObjectId } from './room-data';
-import { createInteriorDoor } from './interior-doors';
 import type { WallCutaways } from './wall-cutaway';
 import type { HouseLandscape } from './house-landscape';
 import type { Environment } from './environment-data';
@@ -496,12 +495,6 @@ export function buildCafe(k: Kit) {
   box(east, 0.17, 3.65, 6.55, 7.91, 1.83, 0.725, plaster);
   box(east, 0.17, 0.95, 1.4, 7.91, 3.175, -3.25, plaster);
   box(east, 0.17, 3.65, 0.05, 7.91, 1.83, -3.975, plaster);
-  const eastDoorMount = child(east, 7.91, 0, -3.25);
-  eastDoorMount.rotation.y = Math.PI / 2;
-  const eastDoor = createInteriorDoor(eastDoorMount, 0, wood, brass, materials);
-  eastDoor.root.userData.id = 'cafeEastDoor';
-  k.groups.set('cafeEastDoor', eastDoor.root);
-  k.interactables.push(eastDoor.root);
   for (const [g, x, m] of [
     [west, -7.79, darkWood],
     [east, 7.79, darkWood],
@@ -567,12 +560,6 @@ export function buildCafe(k: Kit) {
     box(front, b - a, 0.08, 0.28, (a + b) / 2, 0.48, 3.74, wood);
   }
   box(front, 1.46, 0.65, 0.17, -1.35, 3.35, 3.91, green);
-  const entry = child(front, -1.35, 0, 3.84);
-  for (const x of [-0.7, 0.7]) box(entry, 0.08, 2.73, 0.14, x, 1.42, 0, wood);
-  for (const y of [0.12, 2.76]) box(entry, 1.48, 0.08, 0.14, 0, y, 0, wood);
-  box(entry, 1.29, 2.5, 0.012, 0, 1.44, 0, glass, 0);
-  for (const z of [-0.12, 0.12])
-    rod(entry, [0.46, 1.15, z], [0.46, 1.68, z], 0.025, brass);
   const sign = child(front, 3, 3.35, 3.805);
   sign.rotation.y = Math.PI;
   textPanel(
@@ -1549,15 +1536,6 @@ export function buildCafe(k: Kit) {
       viewer: T.Camera,
     ) {
       now = t;
-      const passers: T.Vector3[] = [];
-      root.parent?.getObjectByName('Seated visitors')?.children.forEach((o) => {
-        if (o.userData.moving) passers.push(o.position);
-      });
-      for (const id of ['resident', 'rabbit', 'robot']) {
-        const actor = root.parent?.getObjectByName(`life/${id}`);
-        if (actor?.userData.moving) passers.push(actor.position);
-      }
-      eastDoor.update(dt, reduced, passers);
       service.update(dt);
       const serving = service.snapshot();
       servedCup.visible = serving.phase === 'ready';
