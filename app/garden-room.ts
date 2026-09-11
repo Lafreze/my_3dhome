@@ -1,3 +1,4 @@
+import { createSpineAtlas, bindingColors } from './book-spines';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -243,6 +244,8 @@ export function buildGarden(k: Kit) {
     o.rotation.z = angle;
     return o;
   };
+  const bookAtlas = createSpineAtlas(k.textures, k.materials);
+  const bookBindings = bindingColors.map((c) => mat(c));
   function volume(
     p: T.Object3D,
     w: number,
@@ -369,10 +372,10 @@ export function buildGarden(k: Kit) {
     for (let i = 0; i < Math.max(3, Math.round(width / 0.55)); i++)
       bot.plant(
         g,
-        -width / 2 + 0.28 + i * 0.53,
+        -width / 2 + 0.28 + i * 0.53 + Math.sin(seed + i * 2.3) * 0.025,
         0.64,
-        0,
-        0.65,
+        Math.cos(seed + i * 1.7) * 0.065,
+        0.6 + (i % 4) * 0.045,
         i % 3 === 0 ? 'vine' : 'flowers',
         seed + i,
       );
@@ -573,20 +576,33 @@ export function buildGarden(k: Kit) {
   const bookcase = group(root, f.bookcase.x, 0, f.bookcase.z);
   bookcase.rotation.y = Math.PI / 2;
   box(bookcase, 2.3, 1.17, 0.52, 0, 0.7, 0, wood);
-  for (const y of [0.2, 0.67, 1.19]) {
+  for (const [row, y] of [0.2, 0.67, 1.19].entries()) {
     box(bookcase, 2.3, 0.055, 0.56, 0, y, 0.03, dark);
-    for (let i = 0; i < 13; i++)
-      volume(
+    for (let i = 0; i < 12; i++) {
+      const serial = row * 13 + i + 113,
+        w = 0.085 + (serial % 4) * 0.013,
+        h = 0.22 + ((serial * 7) % 9) * 0.015;
+      const g = volume(
         bookcase,
-        0.115,
-        0.3 + (i % 3) * 0.035,
+        w,
+        h,
         0.22,
-        -0.98 + i * 0.16,
+        -0.98 + i * 0.175,
         y + 0.03,
-        0.2,
-        i % 3 === 0 ? green : i % 3 === 1 ? dark : ochre,
+        0.19,
+        bookBindings[serial % bookBindings.length],
         i % 5 === 0 ? 0.05 : 0,
       );
+      const spine = mesh(
+        g,
+        bookAtlas.geometry(w * 0.94, h * 0.96, serial),
+        bookAtlas.material,
+        0,
+        h / 2,
+        0.116,
+      );
+      spine.castShadow = false;
+    }
   }
   bot.plant(bookcase, -0.7, 1.3, 0, 0.85, 'vine', 11);
   const hooks = group(west, 10.5, 2.38, 0.15);
@@ -1034,7 +1050,7 @@ export function buildGarden(k: Kit) {
   const cap = ball(terrarium, 0.058, 0.12, 1.934, 0.06, ochre);
   cap.scale.y = 0.43;
   planter(f.westPlanter, 72);
-  planter(f.loungePlanter, 80);
+  planter(f.loungePlanter, 83);
   const basin = group(root, f.basin.x, 0, f.basin.z);
   cyl(basin, 0.41, 0.3, 0.69, 0, 0.45, 0, mat('#aaa895'));
   mesh(

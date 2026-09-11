@@ -1,3 +1,4 @@
+import { flowerForSeed, gardenSpecies } from './garden-species';
 import * as T from 'three';
 import type { InteriorBreeze } from './interior-atmosphere';
 
@@ -176,10 +177,16 @@ export function gardenBotany(
     const g = new T.Group();
     g.position.set(x, y, z);
     p.add(g);
-    pot(g, 0.23 * size, 0.34 * size);
+    pot(
+      g,
+      (kind === 'flowers' && seed % 3 === 0 ? 0.25 : 0.23) * size,
+      (kind === 'flowers' && seed % 3 === 0 ? 0.29 : 0.34) * size,
+      kind === 'flowers' ? flowerPots[seed % flowerPots.length] : clay,
+    );
+    if (kind === 'flowers') return bloom(g, size, seed);
     const h = 0.3 * size,
       leaves = [];
-    const count = kind === 'fern' ? 8 : kind === 'flowers' ? 13 : 10;
+    const count = kind === 'fern' ? 8 : 10;
     for (let i = 0; i < count; i++) {
       const a = i * 2.4,
         reach = (kind === 'fern' ? 0.56 : 0.3) * size,
@@ -213,28 +220,6 @@ export function gardenBotany(
           l: 0.4 * size,
           w: 0.22 * size,
         });
-      if (kind === 'flowers') {
-        const fm = seed % 3 === 0 ? flowerOchre : flowerCream;
-        for (let k = 0; k < 5; k++) {
-          const o = mesh(
-            g,
-            new T.SphereGeometry(0.04 * size, 7, 5),
-            fm,
-            xx + Math.cos(k * 1.256) * 0.057 * size,
-            top + 0.045 * size,
-            zz + Math.sin(k * 1.256) * 0.057 * size,
-          );
-          o.scale.y = 0.3;
-        }
-        mesh(
-          g,
-          new T.SphereGeometry(0.024 * size, 7, 5),
-          moss,
-          xx,
-          top + 0.055 * size,
-          zz,
-        );
-      }
     }
     if (kind === 'vine')
       for (let i = 0; i < 22; i++) {
@@ -261,8 +246,186 @@ export function gardenBotany(
     foliage(g, leaves, seed);
     return g;
   }
-  const flowerOchre = mat('#d9b579'),
-    flowerCream = mat('#f2e6c4');
+
+  const flowerPots = [clay, mat('#e0d4b9'), mat('#687e78'), mat('#b9a47e')];
+  const petals = gardenSpecies.map((s) => {
+    const m = mat(s.color);
+    m.side = T.DoubleSide;
+    return m;
+  });
+  const pollen = mat('#cfaa4c'),
+    seedHead = mat('#634f37');
+  function bloom(g: T.Group, size: number, seed: number) {
+    const spec = flowerForSeed(seed),
+      material = petals[gardenSpecies.indexOf(spec)];
+    g.name = `${spec.name} / ${spec.form}`;
+    g.userData.species = spec.id;
+    const leaves = [];
+    function petal(
+      p: T.Object3D,
+      a: number,
+      r: number,
+      l: number,
+      width: number,
+      tilt = 0,
+    ) {
+      const o = mesh(
+        p,
+        new T.SphereGeometry(1, 9, 6),
+        material,
+        Math.sin(a) * r,
+        0,
+        Math.cos(a) * r,
+      );
+      o.scale.set(width, 0.012 * size, l);
+      o.rotation.set(tilt, a, 0);
+      return o;
+    }
+    for (let i = 0; i < spec.heads; i++) {
+      const a = i * 2.399 + seed * 0.3,
+        spread = (spec.form === 'cluster' ? 0.19 : 0.22) * size;
+      const x = Math.sin(a) * spread * (0.5 + rnd(seed + i) * 0.5),
+        z = Math.cos(a) * spread;
+      const h =
+        0.29 * size + spec.height * size * (0.74 + rnd(seed + i * 3) * 0.26);
+      rod(g, [0, 0.26 * size, 0], [x, h, z], 0.006 * size);
+      for (const sign of [-1, 1])
+        leaves.push({
+          x: x * 0.6,
+          y: 0.32 * size + (h - 0.3 * size) * 0.36,
+          z: z * 0.6,
+          dx: Math.sin(a) * sign,
+          dy: 0.42,
+          dz: Math.cos(a) * sign,
+          l: (spec.form === 'cup' ? 0.4 : 0.23) * size,
+          w: spec.leafWidth * size,
+        });
+      const head = new T.Group();
+      head.position.set(x, h, z);
+      head.rotation.set(Math.sin(i) * 0.12, a * 0.3, Math.cos(i) * 0.1);
+      g.add(head);
+      if (spec.form === 'spike') {
+        rod(head, [0, -0.1 * size, 0], [0, 0.22 * size, 0], 0.004 * size);
+        for (let row = 0; row < 7; row++)
+          for (let k = 0; k < 4; k++) {
+            const angle = (k * Math.PI) / 2 + row * 0.75,
+              r = (0.032 - row * 0.003) * size;
+            const b = mesh(
+              head,
+              new T.SphereGeometry(0.025 * size, 7, 5),
+              material,
+              Math.sin(angle) * r,
+              row * 0.033 * size,
+              Math.cos(angle) * r,
+            );
+            b.scale.set(0.7, 1.3, 0.7);
+          }
+      } else if (spec.form === 'cluster') {
+        for (let j = 0; j < 22; j++) {
+          const angle = j * 2.399,
+            r = Math.sqrt(j / 22) * 0.14 * size,
+            y = Math.sqrt(Math.max(0, 1 - j / 25)) * 0.11 * size;
+          const fl = new T.Group();
+          fl.position.set(Math.sin(angle) * r, y, Math.cos(angle) * r);
+          head.add(fl);
+          for (let k = 0; k < 4; k++)
+            petal(
+              fl,
+              (k * Math.PI) / 2,
+              0.023 * size,
+              0.024 * size,
+              0.016 * size,
+            );
+          mesh(
+            fl,
+            new T.SphereGeometry(0.012 * size, 6, 4),
+            pollen,
+            0,
+            0.005 * size,
+            0,
+          );
+        }
+      } else if (spec.form === 'cup' || spec.form === 'bell') {
+        if (spec.form === 'bell') head.rotation.x = 2.4;
+        for (let k = 0; k < spec.petals; k++) {
+          const angle = (k * Math.PI * 2) / spec.petals,
+            profile = [
+              [0.022, 0],
+              [0.074, 0.07],
+              [0.081, 0.14],
+              [0.075, 0.16],
+            ];
+          const shape = new T.LatheGeometry(
+            profile.map(([r, y]) => new T.Vector2(r * size, y * size)),
+            8,
+            angle,
+            ((Math.PI * 2) / spec.petals) * 0.98,
+          );
+          mesh(head, shape, material, 0, 0, 0);
+        }
+        mesh(
+          head,
+          new T.SphereGeometry(0.028 * size, 8, 5),
+          pollen,
+          0,
+          0.08 * size,
+          0,
+        );
+      } else if (spec.form === 'rosette') {
+        for (let j = 0; j < 3; j++)
+          for (let k = 0; k < 6; k++) {
+            const p = petal(
+              head,
+              (k * Math.PI) / 3 + j * 0.47,
+              (0.025 + j * 0.025) * size,
+              (0.028 + j * 0.015) * size,
+              (0.022 + j * 0.01) * size,
+              0.26 + j * 0.16,
+            );
+            p.position.y = (2 - j) * 0.025 * size;
+          }
+      } else {
+        const radius =
+          spec.form === 'sun' ? 0.102 : spec.form === 'poppy' ? 0.072 : 0.065;
+        for (let k = 0; k < spec.petals; k++) {
+          const p = petal(
+            head,
+            (k * Math.PI * 2) / spec.petals,
+            radius * size,
+            (spec.form === 'poppy' ? 0.075 : 0.052) * size,
+            (spec.form === 'poppy' ? 0.062 : 0.019) * size,
+            0.12,
+          );
+          p.position.y = Math.sin(k * 2) * 0.008 * size;
+        }
+        const center = mesh(
+          head,
+          new T.SphereGeometry(
+            (spec.form === 'sun' ? 0.071 : 0.032) * size,
+            12,
+            7,
+          ),
+          spec.form === 'sun' || spec.form === 'poppy' ? seedHead : pollen,
+          0,
+          0.019 * size,
+          0,
+        );
+        center.scale.y = 0.4;
+        if (spec.form === 'sun')
+          for (let j = 0; j < 19; j++)
+            mesh(
+              head,
+              new T.SphereGeometry(0.007 * size, 5, 4),
+              pollen,
+              Math.sin(j * 2.4) * Math.sqrt(j / 19) * 0.055 * size,
+              0.046 * size,
+              Math.cos(j * 2.4) * Math.sqrt(j / 19) * 0.055 * size,
+            );
+      }
+    }
+    foliage(g, leaves, seed);
+    return g;
+  }
   function citrus(p: T.Object3D) {
     mesh(p, new T.CylinderGeometry(0.65, 0.59, 0.42, 32), clay, 0, 0.3, 0);
     mesh(p, new T.CylinderGeometry(0.59, 0.59, 0.035, 32), soil, 0, 0.525, 0);

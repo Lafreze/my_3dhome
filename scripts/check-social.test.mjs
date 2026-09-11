@@ -17,7 +17,14 @@ test('social interactions address a seated peer and are visible to both sessions
     seatId: 'cafe-chair-2',
     name: '小林',
   }).me;
-  for (const kind of ['offerCoffee', 'applaud', 'thanks']) {
+  for (const kind of [
+    'offerCoffee',
+    'applaud',
+    'thanks',
+    'shareBook',
+    'shareFlowers',
+    'shareTea',
+  ]) {
     const result = store.mutate('a', { action: 'gesture', kind, targetId: b });
     const event = result.visitors.find((p) => p.id === result.me).gesture;
     assert.equal(event.targetId, b);

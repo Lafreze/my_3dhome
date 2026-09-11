@@ -1,7 +1,8 @@
+import { corridorArtworks, corridorArtTexture } from './corridor-art';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { addOakFloor, galleryPrint } from './house-finishes';
+import { addOakFloor } from './house-finishes';
 import { drapedLinen } from './bed-linen';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { rooms, type HouseView } from './house-data';
@@ -1213,19 +1214,25 @@ export function buildGameRoom(k: Kit) {
     index: number,
     title: string,
   ) {
+    const art = corridorArtworks[index],
+      w = art.width,
+      h = art.height;
     const frame = group(wallGroup, x, 2.05, 0.13);
+    const frameMat = oak.clone();
+    frameMat.color.set(art.frame);
+    k.materials.push(frameMat);
     frame.name = `Corridor print / ${title}`;
     corridorArt.push(frame);
-    box(frame, 0.99, 1.29, 0.065, 0, 0, 0, oak, 0.008);
-    box(frame, 0.9, 1.2, 0.02, 0, 0, 0.045, ivory, 0.004);
+    box(frame, w + 0.2, h + 0.22, 0.065, 0, 0, 0, frameMat, 0.008);
+    box(frame, w + 0.12, h + 0.14, 0.02, 0, 0, 0.045, ivory, 0.004);
     const material = new T.MeshStandardMaterial({
-      map: galleryPrint(index % 5, k.textures),
+      map: corridorArtTexture(index, k.textures),
       roughness: 0.93,
     });
     k.materials.push(material);
     const print = mesh(
       frame,
-      new T.PlaneGeometry(0.75, 1.02),
+      new T.PlaneGeometry(w, h),
       material,
       0,
       0,
@@ -1233,10 +1240,10 @@ export function buildGameRoom(k: Kit) {
       title,
     );
     print.castShadow = false;
-    label(frame, title, 0.84, 0, -0.79, 0.01);
+    label(frame, title, Math.max(0.82, w), 0, -h / 2 - 0.23, 0.01);
     // Slim picture lights leave the walking width free.
-    box(frame, 0.62, 0.045, 0.1, 0, 0.75, 0.07, brass);
-    box(frame, 0.52, 0.012, 0.07, 0, 0.723, 0.085, gold);
+    box(frame, 0.62, 0.045, 0.1, 0, h / 2 + 0.22, 0.07, brass);
+    box(frame, 0.52, 0.012, 0.07, 0, h / 2 + 0.193, 0.085, gold);
   }
   const barWall = wall(
     corridor,
@@ -1256,14 +1263,17 @@ export function buildGameRoom(k: Kit) {
     'corridor',
     2.85,
   );
-  hallPrint(libraryWall, -2.2, 1, '04 · 静谧花园');
-  hallPrint(libraryWall, -0.7, 6, '05 · 日常片段');
-  hallPrint(libraryWall, 0.8, 4, '08 · 书页之间');
-  hallPrint(barWall, -1.5, 2, '06 · 咖啡时光');
-  hallPrint(barWall, 0, 7, '07 · 慢慢收藏');
-  hallPrint(gameWall, -1.65, 3, '01 · 林间光');
-  hallPrint(gameWall, 0, 4, '02 · 午后山影');
-  hallPrint(gameWall, 1.1, 5, '03 · 小屋的四季');
+  for (const [surface, x, index] of [
+    [libraryWall, -2.2, 0],
+    [libraryWall, -0.7, 1],
+    [libraryWall, 0.8, 2],
+    [gameWall, -1.65, 3],
+    [gameWall, 0, 4],
+    [gameWall, 1.1, 5],
+    [barWall, -1.5, 6],
+    [barWall, 0, 7],
+  ] as const)
+    hallPrint(surface, x, index, corridorArtworks[index].title);
   for (const [id, x, z, yaw, text] of [
     ['corridorLibraryDoor', 1, 1.75, -Math.PI / 2, '08  藏书室 →'],
     ['corridorBarDoor', 1, 16.1, -Math.PI / 2, '07  小酒馆 →'],

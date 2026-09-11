@@ -28,6 +28,7 @@ export type Visitor = {
       | 'heart'
       | 'phone'
       | 'coffee'
+      | import('./visitor-activities').ActivityKind
       | keyof typeof import('./visitor-social.json')
       | import('./visitor-expression').Expression;
     targetId?: string;

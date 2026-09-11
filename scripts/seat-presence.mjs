@@ -1,3 +1,4 @@
+import activities from '../app/visitor-activities.json' with { type: 'json' };
 import {
   createVisitorJourney,
   sampleVisitorJourney,
@@ -181,6 +182,7 @@ export function createPresenceStore({
           'phone',
           'coffee',
           ...Object.keys(expressions),
+          ...Object.keys(activities),
           ...Object.keys(social),
         ].includes(data.kind)
       )
@@ -190,8 +192,14 @@ export function createPresenceStore({
         now() - current.lastGesture < 2500
       )
         throw Object.assign(new Error('稍等一下再互动'), { status: 429 });
-      if (data.targetId !== undefined && Object.hasOwn(expressions, data.kind))
-        throw Object.assign(new Error('只能选择自己的表情'), { status: 400 });
+      if (
+        data.targetId !== undefined &&
+        (Object.hasOwn(expressions, data.kind) ||
+          Object.hasOwn(activities, data.kind))
+      )
+        throw Object.assign(new Error('只能为自己选择这个动作或表情'), {
+          status: 400,
+        });
       const isSocial = Object.hasOwn(social, data.kind);
       if (isSocial && !data.targetId)
         throw Object.assign(new Error('先选择一位访客'), { status: 400 });
@@ -240,9 +248,11 @@ export function createPresenceStore({
           now() +
           (isSocial
             ? 9000
-            : ['phone', 'coffee'].includes(data.kind)
-              ? 10000
-              : 6500),
+            : Object.hasOwn(activities, data.kind)
+              ? activities[data.kind].duration
+              : ['phone', 'coffee'].includes(data.kind)
+                ? 10000
+                : 6500),
       };
       return snapshot(ip);
     }

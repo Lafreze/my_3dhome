@@ -1,0 +1,88 @@
+export const gardenSpecies = [
+  {
+    id: 'daisy',
+    name: '白色雏菊',
+    color: '#efe3b8',
+    form: 'rays',
+    petals: 13,
+    heads: 8,
+    height: 0.5,
+    leafWidth: 0.055,
+  },
+  {
+    id: 'lavender',
+    name: '薰衣草',
+    color: '#9987b8',
+    form: 'spike',
+    petals: 6,
+    heads: 9,
+    height: 0.74,
+    leafWidth: 0.025,
+  },
+  {
+    id: 'tulip',
+    name: '杏色郁金香',
+    color: '#db9d86',
+    form: 'cup',
+    petals: 6,
+    heads: 5,
+    height: 0.64,
+    leafWidth: 0.095,
+  },
+  {
+    id: 'hydrangea',
+    name: '蓝紫绣球',
+    color: '#8fa9ca',
+    form: 'cluster',
+    petals: 4,
+    heads: 3,
+    height: 0.52,
+    leafWidth: 0.16,
+  },
+  {
+    id: 'rose',
+    name: '旧粉月季',
+    color: '#b57d89',
+    form: 'rosette',
+    petals: 18,
+    heads: 4,
+    height: 0.61,
+    leafWidth: 0.085,
+  },
+  {
+    id: 'sunflower',
+    name: '矮向日葵',
+    color: '#e2b44e',
+    form: 'sun',
+    petals: 15,
+    heads: 3,
+    height: 0.8,
+    leafWidth: 0.14,
+  },
+  {
+    id: 'bellflower',
+    name: '蓝铃花',
+    color: '#8594c3',
+    form: 'bell',
+    petals: 5,
+    heads: 7,
+    height: 0.6,
+    leafWidth: 0.06,
+  },
+  {
+    id: 'poppy',
+    name: '橙红虞美人',
+    color: '#cc7955',
+    form: 'poppy',
+    petals: 4,
+    heads: 5,
+    height: 0.69,
+    leafWidth: 0.04,
+  },
+] as const;
+export type GardenSpecies = (typeof gardenSpecies)[number];
+export const flowerForSeed = (seed: number) =>
+  gardenSpecies[
+    (((Math.floor(seed) * 7) % gardenSpecies.length) + gardenSpecies.length) %
+      gardenSpecies.length
+  ];

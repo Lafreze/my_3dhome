@@ -1,3 +1,4 @@
+import { createSpineAtlas, bindingColors } from './book-spines';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -59,14 +60,7 @@ export function buildLibrary(k: Kit) {
     rust = k.textile('#89724f'),
     leaf = mat('#647b46');
   linen.side = T.DoubleSide;
-  const bindings = [
-    '#526148',
-    '#7c583c',
-    '#9b835e',
-    '#5c6561',
-    '#7d5546',
-    '#b0a078',
-  ].map((c) => mat(c));
+  const bindings = bindingColors.map((c) => mat(c));
   const glass = new T.MeshPhysicalMaterial({
     color: '#e5ece4',
     transparent: true,
@@ -279,6 +273,8 @@ export function buildLibrary(k: Kit) {
     k.materials.push(m);
     mesh(g, new T.PlaneGeometry(w - 0.055, h - 0.065), m, 0, 0, 0.04);
   }
+  const spineAtlas = createSpineAtlas(k.textures, k.materials);
+  let bookSerial = 0;
   function book(
     p: T.Object3D,
     x: number,
@@ -289,7 +285,10 @@ export function buildLibrary(k: Kit) {
     index: number,
     depth = 0.28,
   ) {
-    const m = bindings[index % bindings.length];
+    const serial = bookSerial++,
+      m = bindings[(serial * 7 + index) % bindings.length];
+    h *= 0.84 + (serial % 7) * 0.025;
+    z += ((serial % 5) - 2) * 0.009;
     box(p, w, h, depth, x, y + h / 2, z, m, 0.008);
     box(
       p,
@@ -302,30 +301,17 @@ export function buildLibrary(k: Kit) {
       paper,
       0.002,
     );
-    for (const yy of [y + 0.06, y + h - 0.065])
-      box(
-        p,
-        w * 0.85,
-        0.009,
-        0.006,
-        x,
-        yy,
-        z + depth / 2 + 0.003,
-        brass,
-        0.001,
-      );
-    box(
+    const spine = mesh(
       p,
-      w * 0.53,
-      0.07,
-      0.007,
+      spineAtlas.geometry(w * 0.96, h * 0.95, serial),
+      spineAtlas.material,
       x,
-      y + h * 0.62,
-      z + depth / 2 + 0.004,
-      ivory,
-      0.002,
+      y + h / 2,
+      z + depth / 2 + 0.006,
     );
+    spine.castShadow = false;
   }
+
   function stack(
     p: T.Object3D,
     x: number,
@@ -342,7 +328,7 @@ export function buildLibrary(k: Kit) {
         x + (i % 2) * 0.02,
         y + 0.035 + i * 0.073,
         z,
-        bindings[(index + i) % 6],
+        bindings[(index + i) % bindings.length],
         0.007,
       );
       box(
@@ -517,7 +503,7 @@ export function buildLibrary(k: Kit) {
         if (!(reserveGlobe && i === 1 && row === 3))
           box(p, bay - 0.09, 0.045, 0.62, x, y, 0, oak);
         if (
-          (reserveBooks && i === 0 && row === 1) ||
+          (reserveBooks && i === 0 && row < 3) ||
           (reserveGlobe && i === 1 && (row === 2 || row === 3))
         )
           continue;
@@ -568,15 +554,27 @@ export function buildLibrary(k: Kit) {
   plant(shelves, -3.83, 3.61, -4.02, true);
   plant(shelves, 0.54, 3.61, -4.03, true);
   plant(east, 2.65, 3.61, 0.02, true);
-  // Three selected volumes have their own spines and can leave their actual shelf slots.
+  // Every readable volume has its own shelf position and individually animated spine.
   const selectedBooks = {} as Record<LibraryBookId, T.Group>;
-  for (const [id, objectId, x] of [
-    ['forest', 'libraryBookForest', -0.26],
-    ['journey', 'libraryBookJourney', 0],
-    ['house', 'libraryBookHouse', 0.26],
-  ] as const) {
-    const g = object(objectId, left, x, 1.475, 0.19);
-    book(g, 0, 0, 0, 0.21, 0.43, Object.keys(libraryBooks).indexOf(id));
+  const bookIds = Object.keys(libraryBooks) as LibraryBookId[];
+  for (const [i, id] of bookIds.entries()) {
+    const objectId = (
+      {
+        forest: 'libraryBookForest',
+        journey: 'libraryBookJourney',
+        house: 'libraryBookHouse',
+        stars: 'libraryBookStars',
+        kitchen: 'libraryBookKitchen',
+        mystery: 'libraryBookMystery',
+        architecture: 'libraryBookArchitecture',
+        music: 'libraryBookMusic',
+        botany: 'libraryBookBotany',
+      } as const
+    )[id];
+    const y = 0.965 + Math.floor(i / 3) * 0.49;
+    const g = object(objectId, left, ((i % 3) - 1) * 0.26, y, 0.19);
+    g.userData.shelfY = y;
+    book(g, 0, 0, 0, 0.21, 0.43, i);
     label(
       g,
       libraryBooks[id].title,

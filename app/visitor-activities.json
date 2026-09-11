@@ -1,0 +1,20 @@
+{
+  "readBook": {
+    "label": "读一会儿书",
+    "symbol": "▤",
+    "kind": 3,
+    "duration": 18000
+  },
+  "sketch": {
+    "label": "画一张速写",
+    "symbol": "✎",
+    "kind": 4,
+    "duration": 16000
+  },
+  "smellFlower": {
+    "label": "闻闻花香",
+    "symbol": "❀",
+    "kind": 5,
+    "duration": 9000
+  }
+}

@@ -1,5 +1,7 @@
+import { extraLibraryBooks } from './library-extra-books.ts';
 import { libraryLadderStops } from './library-layout.ts';
 export const libraryBooks = {
+  ...extraLibraryBooks,
   forest: {
     title: '林间手记',
     subtitle: '把季节夹进书页',
@@ -178,7 +180,9 @@ export function createLibraryState() {
 }
 export const libraryBookmarkKey = 'satori-library-bookmarks';
 export function readLibraryBookmarks(): Record<LibraryBookId, number> {
-  const result = { forest: 0, journey: 0, house: 0 };
+  const result = Object.fromEntries(
+    Object.keys(libraryBooks).map((id) => [id, 0]),
+  ) as Record<LibraryBookId, number>;
   try {
     const stored = JSON.parse(localStorage.getItem(libraryBookmarkKey) || '{}');
     for (const id of Object.keys(result) as LibraryBookId[])

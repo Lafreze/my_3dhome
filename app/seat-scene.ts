@@ -1,3 +1,5 @@
+import { createVisitorGifts } from './visitor-gifts';
+import { activities, sampleVisitorActivity } from './visitor-activities';
 import {
   expressions,
   social,
@@ -61,6 +63,7 @@ export function createSeatScene(
     me = '',
     hovered: string | null = null;
   const idle = new SeatedIdle(Date.now());
+  const gifts = createVisitorGifts(scene);
   const crowd = new T.Group();
   crowd.name = 'Seated visitors';
   scene.add(crowd);
@@ -496,10 +499,19 @@ export function createSeatScene(
         states.set(visitor.id, state);
       }
       sampleVisitorMotion(t, state.seed, reduced, state.value);
-      const activity = moving
-        ? { kind: 0, amount: 0 }
-        : idle.sample(visitor.id);
-      frame.props.update(activity.kind, activity.amount, appearance.character);
+      const explicit = sampleVisitorActivity(visitor.gesture, now, reduced);
+      const activity =
+        moving || rest > 0
+          ? { kind: 0, amount: 0 }
+          : explicit.kind
+            ? explicit
+            : idle.sample(visitor.id);
+      frame.props.update(
+        activity.kind,
+        activity.amount,
+        appearance.character,
+        reduced ? 0 : explicit.kind ? explicit.age : t,
+      );
       if (rest > 0)
         state.value.set(
           rest,
@@ -509,7 +521,13 @@ export function createSeatScene(
         );
       else if (activity.kind) {
         state.value.y = T.MathUtils.lerp(state.value.y, -0.16, activity.amount);
-        state.value.w += activity.amount * (activity.kind === 1 ? 0.1 : 0.04);
+        state.value.w +=
+          activity.amount *
+          (activity.kind === 3 || activity.kind === 4
+            ? 0.22
+            : activity.kind === 1
+              ? 0.1
+              : 0.04);
       } else if (visitor.gesture && !reduced) {
         const age = (now - visitor.gesture.at) / 1000;
         if (age >= 0 && age < 5.2)
@@ -547,6 +565,7 @@ export function createSeatScene(
         },
       ];
     });
+    gifts.update(current, frames, now, reduced);
     for (const { mesh, part, slotIds, motion, rest, activity } of meshes) {
       slotIds.length = 0;
       for (const record of visibleVisitors) {
@@ -616,6 +635,7 @@ export function createSeatScene(
         return (
           expressions[person.gesture.kind as keyof typeof expressions]?.label ||
           social[person.gesture.kind as keyof typeof social]?.sent ||
+          activities[person.gesture.kind as keyof typeof activities]?.label ||
           '正在打招呼'
         );
       const activity = idle.sample(id);
@@ -625,6 +645,7 @@ export function createSeatScene(
           ? '捧杯休息'
           : '坐着歇一会儿';
     },
+    gifts: gifts.snapshot,
     idleSnapshot: () => idle.snapshot(),
     setActivitySeed: (seed: number) => idle.setSeed(seed),
     shouldFocusSeat: (id: string) =>
@@ -636,6 +657,19 @@ export function createSeatScene(
           id: visitor.id,
           seatId: visitor.seatId,
           position: f?.root.position.toArray(),
+          activity: sampleVisitorActivity(visitor.gesture, Date.now()),
+          props: [
+            'Open book on lap',
+            'Sketchpad and moving pencil',
+            'Small bouquet',
+          ].map((name) => {
+            const prop = f?.root.getObjectByName(name);
+            return {
+              name,
+              visible: prop?.visible,
+              position: prop?.getWorldPosition(new T.Vector3()).toArray(),
+            };
+          }),
           moving:
             !!visitor.journey &&
             Date.now() < visitor.journey.at + visitor.journey.duration,
@@ -746,6 +780,7 @@ export function createSeatScene(
       return null;
     },
     dispose() {
+      gifts.dispose();
       disposed = true;
       for (const frame of frames.values()) {
         frame.props.dispose();

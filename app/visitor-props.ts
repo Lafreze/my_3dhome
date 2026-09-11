@@ -1,4 +1,9 @@
-import { floatingCupPosition, floatingPhonePose } from './visitor-hand-poses';
+import { createHobbyProps } from './visitor-hobby-props';
+import {
+  floatingCupPosition,
+  floatingPhonePose,
+  handProfiles,
+} from './visitor-hand-poses';
 import type { Character } from './visitor-appearance';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -6,7 +11,8 @@ export function createVisitorProps() {
   const root = new T.Group(),
     phone = new T.Group(),
     cup = new T.Group();
-  root.add(phone, cup);
+  const hobbies = createHobbyProps();
+  root.add(phone, cup, hobbies.root);
   root.name = 'Seated phone and coffee';
   phone.name = 'Phone / screen toward eyes';
   cup.name = 'Cup / floating gesture';
@@ -66,7 +72,21 @@ export function createVisitorProps() {
   let configuredCharacter: Character | undefined;
   return {
     root,
-    update(kind: number, amount: number, character: Character) {
+    update(kind: number, amount: number, character: Character, age = 0) {
+      hobbies.update(kind >= 3 ? kind : 0, amount, age);
+      const profile = handProfiles[character];
+      const lapHeight = Math.max(0.17, profile.palm[1] + 0.08);
+      const lapForward = Math.max(0.33, profile.eye[2] + 0.14);
+      hobbies.book.position.set(0, lapHeight, lapForward);
+      hobbies.book.rotation.x = 0.3;
+      hobbies.pad.position.copy(hobbies.book.position);
+      hobbies.pad.rotation.x = 0.3;
+      hobbies.flowers.position.set(
+        profile.palm[0],
+        profile.eye[1] - 0.15,
+        profile.eye[2] + 0.2,
+      );
+      hobbies.flowers.rotation.z = -0.2;
       phone.visible = kind === 1 && amount > 0.015;
       cup.visible = kind === 2 && amount > 0.015;
       phone.scale.setScalar(amount);
@@ -80,6 +100,7 @@ export function createVisitorProps() {
       cup.rotation.set(0, Math.PI, 0);
     },
     dispose() {
+      hobbies.dispose();
       root.removeFromParent();
       root.traverse((o) => {
         if (o instanceof T.Mesh) o.geometry.dispose();

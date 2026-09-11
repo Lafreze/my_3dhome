@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { rooms, type HouseView } from './house-data';
+import { activities, type ActivityKind } from './visitor-activities';
 import { seats, seatById, type Presence } from './seat-data';
 import type { RoomApi } from './room-data';
 import VisitorWardrobe from './visitor-wardrobe';
@@ -247,7 +248,7 @@ export default function VisitorSeats({
   });
   async function submit(
     action: 'sit' | 'rest' | 'wake' | 'leave' | 'gesture' | 'appearance',
-    kind?: 'hello' | 'heart' | Expression | SocialKind,
+    kind?: 'hello' | 'heart' | Expression | SocialKind | ActivityKind,
     targetId?: string,
     placement?: { seatId: string; name: string; appearance: typeof appearance },
   ) {
@@ -523,6 +524,7 @@ export default function VisitorSeats({
               onHello={() => void submit('gesture', 'hello')}
               onHeart={() => void submit('gesture', 'heart')}
               onExpression={(kind) => void submit('gesture', kind)}
+              onActivity={(kind) => void submit('gesture', kind)}
             />
           )}
         {error && (
@@ -560,9 +562,11 @@ function VisitorActions({
   onHeart,
   onExpression,
   onSocial,
+  onActivity,
   socialDisabled = false,
 }: {
   onExpression?: (kind: Expression) => void;
+  onActivity?: (kind: ActivityKind) => void;
   onSocial?: (kind: SocialKind) => void;
   socialDisabled?: boolean;
   disabled: boolean;
@@ -594,6 +598,20 @@ function VisitorActions({
             </button>
           ))}
           {socialDisabled && <small>在同一房间坐好后，就可以互动了。</small>}
+        </div>
+      )}
+      {onActivity && (
+        <div className="visitor-social" aria-label="做点喜欢的事">
+          {Object.entries(activities).map(([id, a]) => (
+            <button
+              key={id}
+              disabled={disabled}
+              onClick={() => onActivity(id as ActivityKind)}
+            >
+              <span aria-hidden="true">{a.symbol}</span>
+              {a.label}
+            </button>
+          ))}
         </div>
       )}
       {onExpression && (

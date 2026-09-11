@@ -13,6 +13,27 @@
     "symbol": "✦",
     "color": "#b38b49"
   },
+  "shareBook": {
+    "label": "递一本书",
+    "sent": "这本书借你读",
+    "received": "收到一本书",
+    "symbol": "▤",
+    "color": "#718a8a"
+  },
+  "shareFlowers": {
+    "label": "送一束小花",
+    "sent": "送你一束小花",
+    "received": "收到一束花",
+    "symbol": "❀",
+    "color": "#af7891"
+  },
+  "shareTea": {
+    "label": "请喝一杯茶",
+    "sent": "请你喝杯茶",
+    "received": "收到一杯茶",
+    "symbol": "♧",
+    "color": "#b59156"
+  },
   "thanks": {
     "label": "说声谢谢",
     "sent": "谢谢你",

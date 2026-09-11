@@ -28,6 +28,12 @@ import { libraryLadderStops } from './library-layout';
 import type { RoomApi } from './room-data';
 export const libraryObjectIds = {
   libraryShelf: 'shelf',
+  libraryBookStars: 'stars',
+  libraryBookKitchen: 'kitchen',
+  libraryBookMystery: 'mystery',
+  libraryBookArchitecture: 'architecture',
+  libraryBookMusic: 'music',
+  libraryBookBotany: 'botany',
   libraryBookForest: 'forest',
   libraryBookJourney: 'journey',
   libraryBookHouse: 'house',
@@ -280,12 +286,12 @@ export default function LibraryPanel({
               <button key={id} onClick={() => borrow(id as LibraryBookId)}>
                 <span className="library-cover" style={{ background: b.color }}>
                   <BookOpen size={23} />
-                  <small>0{i + 1}</small>
+                  <small>{String(i + 1).padStart(2, '0')}</small>
                 </span>
                 <span>
                   <strong>{b.title}</strong>
                   <small>{b.subtitle}</small>
-                  <em>抽书阅读 · 四页短篇</em>
+                  <em>抽书阅读 · 四页读物</em>
                 </span>
                 <ChevronRight size={17} />
               </button>

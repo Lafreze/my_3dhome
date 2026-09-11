@@ -132,17 +132,54 @@ test('ladder reversal stays on its reserved track; globe and reduced motion are 
 });
 
 test('saved bookmarks reject corrupt, out-of-range or unavailable local storage', () => {
+  const empty = Object.fromEntries(
+    Object.keys(libraryBooks).map((id) => [id, 0]),
+  );
   globalThis.localStorage = { getItem: () => '{broken' };
-  assert.deepEqual(readLibraryBookmarks(), { forest: 0, journey: 0, house: 0 });
+  assert.deepEqual(readLibraryBookmarks(), empty);
   globalThis.localStorage = {
     getItem: () => JSON.stringify({ forest: 2, journey: -1, house: 4 }),
   };
-  assert.deepEqual(readLibraryBookmarks(), { forest: 2, journey: 0, house: 0 });
+  assert.deepEqual(readLibraryBookmarks(), { ...empty, forest: 2 });
   globalThis.localStorage = {
     getItem: () => {
       throw new Error('disabled');
     },
   };
-  assert.deepEqual(readLibraryBookmarks(), { forest: 0, journey: 0, house: 0 });
+  assert.deepEqual(readLibraryBookmarks(), empty);
+  delete globalThis.localStorage;
+});
+
+test('every new subject can be borrowed, paged and bookmarked independently', () => {
+  const lib = createLibraryState();
+  const titles = new Set(),
+    pages = new Set();
+  for (const [id, book] of Object.entries(libraryBooks)) {
+    titles.add(book.title);
+    assert.equal(book.pages.length, 4);
+    for (const page of book.pages) {
+      assert(page.text.length > 60);
+      pages.add(page.text);
+    }
+    assert(lib.command({ type: 'borrow', book: id, page: 3 }));
+    lib.update(1, true);
+    assert.equal(lib.snapshot().book, id);
+    assert.equal(lib.snapshot().page, 3);
+    assert(!lib.command({ type: 'page', direction: 1 }));
+    assert(lib.command({ type: 'return' }));
+    lib.update(1, true);
+  }
+  assert.equal(titles.size, 9);
+  assert.equal(pages.size, 36);
+  globalThis.localStorage = {
+    getItem: () =>
+      JSON.stringify({ stars: 2, botany: 3, forest: 1, unknown: 99 }),
+  };
+  const saved = readLibraryBookmarks();
+  assert.equal(saved.stars, 2);
+  assert.equal(saved.botany, 3);
+  assert.equal(saved.forest, 1);
+  assert.equal(saved.music, 0);
+  assert(!('unknown' in saved));
   delete globalThis.localStorage;
 });

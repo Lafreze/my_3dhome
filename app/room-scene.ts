@@ -2000,9 +2000,21 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         bar: () => house.barSnapshot(),
         library: () => house.librarySnapshot(),
         garden: () => house.gardenSnapshot(),
+        flowers: () => {
+          const plants: { species: string; position: number[] }[] = [];
+          scene.traverse((o) => {
+            if (o.userData.species)
+              plants.push({
+                species: o.userData.species,
+                position: o.getWorldPosition(new T.Vector3()).toArray(),
+              });
+          });
+          return plants;
+        },
         occlusion: occlusion.snapshot,
         snapshot: visitors.snapshots,
         idle: visitors.idleSnapshot,
+        gifts: visitors.gifts,
         objects: quietObjects.snapshot,
         devices: livedDetails.snapshot,
         record: () => ({
