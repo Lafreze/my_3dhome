@@ -138,6 +138,7 @@ export function createWindowEnvironment(
     bedroom: 63,
     gallery: 89,
     cafe: 113,
+    bar: 47,
     gaming: 139,
     corridor: 163,
   }[room];

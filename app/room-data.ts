@@ -57,6 +57,11 @@ export type Profile = {
 };
 export const defaultProfile: Profile = houseDefaults.profile;
 export type RoomApi = {
+  barSnapshot: () => import('./bar-state').BarSnapshot;
+  prepareCocktail: (drink: import('./bar-state').BarDrink) => boolean;
+  clearCocktail: () => void;
+  setBarRecord: (index: number | null) => void;
+  setBarDarts: (hits: import('./bar-state').DartHit[]) => void;
   setGameScreen: (
     id: 'blocks' | 'snake',
     canvas: HTMLCanvasElement | null,

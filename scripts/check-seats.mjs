@@ -9,11 +9,13 @@ import {
 import seats from '../app/seat-catalog.json' with { type: 'json' };
 
 assert.equal(new Set(seats.map((s) => s.id)).size, seats.length);
-assert.equal(seats.length, 36);
+assert.equal(seats.length, 44);
 assert.equal(seats.filter((s) => s.kind === 'bed').length, 2);
 for (const seat of seats) {
   assert(seat.offset.every(Number.isFinite));
-  assert(seat.offset[1] > 0.6 && seat.offset[1] < 1);
+  if (seat.id.startsWith('bar-stool-'))
+    assert(seat.offset[1] > 1.2 && seat.offset[1] < 1.3);
+  else assert(seat.offset[1] > 0.6 && seat.offset[1] < 1);
 }
 assert.equal(normalizeIP('::ffff:127.0.0.1'), '127.0.0.1');
 assert.equal(normalizeIP('::1'), '127.0.0.1');
@@ -80,7 +82,7 @@ const sleep = resting.mutate('192.0.2.10', {
   appearance: { character: 'fox' },
 });
 assert.equal(sleep.visitors[0].posture, 'rest');
-assert.equal(sleep.capacity, 36);
+assert.equal(sleep.capacity, 44);
 assert.throws(
   () =>
     resting.mutate('192.0.2.11', {
@@ -260,5 +262,5 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 console.log(
-  '36 places; atomic bed rest/wake, sleeping privacy, shared gestures, cooldown/expiry, IP identity, capacity and HTTP boundaries passed.',
+  '44 places; atomic bed rest/wake, sleeping privacy, shared gestures, cooldown/expiry, IP identity, capacity and HTTP boundaries passed.',
 );

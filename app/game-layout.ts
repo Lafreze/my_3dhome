@@ -1,6 +1,8 @@
 // The main house stays on its original grid. Every expansion opens onto EAST WALK.
 export const portalDestinations = {
   gameExitDoor: 'corridor',
+  barExitDoor: 'corridor',
+  corridorBarDoor: 'bar',
   cafeEastDoor: 'corridor',
   galleryEastDoor: 'corridor',
   corridorGameDoor: 'gaming',
@@ -29,6 +31,7 @@ export const expansionPortals = [
   { axis: 'x', at: 12, along: 9.2, a: 'gallery', b: 'corridor' },
   { axis: 'x', at: 12, along: 10.95, a: 'cafe', b: 'corridor' },
   { axis: 'x', at: 14, along: 9.2, a: 'corridor', b: 'gaming' },
+  { axis: 'x', at: 14, along: 16.1, a: 'corridor', b: 'bar' },
 ] as const;
 export const expansionReservations = [
   {
@@ -38,14 +41,6 @@ export const expansionReservations = [
     depth: 6.8,
     name: '预留 A · 音乐 / 影音',
     doorZ: 1.75,
-  },
-  {
-    x: 18.5,
-    z: 14.2,
-    width: 9,
-    depth: 8,
-    name: '预留 B · 手作 / 收藏',
-    doorZ: 16.1,
   },
 ] as const;
 export const gameRoutes = [

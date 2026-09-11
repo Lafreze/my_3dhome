@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { rooms, houseFurniture } from '../app/house-data.ts';
+import { barFurniture, barStools } from '../app/bar-layout.ts';
 import { gameFurniture } from '../app/game-layout.ts';
 import { layout } from '../app/room-layout.ts';
 import { cafeChairs, cafeLayout } from '../app/cafe-layout.ts';
@@ -21,6 +22,16 @@ function parent(id: string): {
   yaw?: number;
   obstacle: string;
 } {
+  if (id.startsWith('bar-stool'))
+    return { ...barStools[Number(id.split('-')[2]) - 1], obstacle: id };
+  if (id.startsWith('bar-sofa-north'))
+    return { ...barFurniture.boothNorth, obstacle: 'boothNorth' };
+  if (id.startsWith('bar-sofa-east'))
+    return {
+      ...barFurniture.boothEast,
+      yaw: -Math.PI / 2,
+      obstacle: 'boothEast',
+    };
   if (id === 'study-work') return { ...layout.stool, obstacle: 'stool' };
   if (id === 'study-reading') return { ...layout.chair, obstacle: 'chair' };
   if (id.startsWith('study-sofa')) return { ...layout.bed, obstacle: 'bed' };
@@ -131,7 +142,9 @@ for (let a = 0; a < seats.length; a++)
       to = nodes[seats[b].id].approach;
     const route = nav.path(from, to, 'resident');
     if (!route) throw Error(`Disconnected ${seats[a].id} -> ${seats[b].id}`);
-    const raw = [from, ...route],
+    const raw = [from, ...route].map(
+        (p) => p.map((n) => +n.toFixed(4)) as Point,
+      ),
       simple: Point[] = [from];
     for (let i = 0; i < raw.length - 1;) {
       let next = i + 1;

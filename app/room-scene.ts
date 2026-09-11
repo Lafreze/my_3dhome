@@ -1997,6 +1997,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     Object.assign(window, {
       __kuroVisitors: {
         games: () => house.gameSnapshot(),
+        bar: () => house.barSnapshot(),
         occlusion: occlusion.snapshot,
         snapshot: visitors.snapshots,
         idle: visitors.idleSnapshot,
@@ -2457,6 +2458,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   }
   const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
+    barSnapshot: house.barSnapshot,
+    prepareCocktail: house.prepareCocktail,
+    clearCocktail: house.clearCocktail,
+    setBarRecord: house.setBarRecord,
+    setBarDarts: house.setBarDarts,
     setGameScreen: house.setGameScreen,
     setGameBoard: house.setGameBoard,
     setGameRecords: house.setGameRecords,
@@ -2561,13 +2567,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         const vantage =
           view === 'corridor'
             ? new T.Vector3(-11, 16, 25)
-            : view === 'gaming'
-              ? new T.Vector3(-10, 11, 15)
-              : view === 'cafe'
-                ? new T.Vector3(10, 12, 21)
-                : view === 'bedroom'
-                  ? new T.Vector3(2, 9.2, 15.5)
-                  : initial.clone();
+            : view === 'bar'
+              ? new T.Vector3(-11, 12, 16)
+              : view === 'gaming'
+                ? new T.Vector3(-10, 11, 15)
+                : view === 'cafe'
+                  ? new T.Vector3(10, 12, 21)
+                  : view === 'bedroom'
+                    ? new T.Vector3(2, 9.2, 15.5)
+                    : initial.clone();
 
         if (view === 'cafe' && camera.aspect < 1) vantage.multiplyScalar(1.12);
         moveTo(vantage.add(offset), target.clone().add(offset));
@@ -2611,6 +2619,25 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       house.setFocus(id);
       if (id === 'floor' || id === 'wall') {
         this.reset();
+        return;
+      }
+      if (room === 'bar') {
+        const center = new T.Box3().setFromObject(g).getCenter(new T.Vector3());
+        controls.minDistance = 1.1;
+        if (id === 'barDarts') {
+          moveTo(
+            new T.Vector3(18.8, 2.65, 16.55),
+            new T.Vector3(22.85, 2.55, 16.55),
+          );
+        } else {
+          const offset =
+            id === 'barRecord'
+              ? new T.Vector3(0, 2.5, -3)
+              : id === 'barFridge'
+                ? new T.Vector3(1.5, 1.2, 3.2)
+                : new T.Vector3(0.5, 3.6, 5);
+          moveTo(center.clone().add(offset), center);
+        }
         return;
       }
       if (room === 'gaming') {

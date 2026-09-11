@@ -34,5 +34,13 @@
   {"id":"gaming-sofa-1","room":"gaming","name":"游戏沙发 · 左座","offset":[-0.65,0.715,0.24],"yaw":0},
   {"id":"gaming-sofa-2","room":"gaming","name":"游戏沙发 · 右座","offset":[0.65,0.715,0.24],"yaw":0},
   {"id":"gaming-stool-1","room":"gaming","name":"棋桌圆凳 · 左座","offset":[0,0.655,0],"yaw":1.5707963268},
-  {"id":"gaming-stool-2","room":"gaming","name":"棋桌圆凳 · 右座","offset":[0,0.655,0],"yaw":-1.5707963268}
+  {"id":"gaming-stool-2","room":"gaming","name":"棋桌圆凳 · 右座","offset":[0,0.655,0],"yaw":-1.5707963268},
+  {"id":"bar-stool-1","room":"bar","name":"吧台高脚凳 · 1","offset":[0,1.273,0],"yaw":3.141592653589793},
+  {"id":"bar-stool-2","room":"bar","name":"吧台高脚凳 · 2","offset":[0,1.273,0],"yaw":3.141592653589793},
+  {"id":"bar-stool-3","room":"bar","name":"吧台高脚凳 · 3","offset":[0,1.273,0],"yaw":3.141592653589793},
+  {"id":"bar-stool-4","room":"bar","name":"吧台高脚凳 · 4","offset":[0,1.273,0],"yaw":3.141592653589793},
+  {"id":"bar-sofa-north-1","room":"bar","name":"绿色卡座 · 靠北 1","offset":[-0.58,0.81,0.14],"yaw":0},
+  {"id":"bar-sofa-north-2","room":"bar","name":"绿色卡座 · 靠北 2","offset":[0.58,0.81,0.14],"yaw":0},
+  {"id":"bar-sofa-east-1","room":"bar","name":"绿色卡座 · 靠东 1","offset":[-0.56,0.81,0.14],"yaw":0},
+  {"id":"bar-sofa-east-2","room":"bar","name":"绿色卡座 · 靠东 2","offset":[0.56,0.81,0.14],"yaw":0}
 ]

@@ -1216,10 +1216,22 @@ export function buildGameRoom(k: Kit) {
     box(frame, 0.62, 0.045, 0.1, 0, 0.75, 0.07, brass);
     box(frame, 0.52, 0.012, 0.07, 0, 0.723, 0.085, gold);
   }
+  const barWall = wall(
+    corridor,
+    8,
+    0.96,
+    rooms.bar.z - rooms.corridor.z,
+    -Math.PI / 2,
+    'corridor',
+    1.9,
+  );
+  hallPrint(barWall, -1.5, 2, '06 · 咖啡时光');
+  hallPrint(barWall, 0, 7, '07 · 慢慢收藏');
   hallPrint(gameWall, -1.65, 3, '01 · 林间光');
   hallPrint(gameWall, 0, 4, '02 · 午后山影');
   hallPrint(gameWall, 1.1, 5, '03 · 小屋的四季');
   for (const [id, x, z, yaw, text] of [
+    ['corridorBarDoor', 1, 16.1, -Math.PI / 2, '07  小酒馆 →'],
     ['corridorGameDoor', 1, 9.2, -Math.PI / 2, '06  游戏房 →'],
     ['corridorCafeDoor', -1, 10.95, Math.PI / 2, '05  咖啡厅 →'],
     ['corridorGalleryDoor', -1, 9.2, Math.PI / 2, '04  展示区 →'],

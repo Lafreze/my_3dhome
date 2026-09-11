@@ -197,7 +197,8 @@ const adjacent: Record<RoomId, RoomId[]> = {
   bedroom: ['study', 'gallery', 'cafe'],
   gallery: ['living', 'bedroom', 'cafe', 'corridor'],
   cafe: ['bedroom', 'gallery', 'corridor'],
-  corridor: ['gallery', 'cafe', 'gaming'],
+  corridor: ['gallery', 'cafe', 'gaming', 'bar'],
+  bar: ['corridor'],
   gaming: ['corridor'],
 };
 export function createRoomAssets(

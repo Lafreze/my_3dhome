@@ -53,6 +53,15 @@ export const rooms = {
     depth: 6.8,
     number: '06',
   },
+  bar: {
+    name: '酒吧',
+    english: 'THE AMBER BAR',
+    x: 18.5,
+    z: 14.2,
+    width: 9,
+    depth: 8,
+    number: '07',
+  },
   corridor: {
     name: '东侧连廊',
     english: 'EAST WALK',
@@ -79,6 +88,20 @@ export const houseBounds = {
   maxZ: Math.max(...roomIds.map((id) => rooms[id].z + rooms[id].depth / 2)),
 };
 export const newObjects = {
+  barExitDoor: {
+    name: '酒吧 → 东侧连廊',
+    kind: 'EAST WALK',
+    action: '回到连廊',
+  },
+  corridorBarDoor: {
+    name: '连廊 → 酒吧',
+    kind: '07 · AMBER',
+    action: '进入酒吧',
+  },
+  barMix: { name: '转角调酒吧台', kind: 'COCKTAILS', action: '调一杯酒' },
+  barFridge: { name: '吧台冷藏柜', kind: 'CHILLED', action: '打开 / 关闭冰箱' },
+  barRecord: { name: '酒吧黑胶唱机', kind: 'VINYL', action: '选一张唱片' },
+  barDarts: { name: '飞镖 · 九镖挑战', kind: 'DARTS', action: '开始投掷' },
   gameExitDoor: {
     name: '游戏房 → 东侧连廊',
     kind: 'EAST WALK',
@@ -194,6 +217,12 @@ export const newObjects = {
   galleryWindow: { name: '展厅东窗', kind: 'E · 连廊画廊', action: '望向连廊' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
+  barExitDoor: 'bar',
+  corridorBarDoor: 'corridor',
+  barMix: 'bar',
+  barFridge: 'bar',
+  barRecord: 'bar',
+  barDarts: 'bar',
   gameExitDoor: 'gaming',
   cafeEastDoor: 'cafe',
   galleryEastDoor: 'gallery',

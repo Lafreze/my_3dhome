@@ -9,6 +9,7 @@ import { curtainGeometry, type InteriorBreeze } from './interior-atmosphere';
 import { pillowGeometry, pillowPiping, drapedLinen } from './bed-linen';
 import type { WallCutaways } from './wall-cutaway';
 import { buildCafe } from './cafe-room';
+import { buildBar } from './bar-room';
 import { buildGameRoom } from './game-room';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { wallArt } from './wall-art-data';
@@ -96,6 +97,7 @@ export function buildHouse(k: Kit) {
     gallery: new T.Group(),
     cafe: new T.Group(),
     gaming: new T.Group(),
+    bar: new T.Group(),
     corridor: new T.Group(),
   };
   for (const id of [
@@ -104,6 +106,7 @@ export function buildHouse(k: Kit) {
     'gallery',
     'cafe',
     'gaming',
+    'bar',
     'corridor',
   ] as const) {
     roots[id].position.set(rooms[id].x, 0, rooms[id].z);
@@ -1911,6 +1914,7 @@ export function buildHouse(k: Kit) {
     cutaways: k.cutaways,
     landscape: k.landscape,
   });
+  const bar = buildBar({ ...k, root: roots.bar });
   const gameRoom = buildGameRoom({
     ...k,
     root: roots.gaming,
@@ -2130,6 +2134,11 @@ export function buildHouse(k: Kit) {
     },
     roots,
     gameSnapshot: () => gameRoom.snapshot(),
+    barSnapshot: () => bar.snapshot(),
+    prepareCocktail: bar.prepare,
+    clearCocktail: bar.clear,
+    setBarRecord: bar.setRecord,
+    setBarDarts: bar.setDarts,
     setGameScreen: (id: 'blocks' | 'snake', canvas: HTMLCanvasElement | null) =>
       gameRoom.setGameScreen(id, canvas),
     setGameBoard: gameRoom.setGameBoard,
@@ -2152,6 +2161,7 @@ export function buildHouse(k: Kit) {
     coffeeSnapshot: cafe.coffeeSnapshot,
     setFocus(id: ObjectId | null) {
       gameRoom.setFocus(id);
+      bar.setFocus(id);
       cafe.setFocus(id);
       projectGallery.focus(id);
       ceilingLighting.setPlan(id !== null);
@@ -2161,6 +2171,7 @@ export function buildHouse(k: Kit) {
     },
     setSeatFocus() {
       gameRoom.setFocus('gameConsole');
+      bar.setFocus('barMix');
       cafe.setFocus('cafeSeat');
       ceilingLighting.setPlan(true);
     },
@@ -2213,12 +2224,14 @@ export function buildHouse(k: Kit) {
     },
     setLamp(on: boolean) {
       gameRoom.setLamp(on);
+      bar.setLamp(on);
       masterLight = on;
       ceilingLighting.set(on);
       cafe.setLamp(on);
     },
     setView(view: HouseView) {
       gameRoom.setView(view);
+      bar.setView(view);
       ceilingLighting.setPlan(view === 'plan');
       galleryPlan = view === 'plan';
       projectGallery.focus(null);
@@ -2258,6 +2271,7 @@ export function buildHouse(k: Kit) {
     },
     interact(id: ObjectId, detail?: 'appearance') {
       gameRoom.interact(id);
+      bar.interact(id);
       cafe.interact(id);
       if (id === 'livingCurtains') curtainOpen.living = !curtainOpen.living;
       if (id === 'bedroomCurtains') curtainOpen.bedroom = !curtainOpen.bedroom;
@@ -2303,6 +2317,7 @@ export function buildHouse(k: Kit) {
     ) {
       now = t;
       gameRoom.update(t, dt, reduced, night);
+      bar.update(t, dt, reduced, night);
       if (roots.living.visible) {
         livingRecord.update(dt, musicOn, reduced);
         recordPivot.rotation.y = livingRecord.angle;

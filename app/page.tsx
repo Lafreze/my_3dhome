@@ -1,6 +1,10 @@
 'use client';
 import CoffeeMenu from './coffee-menu';
 import RoomNotes from './room-notes';
+import BarRoomPanel, {
+  barObjectIds,
+  type BarSelection,
+} from './bar-room-panel';
 import GameRoomPanel, { type PlaySelection } from './game-room-panel';
 import { gameObjectIds, type GameId } from './game-engine';
 import { portalDestinations } from './game-layout';
@@ -244,6 +248,7 @@ function StudioHome() {
     [project, setProject] = useState(0),
     [photo, setPhoto] = useState(0),
     [page, setPage] = useState(0);
+  const [barSelection, setBarSelection] = useState<BarSelection>(null);
   const [playing, setPlaying] = useState<PlaySelection>(null);
   const closeModal = useCallback(() => setModal(null), [setModal]);
   const [projectsOnly, setProjectsOnly] = useState(false),
@@ -287,9 +292,9 @@ function StudioHome() {
   }, []);
   useEffect(() => {
     api.current?.setLifePaused(
-      !!modal || !!playing || seatPanel || environmentOpen,
+      !!modal || !!playing || !!barSelection || seatPanel || environmentOpen,
     );
-  }, [modal, playing, seatPanel, environmentOpen, ready]);
+  }, [modal, playing, barSelection, seatPanel, environmentOpen, ready]);
   useEffect(() => {
     if (
       !selected ||
@@ -336,6 +341,12 @@ function StudioHome() {
             },
             onSelect: (id) => {
               setSelected(id === 'computer' ? null : id);
+              if (id && id in barObjectIds) {
+                setSelected(null);
+                setBarSelection(barObjectIds[id as keyof typeof barObjectIds]);
+                if (id === 'barFridge') api.current?.interact(id);
+                return;
+              }
               if (id === 'computer') setModal('computer');
               if (id && id in portalDestinations) {
                 setSelected(null);
@@ -498,6 +509,7 @@ function StudioHome() {
   };
   const visit = (next: HouseView) => {
     setPlaying(null);
+    setBarSelection(null);
     api.current?.setView(next);
     setSelected(null);
     setHover(null);
@@ -538,6 +550,12 @@ function StudioHome() {
     setSelected(id === 'computer' ? null : id);
     if (id === 'computer') setModal('computer');
     api.current?.focus(id);
+    if (id in barObjectIds) {
+      setSelected(null);
+      setBarSelection(barObjectIds[id as keyof typeof barObjectIds]);
+      if (id === 'barFridge') api.current?.interact(id);
+      return;
+    }
     if (
       id in gameObjectIds ||
       id === 'gameCollection' ||
@@ -564,6 +582,10 @@ function StudioHome() {
       : profile.projects[index]?.title || '待布置展位';
   };
   const action = (id: ObjectId) => {
+    if (id in barObjectIds) {
+      choose(id);
+      return;
+    }
     if (id in portalDestinations) {
       choose(id);
       return;
@@ -1185,6 +1207,23 @@ function StudioHome() {
           onClose={closeModal}
           onPower={tvPower}
           onScreen={tvScreen}
+        />
+      )}
+      {ready && (
+        <BarRoomPanel
+          selection={barSelection}
+          api={api}
+          view={view}
+          globalMusic={music}
+          onRecordPlay={() => {
+            if (music) void toggleMusic();
+          }}
+          onClose={() => {
+            setBarSelection(null);
+            setSelected(null);
+            setHover(null);
+            api.current?.setView('bar');
+          }}
         />
       )}
       {ready && (

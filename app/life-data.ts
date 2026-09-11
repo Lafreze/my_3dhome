@@ -86,6 +86,16 @@ const ground: ActorId[] = ['resident', 'cat', 'rabbit', 'robot'];
 // Positions are authored room-local approach points, never random destination coordinates.
 // A seat is entered only after reaching its approach and rechecking the live seat anchor.
 export const navigationNodes: NavigationNode[] = [
+  node('bar.entrance', 'bar', -2, 1.9, ['resident', 'cat', 'rabbit']),
+  node(
+    'bar.lounge',
+    'bar',
+    0.65,
+    -1.25,
+    ['resident', 'cat', 'rabbit'],
+    'lookAround',
+    'barMix',
+  ),
   node('corridor.gallery', 'corridor', 0, 1.8, ['resident', 'cat', 'rabbit']),
   node('corridor.cafe', 'corridor', 0, 3.55, ['resident', 'cat', 'rabbit']),
   node(
@@ -343,7 +353,8 @@ const adjacent: Record<RoomId, RoomId[]> = {
   bedroom: ['study', 'gallery', 'cafe'],
   gallery: ['living', 'bedroom', 'cafe', 'corridor'],
   cafe: ['bedroom', 'gallery', 'corridor'],
-  corridor: ['gallery', 'cafe', 'gaming'],
+  corridor: ['gallery', 'cafe', 'gaming', 'bar'],
+  bar: ['corridor'],
   gaming: ['corridor'],
 };
 // NPCs and online guests share the same validated furniture access points.
