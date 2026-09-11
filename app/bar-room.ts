@@ -503,8 +503,8 @@ export function buildBar(k: Kit) {
   pulp.rotation.x = Math.PI / 2;
   const pour = rod(
     counter,
-    [-0.1, 1.88, -0.01],
-    [0.3, 1.86, -0.05],
+    [0.17, 2.135, -0.22],
+    [0.3, 1.985, -0.05],
     0.01,
     drinkMat,
   );
@@ -958,8 +958,8 @@ export function buildBar(k: Kit) {
         (s.phase === 'shake' && !reduced ? 0.25 + Math.sin(t * 22) * 0.05 : 0);
       shaker.rotation.z =
         s.phase === 'shake' && !reduced ? Math.sin(t * 22) * 0.5 : 0;
-      pouringBottle.rotation.z = s.phase === 'pour' ? -0.95 : 0;
-      pouringBottle.position.y = s.phase === 'pour' ? 1.85 : 1.59;
+      pouringBottle.rotation.z = s.phase === 'pour' ? -2.05 : 0;
+      pouringBottle.position.y = s.phase === 'pour' ? 2.3 : 1.59;
       pour.visible = s.phase === 'pour';
       dartAge = Math.min(1, dartAge + dt * 3);
       if (dartMeshes.length) {
