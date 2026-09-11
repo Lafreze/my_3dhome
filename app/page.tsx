@@ -659,7 +659,10 @@ function StudioHome() {
       setModal('book');
       return;
     }
-    if (id === 'livingWindow' || id === 'galleryWindow') return;
+    if (id === 'livingWindow' || id === 'galleryWindow') {
+      api.current?.focus(id);
+      return;
+    }
     if (id === 'window' || id.endsWith('Window')) {
       setEnvironmentOpen(true);
       return;
