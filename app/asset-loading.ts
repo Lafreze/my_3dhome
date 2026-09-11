@@ -197,7 +197,8 @@ const adjacent: Record<RoomId, RoomId[]> = {
   bedroom: ['study', 'gallery', 'cafe'],
   gallery: ['living', 'bedroom', 'cafe', 'corridor'],
   cafe: ['bedroom', 'gallery', 'corridor'],
-  corridor: ['gallery', 'cafe', 'gaming', 'bar'],
+  corridor: ['gallery', 'cafe', 'gaming', 'bar', 'library'],
+  library: ['corridor'],
   bar: ['corridor'],
   gaming: ['corridor'],
 };

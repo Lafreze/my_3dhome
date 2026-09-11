@@ -9,6 +9,7 @@ import { curtainGeometry, type InteriorBreeze } from './interior-atmosphere';
 import { pillowGeometry, pillowPiping, drapedLinen } from './bed-linen';
 import type { WallCutaways } from './wall-cutaway';
 import { buildCafe } from './cafe-room';
+import { buildLibrary } from './library-room';
 import { buildBar } from './bar-room';
 import { buildGameRoom } from './game-room';
 import { attachSeats, type SeatAnchors } from './seat-scene';
@@ -98,6 +99,7 @@ export function buildHouse(k: Kit) {
     cafe: new T.Group(),
     gaming: new T.Group(),
     bar: new T.Group(),
+    library: new T.Group(),
     corridor: new T.Group(),
   };
   for (const id of [
@@ -107,6 +109,7 @@ export function buildHouse(k: Kit) {
     'cafe',
     'gaming',
     'bar',
+    'library',
     'corridor',
   ] as const) {
     roots[id].position.set(rooms[id].x, 0, rooms[id].z);
@@ -1914,6 +1917,7 @@ export function buildHouse(k: Kit) {
     cutaways: k.cutaways,
     landscape: k.landscape,
   });
+  const library = buildLibrary({ ...k, root: roots.library });
   const bar = buildBar({ ...k, root: roots.bar });
   const gameRoom = buildGameRoom({
     ...k,
@@ -2134,6 +2138,8 @@ export function buildHouse(k: Kit) {
     },
     roots,
     gameSnapshot: () => gameRoom.snapshot(),
+    librarySnapshot: () => library.snapshot(),
+    libraryCommand: library.command,
     barSnapshot: () => bar.snapshot(),
     prepareCocktail: bar.prepare,
     clearCocktail: bar.clear,
@@ -2162,6 +2168,7 @@ export function buildHouse(k: Kit) {
     setFocus(id: ObjectId | null) {
       gameRoom.setFocus(id);
       bar.setFocus(id);
+      library.setFocus(id);
       cafe.setFocus(id);
       projectGallery.focus(id);
       ceilingLighting.setPlan(id !== null);
@@ -2172,6 +2179,7 @@ export function buildHouse(k: Kit) {
     setSeatFocus() {
       gameRoom.setFocus('gameConsole');
       bar.setFocus('barMix');
+      library.setFocus('libraryDesk');
       cafe.setFocus('cafeSeat');
       ceilingLighting.setPlan(true);
     },
@@ -2225,6 +2233,7 @@ export function buildHouse(k: Kit) {
     setLamp(on: boolean) {
       gameRoom.setLamp(on);
       bar.setLamp(on);
+      library.setLamp(on);
       masterLight = on;
       ceilingLighting.set(on);
       cafe.setLamp(on);
@@ -2232,6 +2241,7 @@ export function buildHouse(k: Kit) {
     setView(view: HouseView) {
       gameRoom.setView(view);
       bar.setView(view);
+      library.setView(view);
       ceilingLighting.setPlan(view === 'plan');
       galleryPlan = view === 'plan';
       projectGallery.focus(null);
@@ -2253,6 +2263,7 @@ export function buildHouse(k: Kit) {
     setEnvironment(value: Environment) {
       windows.forEach((w) => w.set(value));
       cafe.setEnvironment(value);
+      library.setEnvironment(value);
     },
     setMusic(on: boolean) {
       musicOn = on;
@@ -2318,6 +2329,7 @@ export function buildHouse(k: Kit) {
       now = t;
       gameRoom.update(t, dt, reduced, night);
       bar.update(t, dt, reduced, night);
+      library.update(t, dt, reduced, night, viewer);
       if (roots.living.visible) {
         livingRecord.update(dt, musicOn, reduced);
         recordPivot.rotation.y = livingRecord.angle;
@@ -2486,6 +2498,7 @@ export function buildHouse(k: Kit) {
     roomForObject,
     dispose() {
       gameRoom.dispose();
+      library.dispose();
       cupSteam.dispose();
       disposed = true;
       pictureMaterials.forEach((entry) => entry.current?.dispose());

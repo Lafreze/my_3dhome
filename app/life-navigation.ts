@@ -6,6 +6,7 @@ import {
   type RoomId,
 } from './house-data.ts';
 import { layout, workChairTravel, drawerTravel } from './room-layout.ts';
+import { libraryFurniture, libraryLadderLane } from './library-layout.ts';
 import { barFurniture, barStools, barDartLane } from './bar-layout.ts';
 import { gameFurniture, expansionPortals } from './game-layout.ts';
 import {
@@ -31,6 +32,12 @@ type Footprint = {
 };
 export type Obstacle = Footprint & { room: RoomId; id: string };
 export const lifeObstacles: Obstacle[] = [
+  ...Object.entries(libraryFurniture).map(([id, f]) => ({
+    ...f,
+    id,
+    room: 'library' as const,
+  })),
+  { ...libraryLadderLane, id: 'ladderLane', room: 'library' },
   ...Object.entries(barFurniture).map(([id, f]) => ({
     ...f,
     id,
@@ -284,7 +291,12 @@ export class NavigationGraph {
     const grid = this.graph(actor),
       near = (p: Point) =>
         [...grid.entries()]
-          .filter(([, v]) => distance(p, v) < 0.65 && segmentClear(p, v, actor))
+          .filter(
+            ([, v]) =>
+              distance(p, v) < 0.65 &&
+              segmentClear(p, v, actor) &&
+              (!occupancy || this.segmentFree(p, v, actor, occupancy)),
+          )
           .sort((a, b) => distance(p, a[1]) - distance(p, b[1]))[0]?.[0];
     const start = near(from),
       end = near(to);
@@ -331,7 +343,7 @@ export class NavigationGraph {
         if (
           !next ||
           !segmentClear(p, next, actor) ||
-          (occupancy && !occupancy.clear(next, actor))
+          (occupancy && !this.segmentFree(p, next, actor, occupancy))
         )
           continue;
         const d = cost.get(current)! + distance(p, next);
@@ -354,6 +366,7 @@ export class NavigationGraph {
             a[2] + ((b[2] - a[2]) * i) / count,
           ],
           actor,
+          0.015,
         )
       )
         return false;

@@ -86,6 +86,25 @@ const ground: ActorId[] = ['resident', 'cat', 'rabbit', 'robot'];
 // Positions are authored room-local approach points, never random destination coordinates.
 // A seat is entered only after reaching its approach and rechecking the live seat anchor.
 export const navigationNodes: NavigationNode[] = [
+  node('library.entrance', 'library', -3.85, 2.85, [
+    'resident',
+    'cat',
+    'rabbit',
+  ]),
+  node(
+    'library.reading',
+    'library',
+    -1.28,
+    -2.9,
+    ['resident', 'cat', 'rabbit'],
+    'lookAround',
+    'libraryShelf',
+  ),
+  node('corridor.library', 'corridor', 0, 1.75 - rooms.corridor.z, [
+    'resident',
+    'cat',
+    'rabbit',
+  ]),
   node('bar.entrance', 'bar', -2, 1.9, ['resident', 'cat', 'rabbit']),
   node(
     'bar.lounge',
@@ -96,8 +115,16 @@ export const navigationNodes: NavigationNode[] = [
     'lookAround',
     'barMix',
   ),
-  node('corridor.gallery', 'corridor', 0, 1.8, ['resident', 'cat', 'rabbit']),
-  node('corridor.cafe', 'corridor', 0, 3.55, ['resident', 'cat', 'rabbit']),
+  node('corridor.gallery', 'corridor', 0, 9.2 - rooms.corridor.z, [
+    'resident',
+    'cat',
+    'rabbit',
+  ]),
+  node('corridor.cafe', 'corridor', 0, 10.95 - rooms.corridor.z, [
+    'resident',
+    'cat',
+    'rabbit',
+  ]),
   node(
     'gaming.center',
     'gaming',
@@ -353,7 +380,8 @@ const adjacent: Record<RoomId, RoomId[]> = {
   bedroom: ['study', 'gallery', 'cafe'],
   gallery: ['living', 'bedroom', 'cafe', 'corridor'],
   cafe: ['bedroom', 'gallery', 'corridor'],
-  corridor: ['gallery', 'cafe', 'gaming', 'bar'],
+  corridor: ['gallery', 'cafe', 'gaming', 'bar', 'library'],
+  library: ['corridor'],
   bar: ['corridor'],
   gaming: ['corridor'],
 };

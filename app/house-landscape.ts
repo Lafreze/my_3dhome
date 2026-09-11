@@ -4,8 +4,13 @@ import { environmentLight } from './room-environment';
 import type { Environment } from './environment-data';
 import type { RoomId } from './house-data';
 
-// One site, four apertures. North = -Z, east = +X. No independent invented skies.
+// One shared landscape for every exterior aperture. North = -Z, east = +X. No independent invented skies.
 export const windowViews = {
+  library: {
+    bearing: 0,
+    name: '北 · 林间阅读窗',
+    position: [17.22, 2.02, -5.5],
+  },
   study: { bearing: 0, name: '北 · 水岸花园', position: [1.12, 1.98, -3.28] },
   living: { bearing: 90, name: '东 · 连廊画廊', position: [11.88, 1.98, 0] },
   bedroom: { bearing: 270, name: '西 · 庭院', position: [-3.88, 1.98, 6.8] },
@@ -612,7 +617,7 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
   for (let i = 0; i < 5; i++)
     box(scene, 3.4, 0.008, 0.2, 18.5, 0.053, -2.7 + i * 0.46, ivory);
   const car = new T.Group();
-  car.position.set(19.4, 0, -8.0);
+  car.position.set(19.4, 0, -16.5);
   scene.add(car);
   const carPaint = mat('#899d99', 0.4, 0.25),
     tire = mat('#303635');
@@ -643,6 +648,14 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
     }
   for (const x of [-0.52, 0.52])
     box(car, 0.27, 0.13, 0.04, x, 0.72, 1.575, lampGlass);
+  // The expanded north wing opens onto a small reading garden before the lane.
+  box(scene, 9.4, 0.055, 4.2, 18.5, 0.07, -8.2, grass);
+  box(scene, 9.4, 0.055, 0.8, 18.5, 0.085, -6.05, gravel);
+  box(scene, 7.8, 0.28, 0.78, 18.5, 0.2, -7.05, pondStone);
+  box(scene, 7.57, 0.035, 0.57, 18.5, 0.354, -7.05, bark);
+  for (let i = 0; i < 9; i++) bush(15.1 + i * 0.85, -7.05, 0.8, 610 + i);
+  tree(17.8, -8.65, 0.7, 621);
+  tree(21.15, -9.45, 0.85, 622);
   // A low courtyard outside the gallery: brick edging, herbs and a cedar pergola.
   box(scene, 2.4, 0.12, 2.1, 14.15, 0.05, 6.7, stone);
   for (let i = 0; i < 12; i++)

@@ -62,13 +62,22 @@ export const rooms = {
     depth: 8,
     number: '07',
   },
+  library: {
+    name: '藏书室',
+    english: 'THE LIBRARY',
+    x: 18.5,
+    z: -1.1,
+    width: 9,
+    depth: 9,
+    number: '08',
+  },
   corridor: {
     name: '东侧连廊',
     english: 'EAST WALK',
     x: 13,
-    z: 7.4,
+    z: 6.3,
     width: 2,
-    depth: 21.6,
+    depth: 23.8,
     number: '↗',
   },
 } as const;
@@ -88,6 +97,28 @@ export const houseBounds = {
   maxZ: Math.max(...roomIds.map((id) => rooms[id].z + rooms[id].depth / 2)),
 };
 export const newObjects = {
+  libraryExitDoor: {
+    name: '藏书室 → 东侧连廊',
+    kind: 'EAST WALK',
+    action: '回到连廊',
+  },
+  corridorLibraryDoor: {
+    name: '连廊 → 藏书室',
+    kind: '08 · LIBRARY',
+    action: '进入藏书室',
+  },
+  libraryShelf: { name: '整墙藏书', kind: 'COLLECTION', action: '挑一本书' },
+  libraryBookForest: { name: '林间手记', kind: 'NATURE', action: '抽书阅读' },
+  libraryBookJourney: {
+    name: '远方来信',
+    kind: 'JOURNEYS',
+    action: '抽书阅读',
+  },
+  libraryBookHouse: { name: '小屋年鉴', kind: 'EVERYDAY', action: '抽书阅读' },
+  libraryDesk: { name: '中央阅读书桌', kind: 'READING', action: '翻开书页' },
+  libraryLadder: { name: '滑动木梯', kind: 'BOOK LADDER', action: '移动梯子' },
+  libraryGlobe: { name: '古典地球仪', kind: 'THE WORLD', action: '旋转地球仪' },
+
   barExitDoor: {
     name: '酒吧 → 东侧连廊',
     kind: 'EAST WALK',
@@ -217,6 +248,15 @@ export const newObjects = {
   galleryWindow: { name: '展厅东窗', kind: 'E · 连廊画廊', action: '望向连廊' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
+  libraryExitDoor: 'library',
+  corridorLibraryDoor: 'corridor',
+  libraryShelf: 'library',
+  libraryBookForest: 'library',
+  libraryBookJourney: 'library',
+  libraryBookHouse: 'library',
+  libraryDesk: 'library',
+  libraryLadder: 'library',
+  libraryGlobe: 'library',
   barExitDoor: 'bar',
   corridorBarDoor: 'corridor',
   barMix: 'bar',

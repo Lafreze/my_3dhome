@@ -232,14 +232,21 @@ export function buildGameRoom(k: Kit) {
   }
   const hallSections: {
     group: T.Group;
-    room: 'living' | 'gallery' | 'cafe';
+    room: 'living' | 'gallery' | 'cafe' | 'extension';
   }[] = [];
   function hallSection(z: number) {
     const section = group(corridor, 0, 0, z);
     const worldZ = z + rooms.corridor.z;
     hallSections.push({
       group: section,
-      room: worldZ < 3.4 ? 'living' : worldZ < 10.2 ? 'gallery' : 'cafe',
+      room:
+        worldZ < -3.4
+          ? 'extension'
+          : worldZ < 3.4
+            ? 'living'
+            : worldZ < 10.2
+              ? 'gallery'
+              : 'cafe',
     });
     return section;
   }
@@ -1179,8 +1186,19 @@ export function buildGameRoom(k: Kit) {
     'corridor',
     2.4,
   );
-  wall(corridor, 2, 0, 10.71, Math.PI, 'corridor');
-  const corridorNorth = wall(corridor, 2, 0, -10.71, 0, 'corridor');
+  const extraFloor = hallSection(-4.5 - rooms.corridor.z);
+  box(extraFloor, 2, 0.4, 2.2, 0, -0.23, 0, paleWood, 0.035);
+  addOakFloor(extraFloor, 1.92, 2.18, k.floorMaterials);
+  wall(corridor, 2.2, -0.96, -4.5 - rooms.corridor.z, Math.PI / 2, 'corridor');
+  wall(corridor, 2, 0, rooms.corridor.depth / 2 - 0.09, Math.PI, 'corridor');
+  const corridorNorth = wall(
+    corridor,
+    2,
+    0,
+    -rooms.corridor.depth / 2 + 0.09,
+    0,
+    'corridor',
+  );
   // The future extension is closed until another module is built.
   box(corridorNorth, 1.5, 2.5, 0.04, 0, 1.7, 0.095, sage);
   label(corridorNorth, 'N · 留给下一段旅程', 1.5, 0, 2.35, 0.125);
@@ -1225,12 +1243,25 @@ export function buildGameRoom(k: Kit) {
     'corridor',
     1.9,
   );
+  const libraryWall = wall(
+    corridor,
+    9,
+    0.96,
+    rooms.library.z - rooms.corridor.z,
+    -Math.PI / 2,
+    'corridor',
+    2.85,
+  );
+  hallPrint(libraryWall, -2.2, 1, '04 · 静谧花园');
+  hallPrint(libraryWall, -0.7, 6, '05 · 日常片段');
+  hallPrint(libraryWall, 0.8, 4, '08 · 书页之间');
   hallPrint(barWall, -1.5, 2, '06 · 咖啡时光');
   hallPrint(barWall, 0, 7, '07 · 慢慢收藏');
   hallPrint(gameWall, -1.65, 3, '01 · 林间光');
   hallPrint(gameWall, 0, 4, '02 · 午后山影');
   hallPrint(gameWall, 1.1, 5, '03 · 小屋的四季');
   for (const [id, x, z, yaw, text] of [
+    ['corridorLibraryDoor', 1, 1.75, -Math.PI / 2, '08  藏书室 →'],
     ['corridorBarDoor', 1, 16.1, -Math.PI / 2, '07  小酒馆 →'],
     ['corridorGameDoor', 1, 9.2, -Math.PI / 2, '06  游戏房 →'],
     ['corridorCafeDoor', -1, 10.95, Math.PI / 2, '05  咖啡厅 →'],

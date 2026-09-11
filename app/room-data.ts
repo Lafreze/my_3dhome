@@ -57,6 +57,8 @@ export type Profile = {
 };
 export const defaultProfile: Profile = houseDefaults.profile;
 export type RoomApi = {
+  librarySnapshot:()=>import('./library-state').LibrarySnapshot;
+  libraryCommand:(command:import('./library-state').LibraryCommand)=>boolean;
   barSnapshot: () => import('./bar-state').BarSnapshot;
   prepareCocktail: (drink: import('./bar-state').BarDrink) => boolean;
   clearCocktail: () => void;

@@ -9,7 +9,7 @@ const rooms = new Set([
   'gallery',
   'cafe',
   'gaming',
-  'bar',
+  'bar', 'library',
   'corridor',
 ]);
 const fail = (status, message) => Object.assign(new Error(message), { status });

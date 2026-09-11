@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { rooms, houseFurniture } from '../app/house-data.ts';
+import { libraryFurniture } from '../app/library-layout.ts';
 import { barFurniture, barStools } from '../app/bar-layout.ts';
 import { gameFurniture } from '../app/game-layout.ts';
 import { layout } from '../app/room-layout.ts';
@@ -22,6 +23,16 @@ function parent(id: string): {
   yaw?: number;
   obstacle: string;
 } {
+  if (id.startsWith('library-window'))
+    return { ...libraryFurniture.windowSeat, obstacle: 'windowSeat' };
+  if (id === 'library-desk')
+    return {
+      ...libraryFurniture.deskChair,
+      yaw: Math.PI,
+      obstacle: 'deskChair',
+    };
+  if (id === 'library-armchair')
+    return { ...libraryFurniture.armchair, obstacle: 'armchair' };
   if (id.startsWith('bar-stool'))
     return { ...barStools[Number(id.split('-')[2]) - 1], obstacle: id };
   if (id.startsWith('bar-sofa-north'))
@@ -103,7 +114,12 @@ for (const seat of seats) {
       const angle = yaw + seat.yaw + (i * Math.PI) / 16;
       // A backrest is solid. Access sofas and chairs from their open front,
       // never choose a shorter route through the rear of the furniture.
-      if (seat.id.includes('sofa') && Math.cos((i * Math.PI) / 16) < 0.35)
+      if (
+        (seat.id.includes('sofa') ||
+          seat.id === 'library-armchair' ||
+          seat.id.startsWith('library-window')) &&
+        Math.cos((i * Math.PI) / 16) < 0.35
+      )
         continue;
       const end: Point = [
         position[0] + Math.sin(angle) * radius,

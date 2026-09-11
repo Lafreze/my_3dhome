@@ -1998,6 +1998,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       __kuroVisitors: {
         games: () => house.gameSnapshot(),
         bar: () => house.barSnapshot(),
+        library: () => house.librarySnapshot(),
         occlusion: occlusion.snapshot,
         snapshot: visitors.snapshots,
         idle: visitors.idleSnapshot,
@@ -2458,6 +2459,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   }
   const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
+    librarySnapshot: house.librarySnapshot,
+    libraryCommand: house.libraryCommand,
     barSnapshot: house.barSnapshot,
     prepareCocktail: house.prepareCocktail,
     clearCocktail: house.clearCocktail,
@@ -2567,15 +2570,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         const vantage =
           view === 'corridor'
             ? new T.Vector3(-11, 16, 25)
-            : view === 'bar'
-              ? new T.Vector3(-11, 12, 16)
-              : view === 'gaming'
-                ? new T.Vector3(-10, 11, 15)
-                : view === 'cafe'
-                  ? new T.Vector3(10, 12, 21)
-                  : view === 'bedroom'
-                    ? new T.Vector3(2, 9.2, 15.5)
-                    : initial.clone();
+            : view === 'library'
+              ? new T.Vector3(-13, 16, 13)
+              : view === 'bar'
+                ? new T.Vector3(-11, 12, 16)
+                : view === 'gaming'
+                  ? new T.Vector3(-10, 11, 15)
+                  : view === 'cafe'
+                    ? new T.Vector3(10, 12, 21)
+                    : view === 'bedroom'
+                      ? new T.Vector3(2, 9.2, 15.5)
+                      : initial.clone();
 
         if (view === 'cafe' && camera.aspect < 1) vantage.multiplyScalar(1.12);
         moveTo(vantage.add(offset), target.clone().add(offset));
@@ -2619,6 +2624,22 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       house.setFocus(id);
       if (id === 'floor' || id === 'wall') {
         this.reset();
+        return;
+      }
+      if (room === 'library') {
+        const center = new T.Box3().setFromObject(g).getCenter(new T.Vector3());
+        controls.minDistance = 1.2;
+        if (id === 'libraryDesk' || id.startsWith('libraryBook'))
+          moveTo(
+            new T.Vector3(18.9, 4.65, 2.6),
+            new T.Vector3(18.8, 1.27, -1.35),
+          );
+        else if (id === 'libraryLadder')
+          moveTo(new T.Vector3(17, 3.6, 3.7), new T.Vector3(22.1, 1.7, -1.3));
+        else if (id === 'libraryGlobe')
+          moveTo(center.clone().add(new T.Vector3(-2.2, 0.85, 1.45)), center);
+        else
+          moveTo(new T.Vector3(9.8, 10.8, 8), new T.Vector3(18.5, 1.1, -1.1));
         return;
       }
       if (room === 'bar') {

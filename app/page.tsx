@@ -1,6 +1,10 @@
 'use client';
 import CoffeeMenu from './coffee-menu';
 import RoomNotes from './room-notes';
+import LibraryPanel, {
+  libraryObjectIds,
+  type LibrarySelection,
+} from './library-panel';
 import BarRoomPanel, {
   barObjectIds,
   type BarSelection,
@@ -248,6 +252,8 @@ function StudioHome() {
     [project, setProject] = useState(0),
     [photo, setPhoto] = useState(0),
     [page, setPage] = useState(0);
+  const [librarySelection, setLibrarySelection] =
+    useState<LibrarySelection>(null);
   const [barSelection, setBarSelection] = useState<BarSelection>(null);
   const [playing, setPlaying] = useState<PlaySelection>(null);
   const closeModal = useCallback(() => setModal(null), [setModal]);
@@ -292,9 +298,22 @@ function StudioHome() {
   }, []);
   useEffect(() => {
     api.current?.setLifePaused(
-      !!modal || !!playing || !!barSelection || seatPanel || environmentOpen,
+      !!modal ||
+        !!playing ||
+        !!barSelection ||
+        !!librarySelection ||
+        seatPanel ||
+        environmentOpen,
     );
-  }, [modal, playing, barSelection, seatPanel, environmentOpen, ready]);
+  }, [
+    modal,
+    playing,
+    barSelection,
+    librarySelection,
+    seatPanel,
+    environmentOpen,
+    ready,
+  ]);
   useEffect(() => {
     if (
       !selected ||
@@ -341,6 +360,13 @@ function StudioHome() {
             },
             onSelect: (id) => {
               setSelected(id === 'computer' ? null : id);
+              if (id && id in libraryObjectIds) {
+                setSelected(null);
+                setLibrarySelection(
+                  libraryObjectIds[id as keyof typeof libraryObjectIds],
+                );
+                return;
+              }
               if (id && id in barObjectIds) {
                 setSelected(null);
                 setBarSelection(barObjectIds[id as keyof typeof barObjectIds]);
@@ -510,6 +536,8 @@ function StudioHome() {
   const visit = (next: HouseView) => {
     setPlaying(null);
     setBarSelection(null);
+    setLibrarySelection(null);
+    api.current?.libraryCommand({ type: 'return' });
     api.current?.setView(next);
     setSelected(null);
     setHover(null);
@@ -550,6 +578,13 @@ function StudioHome() {
     setSelected(id === 'computer' ? null : id);
     if (id === 'computer') setModal('computer');
     api.current?.focus(id);
+    if (id in libraryObjectIds) {
+      setSelected(null);
+      setLibrarySelection(
+        libraryObjectIds[id as keyof typeof libraryObjectIds],
+      );
+      return;
+    }
     if (id in barObjectIds) {
       setSelected(null);
       setBarSelection(barObjectIds[id as keyof typeof barObjectIds]);
@@ -582,6 +617,10 @@ function StudioHome() {
       : profile.projects[index]?.title || '待布置展位';
   };
   const action = (id: ObjectId) => {
+    if (id in libraryObjectIds) {
+      choose(id);
+      return;
+    }
     if (id in barObjectIds) {
       choose(id);
       return;
@@ -1207,6 +1246,19 @@ function StudioHome() {
           onClose={closeModal}
           onPower={tvPower}
           onScreen={tvScreen}
+        />
+      )}
+      {ready && (
+        <LibraryPanel
+          selection={librarySelection}
+          api={api}
+          onClose={() => {
+            setLibrarySelection(null);
+            setSelected(null);
+            setHover(null);
+            api.current?.libraryCommand({ type: 'return' });
+            api.current?.setView('library');
+          }}
         />
       )}
       {ready && (
