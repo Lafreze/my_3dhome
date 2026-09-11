@@ -13,6 +13,7 @@ import {
 import { rooms, roomAt } from '../app/house-data.ts';
 import {
   gameFurniture,
+  gameApproaches,
   gameRoutes,
   expansionPortals,
   expansionReservations,
@@ -60,6 +61,25 @@ await test('expansion modules, clear furniture footprints and accessible portals
       undefined,
       'Reserved bay must not be an occupied room',
     );
+});
+await test('every machine has a clear standing area reachable from the central aisle', () => {
+  for (const [id, a] of Object.entries(gameApproaches)) {
+    for (const [other, b] of Object.entries(gameFurniture))
+      assert(
+        Math.abs(a.x - b.x) >= (a.width + b.width) / 2 ||
+          Math.abs(a.z - b.z) >= (a.depth + b.depth) / 2,
+        `${id} operating space obstructed by ${other}`,
+      );
+    const world = ([x, z]) => [x + rooms.gaming.x, 0.085, z + rooms.gaming.z];
+    assert(
+      floorClear(world([a.x, a.z]), 'resident', 0.4),
+      `${id} standing room`,
+    );
+    assert(
+      segmentClear(world([a.x, 0.4]), world([a.x, a.z]), 'resident'),
+      `${id} approach`,
+    );
+  }
 });
 await test('blocks clear rows, finish the challenge and freeze on pause', () => {
   const g = createArcade('blocks', () => 0);

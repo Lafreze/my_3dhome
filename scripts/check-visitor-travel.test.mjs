@@ -9,9 +9,9 @@ import {
 import routes from '../config/visitor-routes.json' with { type: 'json' };
 import { segmentClear, floorClear } from '../app/life-navigation.ts';
 
-void test('all 32 seats connect through safe sampled floor paths with continuous rise, walk and settle', () => {
-  assert.equal(Object.keys(visitorTravelNodes).length, 32);
-  assert.equal(Object.keys(routes.routes).length, 496);
+void test('all 36 seats connect through safe sampled floor paths with continuous rise, walk and settle', () => {
+  assert.equal(Object.keys(visitorTravelNodes).length, 36);
+  assert.equal(Object.keys(routes.routes).length, 630);
   for (const [pair, path] of Object.entries(routes.routes)) {
     for (const p of path) assert(floorClear(p, 'resident'), pair);
     for (let i = 1; i < path.length; i++)

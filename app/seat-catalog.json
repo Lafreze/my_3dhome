@@ -30,5 +30,9 @@
   {"id":"cafe-banquette-8","room":"cafe","name":"皮革卡座 · 8","offset":[-0.3,0.943,1.909],"yaw":-1.5707963268},
   {"id":"cafe-banquette-9","room":"cafe","name":"皮革卡座 · 9","offset":[-0.3,0.943,2.546],"yaw":-1.5707963268},
   {"id":"bedroom-bed-left","room":"bedroom","name":"床 · 左侧","offset":[-0.7,0.97,-0.15],"yaw":0,"kind":"bed"},
-  {"id":"bedroom-bed-right","room":"bedroom","name":"床 · 右侧","offset":[0.7,0.97,-0.15],"yaw":0,"kind":"bed"}
+  {"id":"bedroom-bed-right","room":"bedroom","name":"床 · 右侧","offset":[0.7,0.97,-0.15],"yaw":0,"kind":"bed"},
+  {"id":"gaming-sofa-1","room":"gaming","name":"游戏沙发 · 左座","offset":[-0.65,0.715,0.24],"yaw":0},
+  {"id":"gaming-sofa-2","room":"gaming","name":"游戏沙发 · 右座","offset":[0.65,0.715,0.24],"yaw":0},
+  {"id":"gaming-stool-1","room":"gaming","name":"棋桌圆凳 · 左座","offset":[0,0.655,0],"yaw":1.5707963268},
+  {"id":"gaming-stool-2","room":"gaming","name":"棋桌圆凳 · 右座","offset":[0,0.655,0],"yaw":-1.5707963268}
 ]

@@ -171,7 +171,7 @@ export const newObjects = {
   bedroomClock: { name: '双铃时钟', kind: 'CLOCK', action: '轻拨铃锤' },
   livingLamp: { name: '弧线落地灯', kind: 'LIGHT', action: '阅读 / 观影灯光' },
   mediaDrawer: { name: '游戏收藏', kind: 'COLLECTION', action: '打开 / 收起' },
-  livingWindow: { name: '客厅东窗', kind: 'E · 街巷', action: '时间与天气' },
+  livingWindow: { name: '客厅东窗', kind: 'E · 连廊画廊', action: '望向连廊' },
   sleepBed: { name: '柔软的床', kind: 'REST', action: '更换床品' },
   bedsideLamp: { name: '床头灯', kind: 'LIGHT', action: '开灯 / 关灯' },
   wardrobe: { name: '木作衣柜', kind: 'WARDROBE', action: '更换角色造型' },
@@ -191,7 +191,7 @@ export const newObjects = {
     action: '阅读项目',
   },
   galleryLight: { name: '展览照明', kind: 'LIGHT', action: '开灯 / 关灯' },
-  galleryWindow: { name: '展厅东窗', kind: 'E · 前庭', action: '时间与天气' },
+  galleryWindow: { name: '展厅东窗', kind: 'E · 连廊画廊', action: '望向连廊' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
   gameExitDoor: 'gaming',

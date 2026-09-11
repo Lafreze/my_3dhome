@@ -1990,6 +1990,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     interactables,
     () => refreshShadows(),
     assets,
+    (room) => house.isRoomVisible(room),
   );
   const occlusion = createCameraOcclusion(groups);
   if (['localhost', '127.0.0.1'].includes(location.hostname))
@@ -2559,7 +2560,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         const offset = new T.Vector3(rooms[view].x, 0, rooms[view].z);
         const vantage =
           view === 'corridor'
-            ? new T.Vector3(11, 16, 25)
+            ? new T.Vector3(-11, 16, 25)
             : view === 'gaming'
               ? new T.Vector3(-10, 11, 15)
               : view === 'cafe'

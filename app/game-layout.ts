@@ -8,16 +8,22 @@ export const portalDestinations = {
   corridorGalleryDoor: 'gallery',
 } as const;
 export const gameFurniture = {
-  blocks: { x: -2.7, z: -2.57, width: 1.25, depth: 1.13 },
-  snake: { x: -1.27, z: -2.57, width: 1.25, depth: 1.13 },
-  pinball: { x: -3.42, z: -0.27, width: 1.22, depth: 2.05 },
-  collection: { x: 1.0, z: -2.95, width: 2.4, depth: 0.62 },
+  blocks: { x: -1.95, z: -2.57, width: 1.25, depth: 1.13 },
+  snake: { x: -0.52, z: -2.57, width: 1.25, depth: 1.13 },
+  pinball: { x: -3.52, z: -2.17, width: 1.22, depth: 2.05 },
+  collection: { x: 1.77, z: -2.95, width: 2.4, depth: 0.62 },
   media: { x: 3.94, z: -0.1, width: 0.72, depth: 3.8 },
-  sofa: { x: 1.46, z: 0.1, width: 1.25, depth: 2.85 },
-  sideTable: { x: 1.65, z: 2.12, width: 0.7, depth: 0.7 },
+  sofa: { x: 1.73, z: 0.1, width: 1.25, depth: 2.85 },
+  sideTable: { x: 1.95, z: 2.12, width: 0.7, depth: 0.7 },
   board: { x: -1.3, z: 2.02, width: 1.62, depth: 1.62 },
   stoolA: { x: -2.66, z: 2.12, width: 0.61, depth: 0.61 },
   stoolB: { x: 0.07, z: 2.12, width: 0.61, depth: 0.61 },
+} as const;
+// Standing space is part of the layout, in addition to each cabinet's footprint.
+export const gameApproaches = {
+  blocks: { x: -1.95, z: -1.22, width: 0.9, depth: 0.9 },
+  snake: { x: -0.52, z: -1.22, width: 0.9, depth: 0.9 },
+  pinball: { x: -3.52, z: -0.35, width: 0.9, depth: 0.9 },
 } as const;
 export const expansionPortals = [
   { axis: 'x', at: 12, along: 9.2, a: 'gallery', b: 'corridor' },
@@ -54,7 +60,18 @@ export const gameRoutes = [
   ],
   [
     [-0.1, -1.35],
-    [-1.3, -1.35],
-    [-2.45, -1.55],
+    [-0.52, -1.22],
+    [-1.95, -1.22],
+  ],
+  [
+    [-3.5, 1.35],
+    [-3.52, -0.35],
+  ],
+  [
+    [-0.1, -1.35],
+    [0.55, -1.35],
+    [0.55, -1.95],
+    [2.8, -1.95],
+    [2.8, 0.8],
   ],
 ] as const;

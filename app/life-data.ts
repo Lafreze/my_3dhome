@@ -100,8 +100,8 @@ export const navigationNodes: NavigationNode[] = [
   node(
     'gaming.arcade',
     'gaming',
-    -1.3,
-    -1.35,
+    -1.95,
+    -1.22,
     ['resident'],
     'lookAround',
     'arcadeBlocks',

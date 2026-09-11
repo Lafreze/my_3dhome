@@ -1,8 +1,9 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { addOakFloor } from './house-finishes';
+import { addOakFloor, galleryPrint } from './house-finishes';
 import { drapedLinen } from './bed-linen';
+import { attachSeats, type SeatAnchors } from './seat-scene';
 import { rooms, type HouseView } from './house-data';
 import { expansionReservations, gameFurniture as f } from './game-layout';
 import {
@@ -20,6 +21,7 @@ type Kit = {
   corridor: T.Group;
   scene: T.Scene;
   cutaways: WallCutaways;
+  seats: SeatAnchors;
   materials: T.Material[];
   textures: T.Texture[];
   floorMaterials: T.MeshStandardMaterial[];
@@ -236,24 +238,38 @@ export function buildGameRoom(k: Kit) {
     yaw: number,
     room: 'gaming' | 'corridor',
     door?: number,
+    glazed = false,
   ) => {
     const lower = group(p, x, 0, z),
       upper = group(p, x, 0, z);
     lower.rotation.y = upper.rotation.y = yaw;
-    const spans =
-      door === undefined
-        ? [[-width / 2, width / 2]]
-        : [
-            [-width / 2, door - 0.7],
-            [door + 0.7, width / 2],
-          ];
-    for (const [a, b] of spans)
+    const edges = [-width / 2, width / 2];
+    if (door !== undefined) edges.push(door - 0.7, door + 0.7);
+    if (glazed) edges.push(-1.64, 1.64);
+    edges.sort((a, b) => a - b);
+    for (let i = 1; i < edges.length; i++) {
+      const a = edges[i - 1],
+        b = edges[i],
+        center = (a + b) / 2;
+      if (door !== undefined && Math.abs(center - door) < 0.7) continue;
       if (b > a) {
         box(lower, b - a, 0.73, 0.14, (a + b) / 2, 0.445, 0, cream);
         box(lower, b - a, 0.06, 0.19, (a + b) / 2, 0.84, 0, oak);
         box(lower, b - a, 0.14, 0.19, (a + b) / 2, 0.16, 0, paleWood);
-        box(upper, b - a, 2.82, 0.14, (a + b) / 2, 2.21, 0, cream);
+        if (glazed && Math.abs(center) < 1.64) {
+          box(upper, b - a, 0.11, 0.14, center, 0.855, 0, cream);
+          box(upper, b - a, 0.58, 0.14, center, 3.33, 0, cream);
+        } else box(upper, b - a, 2.82, 0.14, center, 2.21, 0, cream);
       }
+    }
+    if (glazed) {
+      for (const x of [-1.67, 1.67])
+        box(upper, 0.1, 2.25, 0.16, x, 1.98, 0.055, oak);
+      for (const y of [0.87, 3.09])
+        box(upper, 3.44, 0.1, 0.16, 0, y, 0.055, oak);
+      box(upper, 0.065, 2.12, 0.08, 0, 1.98, 0.055, ivory);
+      box(upper, 3.22, 0.06, 0.08, 0, 1.93, 0.055, ivory);
+    }
     box(upper, width, 0.09, 0.2, 0, 3.67, 0, ivory);
     if (door !== undefined) {
       box(upper, 1.4, 0.95, 0.14, door, 3.175, 0, cream);
@@ -266,7 +282,7 @@ export function buildGameRoom(k: Kit) {
     k.cutaways.add(
       [upper],
       { x: r.x + x, z: r.z + z, nx: Math.sin(yaw), nz: Math.cos(yaw) },
-      [room],
+      room === 'corridor' ? ['corridor', 'gallery', 'living'] : [room],
     );
     return upper;
   };
@@ -282,7 +298,7 @@ export function buildGameRoom(k: Kit) {
   k.cutaways.add([exitDoor], { x: 14.08, z: 9.2, nx: 1, nz: 0 }, ['gaming']);
   label(north, 'PLAY A LITTLE · STAY A WHILE', 3.15, 0.1, 3.16, 0.09);
   // A framed miniature pixel landscape above the pinball machine.
-  const art = group(root, -4.38, 2.5, -0.9);
+  const art = group(root, -4.38, 2.5, -1.65);
   art.rotation.y = Math.PI / 2;
   k.cutaways.add([art], { x: 14.12, z: 5.9, nx: 1, nz: 0 }, ['gaming']);
   box(art, 0.87, 1.12, 0.055, 0, 0, 0, oak);
@@ -645,8 +661,14 @@ export function buildGameRoom(k: Kit) {
         side < 0 ? ink : ivory,
       ).scale.y = 0.5;
   }
-  for (const stool of [f.stoolA, f.stoolB]) {
+  for (const [id, stool] of [
+    ['gaming-stool-1', f.stoolA],
+    ['gaming-stool-2', f.stoolB],
+  ] as const) {
     const g = group(root, stool.x, 0, stool.z);
+    g.name = id;
+    attachSeats(k.seats, g, [id]);
+    k.interactables.push(g);
     cyl(g, 0.305, 0.3, 0.12, 0, 0.59, 0, cloth);
     cyl(g, 0.3, 0.3, 0.07, 0, 0.495, 0, oak);
     for (let j = 0; j < 4; j++) {
@@ -769,6 +791,9 @@ export function buildGameRoom(k: Kit) {
   box(lid, 0.28, 0.004, 0.3, -0.165, 0.015, 0, ivory);
   const sofa = group(root, f.sofa.x, 0, f.sofa.z);
   sofa.rotation.y = Math.PI / 2;
+  sofa.name = 'Gaming sofa';
+  attachSeats(k.seats, sofa, ['gaming-sofa-1', 'gaming-sofa-2']);
+  k.interactables.push(sofa);
   box(sofa, 2.85, 0.19, 1.2, 0, 0.38, 0, oak, 0.05);
   for (const x of [-1.22, 1.22])
     for (const z of [-0.44, 0.44])
@@ -786,9 +811,9 @@ export function buildGameRoom(k: Kit) {
     0.43,
     0.43,
     0.16,
-    -0.76,
-    0.93,
-    -0.15,
+    -1.04,
+    1.04,
+    -0.24,
     cushionCloth,
     0.1,
   );
@@ -1089,37 +1114,127 @@ export function buildGameRoom(k: Kit) {
     );
     arrow.rotation.y = 0.7;
   }
-  // The east wall is supplied by the gaming room and the removable reservation panels.
+  // Both corridor faces belong to the corridor. Room isolation must never remove its walls.
+  // Window and door apertures match the main house; the corridor skin faces inward.
+  wall(
+    corridor,
+    6.8,
+    -0.96,
+    -rooms.corridor.z,
+    Math.PI / 2,
+    'corridor',
+    undefined,
+    true,
+  );
+  wall(
+    corridor,
+    6.8,
+    -0.96,
+    rooms.gallery.z - rooms.corridor.z,
+    Math.PI / 2,
+    'corridor',
+    -2.4,
+    true,
+  );
+  wall(
+    corridor,
+    8,
+    -0.96,
+    rooms.cafe.z - rooms.corridor.z,
+    Math.PI / 2,
+    'corridor',
+    3.25,
+  );
+  const gameWall = wall(
+    corridor,
+    6.8,
+    0.96,
+    rooms.gaming.z - rooms.corridor.z,
+    -Math.PI / 2,
+    'corridor',
+    2.4,
+  );
   wall(corridor, 2, 0, 10.71, Math.PI, 'corridor');
+  const corridorNorth = wall(corridor, 2, 0, -10.71, 0, 'corridor');
+  // The future extension is closed until another module is built.
+  box(corridorNorth, 1.5, 2.5, 0.04, 0, 1.7, 0.095, sage);
+  label(corridorNorth, 'N · 留给下一段旅程', 1.5, 0, 2.35, 0.125);
+  const corridorArt: T.Group[] = [];
+  function hallPrint(
+    wallGroup: T.Group,
+    x: number,
+    index: number,
+    title: string,
+  ) {
+    const frame = group(wallGroup, x, 2.05, 0.13);
+    frame.name = `Corridor print / ${title}`;
+    corridorArt.push(frame);
+    box(frame, 0.99, 1.29, 0.065, 0, 0, 0, oak, 0.008);
+    box(frame, 0.9, 1.2, 0.02, 0, 0, 0.045, ivory, 0.004);
+    const material = new T.MeshStandardMaterial({
+      map: galleryPrint(index % 5, k.textures),
+      roughness: 0.93,
+    });
+    k.materials.push(material);
+    const print = mesh(
+      frame,
+      new T.PlaneGeometry(0.75, 1.02),
+      material,
+      0,
+      0,
+      0.059,
+      title,
+    );
+    print.castShadow = false;
+    label(frame, title, 0.84, 0, -0.79, 0.01);
+    // Slim picture lights leave the walking width free.
+    box(frame, 0.62, 0.045, 0.1, 0, 0.75, 0.07, brass);
+    box(frame, 0.52, 0.012, 0.07, 0, 0.723, 0.085, gold);
+  }
+  hallPrint(gameWall, -1.65, 3, '01 · 林间光');
+  hallPrint(gameWall, 0, 4, '02 · 午后山影');
+  hallPrint(gameWall, 1.1, 5, '03 · 小屋的四季');
   for (const [id, x, z, yaw, text] of [
     ['corridorGameDoor', 1, 9.2, -Math.PI / 2, '06  游戏房 →'],
     ['corridorCafeDoor', -1, 10.95, Math.PI / 2, '05  咖啡厅 →'],
     ['corridorGalleryDoor', -1, 9.2, Math.PI / 2, '04  展示区 →'],
   ] as const) {
-    const portal = group(corridor, x, 0, z - rooms.corridor.z, id);
+    const portal = group(corridor, x * 0.89, 0, z - rooms.corridor.z, id);
     portal.rotation.y = yaw;
     portal.userData.id = id;
     k.groups.set(id, portal);
     k.interactables.push(portal);
-    label(portal, text, 1.25, 0, 2.35, 0.09);
+    label(portal, text, 1.25, 0, 3.08, 0.09);
     box(portal, 1.36, 0.025, 0.22, 0, 0.098, 0, paleWood);
+    k.cutaways.add([portal], { x: 13 + x, z, nx: -x, nz: 0 }, [
+      'corridor',
+      'gallery',
+      'living',
+    ]);
   }
-  const corridorNorth = group(corridor, 0, 0, -10.71);
-  for (const x of [-0.86, 0.86])
-    box(corridorNorth, 0.12, 2.8, 0.16, x, 1.48, 0, oak);
-  box(corridorNorth, 1.82, 0.12, 0.2, 0, 2.92, 0, oak);
-  label(corridorNorth, 'N · 下一段旅程', 1.65, 0, 2.55, 0.08);
   const reservation = new T.Group();
   reservation.name = 'Future expansion footprints';
   k.scene.add(reservation);
   for (const bay of expansionReservations) {
-    wall(
+    const bayWall = wall(
       corridor,
       bay.depth,
-      1,
+      0.96,
       bay.z - rooms.corridor.z,
       -Math.PI / 2,
       'corridor',
+    );
+    hallPrint(
+      bayWall,
+      -1.5,
+      bay.z === 0 ? 1 : 2,
+      bay.z === 0 ? '04 · 静谧花园' : '06 · 咖啡时光',
+    );
+    hallPrint(
+      bayWall,
+      0,
+      bay.z === 0 ? 6 : 7,
+      bay.z === 0 ? '05 · 日常片段' : '07 · 慢慢收藏',
     );
     const positions: number[] = [];
     const x0 = bay.x - bay.width / 2,
@@ -1161,16 +1276,12 @@ export function buildGameRoom(k: Kit) {
     const sign = label(reservation, bay.name, 4, bay.x, 0.13, bay.z);
     sign.panel.rotation.x = -Math.PI / 2;
     // Removable infill at the future individual door locations.
-    const infill = group(corridor, 1, 0, bay.doorZ - rooms.corridor.z);
-    infill.rotation.y = -Math.PI / 2;
-    box(infill, 1.4, 0.65, 0.08, 0, 0.42, 0, sage);
+    const infill = group(bayWall, bay.doorZ - bay.z, 0, 0.095);
+    box(infill, 1.4, 2.6, 0.04, 0, 1.43, 0, sage);
     for (const x of [-0.75, 0.75])
       box(infill, 0.09, 2.7, 0.16, x, 1.43, 0, oak);
     box(infill, 1.6, 0.1, 0.18, 0, 2.81, 0, oak);
-    label(infill, 'FUTURE ROOM', 1.2, 0, 1.55, 0.05);
-    k.cutaways.add([infill], { x: 14, z: bay.doorZ, nx: -1, nz: 0 }, [
-      'corridor',
-    ]);
+    label(infill, '预留 · 暂未开放', 1.2, 0, 1.55, 0.05);
   }
   const light = new T.PointLight('#ffe2ab', 8, 13, 1.8);
   light.position.set(0, 3.22, 0.2);
@@ -1240,6 +1351,8 @@ export function buildGameRoom(k: Kit) {
         independentFlippers: flippers.length,
         ball: silverBall.position.toArray(),
         gears: gears.map((g) => g.rotation.z),
+        corridorArt: corridorArt.length,
+        seats: [...k.seats.keys()].filter((id) => id.startsWith('gaming-')),
       };
     },
     setGameScreen(id: 'blocks' | 'snake', source: HTMLCanvasElement | null) {

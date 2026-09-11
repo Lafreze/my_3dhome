@@ -7,10 +7,10 @@ import type { RoomId } from './house-data';
 // One site, four apertures. North = -Z, east = +X. No independent invented skies.
 export const windowViews = {
   study: { bearing: 0, name: '北 · 水岸花园', position: [1.12, 1.98, -3.28] },
-  living: { bearing: 90, name: '东 · 街巷', position: [11.88, 1.98, 0] },
+  living: { bearing: 90, name: '东 · 连廊画廊', position: [11.88, 1.98, 0] },
   bedroom: { bearing: 270, name: '西 · 庭院', position: [-3.88, 1.98, 6.8] },
   cafe: { bearing: 180, name: '南 · 咖啡露台', position: [6, 1.98, 18.08] },
-  gallery: { bearing: 90, name: '东 · 前庭', position: [11.88, 1.98, 6.8] },
+  gallery: { bearing: 90, name: '东 · 连廊画廊', position: [11.88, 1.98, 6.8] },
 } as const;
 
 export function createHouseLandscape(renderer: T.WebGLRenderer) {

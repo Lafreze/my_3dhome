@@ -522,14 +522,15 @@ export function buildHouse(k: Kit) {
       b(g, 0.3, 0.13, 0.2, 3.25, 0.15, 0.07, paleWood);
     } else b(g, span, 0.13, 0.2, 0, 0.15, 0.07, paleWood);
     const w = child(g, 0, 1.98, 0.03);
-    if (room === 'gallery') b(w, 3.22, 2.12, 0.022, 0, 0, 0, glass);
+    if (room === 'gallery' || room === 'living')
+      b(w, 3.22, 2.12, 0.022, 0, 0, 0, glass);
     else windows.push(createWindowEnvironment(w, room, k.landscape));
     addWindowCraft(w, paleWood, brass, materials);
-    for (const x of [-1.67, 1.67]) b(w, 0.14, 2.35, 0.23, x, 0, 0.04, oak);
+    for (const x of [-1.64, 1.64]) b(w, 0.08, 2.35, 0.23, x, 0, 0.04, oak);
     for (const y of [-1.13, 1.13]) b(w, 3.49, 0.14, 0.23, 0, y, 0.04, oak);
     b(w, 0.065, 2.18, 0.08, 0, 0, 0.12, white);
     b(w, 3.22, 0.06, 0.08, 0, -0.05, 0.12, white);
-    b(w, 3.57, 0.1, 0.4, 0, -1.18, 0.14, paleWood);
+    b(w, 3.36, 0.1, 0.4, 0, -1.18, 0.14, paleWood);
     // A narrow walnut screen is enough to articulate the plaster without adding clutter.
     for (let i = 0; i < (room === 'gallery' ? 0 : 9); i++)
       b(w, 0.035, 2.75, 0.048, 2.2 + i * 0.075, 0.12, 0.06, darkWood, 0.009);
@@ -672,19 +673,6 @@ export function buildHouse(k: Kit) {
     fabric('#b9816c'),
   );
   pillow2.rotation.z = -0.18;
-  const throwMat = fabric('#a4a68e');
-  for (let i = 0; i < 10; i++)
-    b(
-      sofa,
-      0.052,
-      0.025,
-      0.99,
-      -0.48 + i * 0.052,
-      0.806,
-      0.12,
-      throwMat,
-      0.009,
-    );
   const rug = group('living');
   b(rug, 4.5, 0.027, 3.32, 0.55, 0.096, 0.15, ivoryCloth, 0.08);
   for (const x of [-1.55, 2.66])
@@ -2168,7 +2156,11 @@ export function buildHouse(k: Kit) {
       projectGallery.focus(id);
       ceilingLighting.setPlan(id !== null);
     },
+    isRoomVisible(room: RoomId) {
+      return roots[room].visible;
+    },
     setSeatFocus() {
+      gameRoom.setFocus('gameConsole');
       cafe.setFocus('cafeSeat');
       ceilingLighting.setPlan(true);
     },
@@ -2235,7 +2227,10 @@ export function buildHouse(k: Kit) {
       art.visible = galleryLamps.visible = view !== 'plan';
       const all = view === 'overview' || view === 'plan';
       for (const id of Object.keys(rooms) as RoomId[])
-        roots[id].visible = all || view === id;
+        roots[id].visible =
+          all ||
+          view === id ||
+          (id === 'corridor' && (view === 'gallery' || view === 'living'));
       for (const p of partitions) {
         p.base.visible = all || p.neighbours.includes(view as RoomId);
         p.upper.visible =

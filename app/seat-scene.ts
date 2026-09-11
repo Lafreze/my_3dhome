@@ -4,7 +4,7 @@ import {
   paintExpression,
   paintSocial,
 } from './visitor-expression';
-import { roomAt } from './house-data';
+import { roomAt, type RoomId } from './house-data';
 import { humanScale } from './character-scale.mjs';
 import { sampleVisitorJourney, visitorTravelNodes } from './visitor-travel.mjs';
 import { createVisitorProps } from './visitor-props';
@@ -54,6 +54,7 @@ export function createSeatScene(
   interactables: T.Object3D[],
   invalidate: () => void,
   assets: RoomAssets,
+  isRoomVisible: (room: RoomId) => boolean,
 ) {
   let disposed = false,
     current: Visitor[] = [],
@@ -291,7 +292,11 @@ export function createSeatScene(
             (anchor && isVisible(anchor)) ||
             (visitor.journey &&
               !!anchors.get(visitor.journey.fromSeat) &&
-              isVisible(anchors.get(visitor.journey.fromSeat)!))
+              isVisible(anchors.get(visitor.journey.fromSeat)!)) ||
+            visitor.journey?.path.some((p: number[]) => {
+              const room = roomAt(p[0], p[2]);
+              return !!room && isRoomVisible(room);
+            })
           );
         })
         .map((visitor) => readAppearance(visitor.appearance).character),
@@ -476,14 +481,7 @@ export function createSeatScene(
         frame.root.position.copy(p);
         frame.root.rotation.set(0, sample.yaw, 0);
         const room = roomAt(p.x, p.z);
-        frame.root.visible =
-          !!room &&
-          seats.some(
-            (s) =>
-              s.room === room &&
-              anchors.has(s.id) &&
-              isVisible(anchors.get(s.id)!),
-          );
+        frame.root.visible = !!room && isRoomVisible(room);
       } else {
         frame.root.position.setFromMatrixPosition(anchor.matrixWorld);
         frame.root.quaternion.setFromRotationMatrix(anchor.matrixWorld);

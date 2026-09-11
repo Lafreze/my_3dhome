@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { rooms, houseFurniture } from '../app/house-data.ts';
+import { gameFurniture } from '../app/game-layout.ts';
 import { layout } from '../app/room-layout.ts';
 import { cafeChairs, cafeLayout } from '../app/cafe-layout.ts';
 import seats from '../app/seat-catalog.json' with { type: 'json' };
@@ -23,6 +24,12 @@ function parent(id: string): {
   if (id === 'study-work') return { ...layout.stool, obstacle: 'stool' };
   if (id === 'study-reading') return { ...layout.chair, obstacle: 'chair' };
   if (id.startsWith('study-sofa')) return { ...layout.bed, obstacle: 'bed' };
+  if (id.startsWith('gaming-sofa'))
+    return { ...gameFurniture.sofa, yaw: Math.PI / 2, obstacle: 'sofa' };
+  if (id === 'gaming-stool-1')
+    return { ...gameFurniture.stoolA, obstacle: 'stoolA' };
+  if (id === 'gaming-stool-2')
+    return { ...gameFurniture.stoolB, obstacle: 'stoolB' };
   if (id.startsWith('living-sofa'))
     return { ...houseFurniture.living.sofa, yaw: Math.PI, obstacle: 'sofa' };
   if (id.startsWith('bedroom-bed'))
