@@ -6,6 +6,11 @@ import type { RoomId } from './house-data';
 
 // One shared landscape for every exterior aperture. North = -Z, east = +X. No independent invented skies.
 export const windowViews = {
+  garden: {
+    bearing: 90,
+    name: '东 · 温室外的花园',
+    position: [29.72, 2.13, 6.3],
+  },
   library: {
     bearing: 0,
     name: '北 · 林间阅读窗',
@@ -502,13 +507,13 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
     [43, -76, 27, 7, '#8a9f91'],
   ] as const)
     ellipsoid(scene, x, -1, z, w, h, 20, mat(c));
-  home(26, -6, 0);
-  home(26, 5.8, 1);
-  home(26, 18, 2);
+  home(42, -6, 0);
+  home(42, 5.8, 1);
+  home(42, 18, 2);
   for (const z of [-6, 5.8, 18]) {
-    fence(22, z, 6.6, Math.PI / 2, 0.68);
-    tree(23.1, z + 3.7, 1.0, Math.round(z + 90));
-    bush(22.2, z - 2.7, 1.4, Math.round(z + 100));
+    fence(37, z, 6.6, Math.PI / 2, 0.68);
+    tree(35.8, z + 3.7, 1.0, Math.round(z + 90));
+    bush(36.2, z - 2.7, 1.4, Math.round(z + 100));
   }
   for (let i = 0; i < 8; i++)
     ellipsoid(
@@ -522,10 +527,10 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
       puddle,
     );
   for (const [x, z, index] of [
-    [37, -12, 0],
-    [39, 1, 1],
-    [37, 14, 2],
-    [39, 27, 3],
+    [48, -12, 0],
+    [50, 1, 1],
+    [48, 14, 2],
+    [50, 27, 3],
   ]) {
     const facade = mat(['#c7b8a0', '#c2c9c4', '#d9c4ad', '#c9c0b0'][index]);
     const height = 6.2 + index * 0.65;
@@ -557,7 +562,7 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
   }
   // One small corner cafe faces the lane opposite the living room.
   const cafe = new T.Group();
-  cafe.position.set(25.1, 0, -0.25);
+  cafe.position.set(42.1, 0, -0.25);
   cafe.rotation.y = -Math.PI / 2;
   scene.add(cafe);
   const cafeWall = mat('#d9b89a'),
@@ -648,6 +653,35 @@ export function createHouseLandscape(renderer: T.WebGLRenderer) {
     }
   for (const x of [-0.52, 0.52])
     box(car, 0.27, 0.13, 0.04, x, 0.72, 1.575, lampGlass);
+  // The conservatory looks onto a planted outer garden, beyond the new east wall.
+  box(scene, 6.0, 0.06, 25.5, 32.9, 0.06, 6.3, grass);
+  box(scene, 0.88, 0.05, 25.5, 30.45, 0.105, 6.3, gravel);
+  for (let i = 0; i < 15; i++) {
+    box(
+      scene,
+      0.78,
+      0.055,
+      0.88,
+      31.45 + Math.sin(i * 0.4) * 0.22,
+      0.11,
+      -5.4 + i * 1.65,
+      stone,
+    );
+    bush(
+      33.4 + (i % 2) * 0.85,
+      -5.5 + i * 1.65,
+      0.68 + (i % 3) * 0.13,
+      730 + i,
+    );
+  }
+  for (const [z, i] of [
+    [-3.8, 0],
+    [4.2, 1],
+    [12.3, 2],
+  ])
+    tree(34.1, z, 0.72, 751 + i);
+  box(scene, 6.8, 0.055, 4.5, 26.4, 0.07, -8.0, grass);
+  tree(27.7, -8.8, 0.78, 762);
   // The expanded north wing opens onto a small reading garden before the lane.
   box(scene, 9.4, 0.055, 4.2, 18.5, 0.07, -8.2, grass);
   box(scene, 9.4, 0.055, 0.8, 18.5, 0.085, -6.05, gravel);

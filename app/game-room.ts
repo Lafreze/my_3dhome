@@ -314,7 +314,11 @@ export function buildGameRoom(k: Kit) {
   box(root, 9, 0.4, 6.8, 0, -0.23, 0, paleWood, 0.04);
   addOakFloor(root, 8.92, 6.67, k.floorMaterials);
   const north = wall(root, 9, 0, -3.31, 0, 'gaming');
-  wall(root, 6.8, 4.41, 0, -Math.PI / 2, 'gaming');
+  wall(root, 6.8, 4.41, 0, -Math.PI / 2, 'gaming', 2.45);
+  const gardenExit = object('gameGardenDoor', 4.3, 2.45);
+  gardenExit.rotation.y = -Math.PI / 2;
+  label(gardenExit, 'BOTANICAL GARDEN', 1.2, 0, 2.88, 0);
+  k.cutaways.add([gardenExit], { x: 22.8, z: 9.25, nx: -1, nz: 0 }, ['gaming']);
   wall(root, 9, 0, 3.31, Math.PI, 'gaming');
   wall(root, 6.8, -4.5, 0, Math.PI / 2, 'gaming', -2.4);
   const exitDoor = object('gameExitDoor', -4.42, 2.4);

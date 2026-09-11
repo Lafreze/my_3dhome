@@ -437,7 +437,13 @@ export function buildLibrary(k: Kit) {
     return upper;
   }
   const northWall = wall(9, 0, -4.41, 0, undefined, true);
-  wall(9, 4.41, 0, -Math.PI / 2);
+  wall(9, 4.41, 0, -Math.PI / 2, 3.25);
+  const gardenExit = object('libraryGardenDoor', root, 4.3, 0, 3.25);
+  gardenExit.rotation.y = -Math.PI / 2;
+  label(gardenExit, 'BOTANICAL GARDEN', 1.3, 0, 3.02, 0);
+  k.cutaways.add([gardenExit], { x: 22.8, z: 2.15, nx: -1, nz: 0 }, [
+    'library',
+  ]);
   wall(9, 0, 4.41, Math.PI);
   const westWall = wall(9, -4.41, 0, Math.PI / 2, -2.85);
   const exit = object('libraryExitDoor', root, -4.3, 0, 2.85);
@@ -543,7 +549,7 @@ export function buildLibrary(k: Kit) {
   bookcase(right, f.northRight.width, 3);
   const east = group(shelves, f.eastShelves.x, 0, f.eastShelves.z);
   east.rotation.y = -Math.PI / 2;
-  bookcase(east, f.eastShelves.depth, 6, true, false, true);
+  bookcase(east, f.eastShelves.depth, 5, true, false, true);
   const bridge = group(shelves, -1.28, 0, -4.03);
   box(bridge, 3, 0.065, 0.63, 0, 3.02, 0, oak);
   box(bridge, 3, 0.14, 0.68, 0, 3.55, 0, oak);
@@ -561,7 +567,7 @@ export function buildLibrary(k: Kit) {
   label(bridge, 'SATORI · 藏书室', 1.72, 0, 3.59, 0.355, 0.16);
   plant(shelves, -3.83, 3.61, -4.02, true);
   plant(shelves, 0.54, 3.61, -4.03, true);
-  plant(east, 3.57, 3.61, 0.02, true);
+  plant(east, 2.65, 3.61, 0.02, true);
   // Three selected volumes have their own spines and can leave their actual shelf slots.
   const selectedBooks = {} as Record<LibraryBookId, T.Group>;
   for (const [id, objectId, x] of [
@@ -891,7 +897,7 @@ export function buildLibrary(k: Kit) {
   }
   stack(cart, -0.13, 1.15, 0.02, 3);
   // A rail-mounted leaning ladder: the complete swept footprint is reserved for navigation.
-  const ladder = object('libraryLadder', root, 3.72, 0, -0.2);
+  const ladder = object('libraryLadder', root, 3.72, 0, -0.85);
   ladder.rotation.y = -Math.PI / 2;
   for (const x of [-0.33, 0.33]) {
     rod(ladder, [x, 0.13, 1.03], [x, 3.23, 0.06], 0.044, oak);
@@ -914,13 +920,13 @@ export function buildLibrary(k: Kit) {
       z = 1.03 - ((y - 0.13) * 0.97) / 3.1;
     box(ladder, 0.66, 0.052, 0.19, 0, y, z, oak, 0.01);
   }
-  rod(root, [3.76, 3.24, -3.62], [3.76, 3.24, 3.62], 0.026, brass);
-  for (const z of [-3.45, -1.1, 1.1, 3.45])
+  rod(root, [3.76, 3.24, -3.2], [3.76, 3.24, 1.8], 0.026, brass);
+  for (const z of [-3.1, -1.4, 0.3, 1.7])
     rod(root, [4.08, 3.24, z], [3.76, 3.24, z], 0.022, brass);
   for (const x of [2.66, 3.68])
-    box(root, 0.025, 0.007, 6.7, x, 0.086, -0.1, dark);
+    box(root, 0.025, 0.007, 4.95, x, 0.086, -0.725, dark);
   // A softly aged globe with hand-drawn continent silhouettes and brass meridian.
-  const globe = object('libraryGlobe', root, 3.96, 1.975, -1.99);
+  const globe = object('libraryGlobe', root, 3.96, 1.975, -2.096);
   globe.rotation.y = -Math.PI / 2;
   box(globe, 0.38, 0.055, 0.33, 0, 0.027, 0, oak);
   cyl(globe, 0.045, 0.11, 0.15, 0, 0.11, 0, brass);

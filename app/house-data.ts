@@ -80,6 +80,15 @@ export const rooms = {
     depth: 23.8,
     number: '↗',
   },
+  garden: {
+    name: '植物园休息区',
+    english: 'THE CONSERVATORY',
+    x: 26.4,
+    z: 6.3,
+    width: 6.8,
+    depth: 23.8,
+    number: '09',
+  },
 } as const;
 export type RoomId = keyof typeof rooms;
 export type HouseView = RoomId | 'overview' | 'plan';
@@ -97,6 +106,56 @@ export const houseBounds = {
   maxZ: Math.max(...roomIds.map((id) => rooms[id].z + rooms[id].depth / 2)),
 };
 export const newObjects = {
+  libraryGardenDoor: {
+    name: '藏书室 → 植物园',
+    kind: 'CONSERVATORY',
+    action: '进入植物园',
+  },
+  gameGardenDoor: {
+    name: '游戏房 → 植物园',
+    kind: 'CONSERVATORY',
+    action: '进入植物园',
+  },
+  barGardenDoor: {
+    name: '酒吧 → 植物园',
+    kind: 'CONSERVATORY',
+    action: '进入植物园',
+  },
+  gardenLibraryDoor: {
+    name: '植物园 → 藏书室',
+    kind: 'LIBRARY',
+    action: '进入藏书室',
+  },
+  gardenGameDoor: {
+    name: '植物园 → 游戏房',
+    kind: 'PLAY ROOM',
+    action: '进入游戏房',
+  },
+  gardenBarDoor: {
+    name: '植物园 → 酒吧',
+    kind: 'AMBER BAR',
+    action: '进入酒吧',
+  },
+  gardenAlbum: {
+    name: '阅读角 · 压花册',
+    kind: 'PRESSED FLOWERS',
+    action: '翻一页压花册',
+  },
+  gardenWorkbench: {
+    name: '园艺工作台',
+    kind: 'GROW SOMETHING',
+    action: '给幼苗浇水',
+  },
+  gardenTerrarium: {
+    name: '玻璃生态缸',
+    kind: 'A LITTLE WORLD',
+    action: '打开 / 合上玻璃罩',
+  },
+  gardenLemonade: {
+    name: '花园小坐 · 柠檬水',
+    kind: 'GARDEN BREAK',
+    action: '倒一杯柠檬水',
+  },
   libraryExitDoor: {
     name: '藏书室 → 东侧连廊',
     kind: 'EAST WALK',
@@ -248,6 +307,16 @@ export const newObjects = {
   galleryWindow: { name: '展厅东窗', kind: 'E · 连廊画廊', action: '望向连廊' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
+  libraryGardenDoor: 'library',
+  gameGardenDoor: 'gaming',
+  barGardenDoor: 'bar',
+  gardenLibraryDoor: 'garden',
+  gardenGameDoor: 'garden',
+  gardenBarDoor: 'garden',
+  gardenAlbum: 'garden',
+  gardenWorkbench: 'garden',
+  gardenTerrarium: 'garden',
+  gardenLemonade: 'garden',
   libraryExitDoor: 'library',
   corridorLibraryDoor: 'corridor',
   libraryShelf: 'library',

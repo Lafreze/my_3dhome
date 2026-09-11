@@ -1,5 +1,12 @@
-// The main house stays on its original grid. Every expansion opens onto EAST WALK.
+import { gardenPortals } from './garden-layout.ts';
+// The east conservatory connects the three rooms as a continuous second route.
 export const portalDestinations = {
+  libraryGardenDoor: 'garden',
+  gameGardenDoor: 'garden',
+  barGardenDoor: 'garden',
+  gardenLibraryDoor: 'library',
+  gardenGameDoor: 'gaming',
+  gardenBarDoor: 'bar',
   libraryExitDoor: 'corridor',
   corridorLibraryDoor: 'library',
   gameExitDoor: 'corridor',
@@ -16,7 +23,7 @@ export const gameFurniture = {
   snake: { x: -0.52, z: -2.57, width: 1.25, depth: 1.13 },
   pinball: { x: -3.52, z: -2.17, width: 1.22, depth: 2.05 },
   collection: { x: 1.77, z: -2.95, width: 2.4, depth: 0.62 },
-  media: { x: 3.94, z: -0.1, width: 0.72, depth: 3.8 },
+  media: { x: 3.94, z: -0.24, width: 0.72, depth: 3.8 },
   sofa: { x: 1.73, z: 0.1, width: 1.25, depth: 2.85 },
   sideTable: { x: 1.95, z: 2.12, width: 0.7, depth: 0.7 },
   board: { x: -1.3, z: 2.02, width: 1.62, depth: 1.62 },
@@ -30,6 +37,7 @@ export const gameApproaches = {
   pinball: { x: -3.52, z: -0.35, width: 0.9, depth: 0.9 },
 } as const;
 export const expansionPortals = [
+  ...gardenPortals,
   { axis: 'x', at: 14, along: 1.75, a: 'corridor', b: 'library' },
   { axis: 'x', at: 12, along: 9.2, a: 'gallery', b: 'corridor' },
   { axis: 'x', at: 12, along: 10.95, a: 'cafe', b: 'corridor' },

@@ -1999,6 +1999,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         games: () => house.gameSnapshot(),
         bar: () => house.barSnapshot(),
         library: () => house.librarySnapshot(),
+        garden: () => house.gardenSnapshot(),
         occlusion: occlusion.snapshot,
         snapshot: visitors.snapshots,
         idle: visitors.idleSnapshot,
@@ -2433,9 +2434,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     const panRange =
       activeView === 'overview' || activeView === 'plan'
         ? 22
-        : activeView === 'cafe'
-          ? 9
-          : 5;
+        : activeView === 'garden' || activeView === 'corridor'
+          ? 13
+          : activeView === 'cafe'
+            ? 9
+            : 5;
     const unclamped = controls.target.clone();
     controls.target.x = T.MathUtils.clamp(
       controls.target.x,
@@ -2460,6 +2463,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
     librarySnapshot: house.librarySnapshot,
+    gardenSnapshot: house.gardenSnapshot,
     libraryCommand: house.libraryCommand,
     barSnapshot: house.barSnapshot,
     prepareCocktail: house.prepareCocktail,
@@ -2537,15 +2541,19 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       controls.maxAzimuthAngle = Infinity;
       controls.minDistance = all ? 18 : 5;
       sun.shadow.camera.left = sun.shadow.camera.bottom = all
-        ? -23
-        : view === 'cafe'
-          ? -13
-          : -8;
+        ? -29
+        : view === 'garden'
+          ? -18
+          : view === 'cafe'
+            ? -13
+            : -8;
       sun.shadow.camera.right = sun.shadow.camera.top = all
-        ? 23
-        : view === 'cafe'
-          ? 13
-          : 8;
+        ? 29
+        : view === 'garden'
+          ? 18
+          : view === 'cafe'
+            ? 13
+            : 8;
       sun.shadow.camera.updateProjectionMatrix();
       if (view === 'plan') {
         const height =
@@ -2562,25 +2570,27 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         );
       } else if (view === 'overview')
         moveTo(
-          houseCenter.clone().add(new T.Vector3(22, 33, 30)),
+          houseCenter.clone().add(new T.Vector3(26, 36, 34)),
           houseCenter.clone().add(new T.Vector3(0, 1, 0)),
         );
       else {
         const offset = new T.Vector3(rooms[view].x, 0, rooms[view].z);
         const vantage =
-          view === 'corridor'
-            ? new T.Vector3(-11, 16, 25)
-            : view === 'library'
-              ? new T.Vector3(-13, 16, 13)
-              : view === 'bar'
-                ? new T.Vector3(-11, 12, 16)
-                : view === 'gaming'
-                  ? new T.Vector3(-10, 11, 15)
-                  : view === 'cafe'
-                    ? new T.Vector3(10, 12, 21)
-                    : view === 'bedroom'
-                      ? new T.Vector3(2, 9.2, 15.5)
-                      : initial.clone();
+          view === 'garden'
+            ? new T.Vector3(-17, 22, 29)
+            : view === 'corridor'
+              ? new T.Vector3(-11, 16, 25)
+              : view === 'library'
+                ? new T.Vector3(-13, 16, 13)
+                : view === 'bar'
+                  ? new T.Vector3(-11, 12, 16)
+                  : view === 'gaming'
+                    ? new T.Vector3(-10, 11, 15)
+                    : view === 'cafe'
+                      ? new T.Vector3(10, 12, 21)
+                      : view === 'bedroom'
+                        ? new T.Vector3(2, 9.2, 15.5)
+                        : initial.clone();
 
         if (view === 'cafe' && camera.aspect < 1) vantage.multiplyScalar(1.12);
         moveTo(vantage.add(offset), target.clone().add(offset));
@@ -2624,6 +2634,18 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       house.setFocus(id);
       if (id === 'floor' || id === 'wall') {
         this.reset();
+        return;
+      }
+      if (room === 'garden') {
+        const center = new T.Box3().setFromObject(g).getCenter(new T.Vector3());
+        controls.minDistance = 1.2;
+        const offset =
+          id === 'gardenTerrarium'
+            ? new T.Vector3(-2, 1.2, 2)
+            : id === 'gardenWorkbench'
+              ? new T.Vector3(-4.4, 4, 5.2)
+              : new T.Vector3(-3.1, 3.5, 4.2);
+        moveTo(center.clone().add(offset), center);
         return;
       }
       if (room === 'library') {

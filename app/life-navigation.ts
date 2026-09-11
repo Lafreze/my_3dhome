@@ -6,6 +6,7 @@ import {
   type RoomId,
 } from './house-data.ts';
 import { layout, workChairTravel, drawerTravel } from './room-layout.ts';
+import { gardenFurniture } from './garden-layout.ts';
 import { libraryFurniture, libraryLadderLane } from './library-layout.ts';
 import { barFurniture, barStools, barDartLane } from './bar-layout.ts';
 import { gameFurniture, expansionPortals } from './game-layout.ts';
@@ -32,6 +33,11 @@ type Footprint = {
 };
 export type Obstacle = Footprint & { room: RoomId; id: string };
 export const lifeObstacles: Obstacle[] = [
+  ...Object.entries(gardenFurniture).map(([id, f]) => ({
+    ...f,
+    id,
+    room: 'garden' as const,
+  })),
   ...Object.entries(libraryFurniture).map(([id, f]) => ({
     ...f,
     id,

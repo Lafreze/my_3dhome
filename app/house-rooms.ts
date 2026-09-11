@@ -9,6 +9,7 @@ import { curtainGeometry, type InteriorBreeze } from './interior-atmosphere';
 import { pillowGeometry, pillowPiping, drapedLinen } from './bed-linen';
 import type { WallCutaways } from './wall-cutaway';
 import { buildCafe } from './cafe-room';
+import { buildGarden } from './garden-room';
 import { buildLibrary } from './library-room';
 import { buildBar } from './bar-room';
 import { buildGameRoom } from './game-room';
@@ -100,6 +101,7 @@ export function buildHouse(k: Kit) {
     gaming: new T.Group(),
     bar: new T.Group(),
     library: new T.Group(),
+    garden: new T.Group(),
     corridor: new T.Group(),
   };
   for (const id of [
@@ -110,6 +112,7 @@ export function buildHouse(k: Kit) {
     'gaming',
     'bar',
     'library',
+    'garden',
     'corridor',
   ] as const) {
     roots[id].position.set(rooms[id].x, 0, rooms[id].z);
@@ -1917,6 +1920,7 @@ export function buildHouse(k: Kit) {
     cutaways: k.cutaways,
     landscape: k.landscape,
   });
+  const garden = buildGarden({ ...k, root: roots.garden });
   const library = buildLibrary({ ...k, root: roots.library });
   const bar = buildBar({ ...k, root: roots.bar });
   const gameRoom = buildGameRoom({
@@ -2138,6 +2142,7 @@ export function buildHouse(k: Kit) {
     },
     roots,
     gameSnapshot: () => gameRoom.snapshot(),
+    gardenSnapshot: garden.snapshot,
     librarySnapshot: () => library.snapshot(),
     libraryCommand: library.command,
     barSnapshot: () => bar.snapshot(),
@@ -2234,6 +2239,7 @@ export function buildHouse(k: Kit) {
       gameRoom.setLamp(on);
       bar.setLamp(on);
       library.setLamp(on);
+      garden.setLamp(on);
       masterLight = on;
       ceilingLighting.set(on);
       cafe.setLamp(on);
@@ -2242,6 +2248,7 @@ export function buildHouse(k: Kit) {
       gameRoom.setView(view);
       bar.setView(view);
       library.setView(view);
+      garden.setView(view);
       ceilingLighting.setPlan(view === 'plan');
       galleryPlan = view === 'plan';
       projectGallery.focus(null);
@@ -2264,6 +2271,7 @@ export function buildHouse(k: Kit) {
       windows.forEach((w) => w.set(value));
       cafe.setEnvironment(value);
       library.setEnvironment(value);
+      garden.setEnvironment(value);
     },
     setMusic(on: boolean) {
       musicOn = on;
@@ -2283,6 +2291,7 @@ export function buildHouse(k: Kit) {
     interact(id: ObjectId, detail?: 'appearance') {
       gameRoom.interact(id);
       bar.interact(id);
+      garden.interact(id);
       cafe.interact(id);
       if (id === 'livingCurtains') curtainOpen.living = !curtainOpen.living;
       if (id === 'bedroomCurtains') curtainOpen.bedroom = !curtainOpen.bedroom;
@@ -2330,6 +2339,7 @@ export function buildHouse(k: Kit) {
       gameRoom.update(t, dt, reduced, night);
       bar.update(t, dt, reduced, night);
       library.update(t, dt, reduced, night, viewer);
+      garden.update(t, dt, reduced, night, viewer);
       if (roots.living.visible) {
         livingRecord.update(dt, musicOn, reduced);
         recordPivot.rotation.y = livingRecord.angle;
@@ -2499,6 +2509,7 @@ export function buildHouse(k: Kit) {
     dispose() {
       gameRoom.dispose();
       library.dispose();
+      garden.dispose();
       cupSteam.dispose();
       disposed = true;
       pictureMaterials.forEach((entry) => entry.current?.dispose());

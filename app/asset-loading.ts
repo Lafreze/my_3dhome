@@ -198,9 +198,10 @@ const adjacent: Record<RoomId, RoomId[]> = {
   gallery: ['living', 'bedroom', 'cafe', 'corridor'],
   cafe: ['bedroom', 'gallery', 'corridor'],
   corridor: ['gallery', 'cafe', 'gaming', 'bar', 'library'],
-  library: ['corridor'],
-  bar: ['corridor'],
-  gaming: ['corridor'],
+  library: ['corridor', 'garden'],
+  garden: ['library', 'gaming', 'bar'],
+  bar: ['corridor', 'garden'],
+  gaming: ['corridor', 'garden'],
 };
 export function createRoomAssets(
   onProgress: (progress: AssetProgress) => void,

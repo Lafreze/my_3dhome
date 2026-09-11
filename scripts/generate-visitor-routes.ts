@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { rooms, houseFurniture } from '../app/house-data.ts';
+import { gardenFurniture } from '../app/garden-layout.ts';
 import { libraryFurniture } from '../app/library-layout.ts';
 import { barFurniture, barStools } from '../app/bar-layout.ts';
 import { gameFurniture } from '../app/game-layout.ts';
@@ -23,6 +24,20 @@ function parent(id: string): {
   yaw?: number;
   obstacle: string;
 } {
+  if (id === 'garden-reading-3')
+    return {
+      ...gardenFurniture.readingReturn,
+      yaw: -Math.PI / 2,
+      obstacle: 'readingReturn',
+    };
+  if (id.startsWith('garden-reading'))
+    return { ...gardenFurniture.readingSofa, obstacle: 'readingSofa' };
+  if (id.startsWith('garden-tree'))
+    return { ...gardenFurniture.lemonBench, obstacle: 'lemonBench' };
+  if (id === 'garden-lounge-1')
+    return { ...gardenFurniture.chairA, obstacle: 'chairA' };
+  if (id === 'garden-lounge-2')
+    return { ...gardenFurniture.chairB, obstacle: 'chairB' };
   if (id.startsWith('library-window'))
     return { ...libraryFurniture.windowSeat, obstacle: 'windowSeat' };
   if (id === 'library-desk')
@@ -116,6 +131,7 @@ for (const seat of seats) {
       // never choose a shorter route through the rear of the furniture.
       if (
         (seat.id.includes('sofa') ||
+          seat.id.startsWith('garden-') ||
           seat.id === 'library-armchair' ||
           seat.id.startsWith('library-window')) &&
         Math.cos((i * Math.PI) / 16) < 0.35

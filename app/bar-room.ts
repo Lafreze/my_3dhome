@@ -347,7 +347,11 @@ export function buildBar(k: Kit) {
     return upper;
   }
   const north = roomWall(9, 0, -3.91, 0),
-    east = roomWall(8, 4.41, 0, -Math.PI / 2);
+    east = roomWall(8, 4.41, 0, -Math.PI / 2, 0.15);
+  const gardenDoor = object('barGardenDoor', 4.31, 0.15);
+  gardenDoor.rotation.y = -Math.PI / 2;
+  label(gardenDoor, 'CONSERVATORY', 1.27, 0, 3.05, 0);
+  k.cutaways.add([gardenDoor], { x: 22.81, z: 14.35, nx: -1, nz: 0 }, ['bar']);
   roomWall(9, 0, 3.91, Math.PI);
   const west = roomWall(8, -4.41, 0, Math.PI / 2, -1.9);
   const exit = object('barExitDoor', -4.31, 1.9);

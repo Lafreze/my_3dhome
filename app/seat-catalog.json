@@ -46,5 +46,12 @@
   {"id":"library-window-1","room":"library","name":"窗边阅读位 · 左","offset":[-0.65,0.94,0.12],"yaw":0},
   {"id":"library-window-2","room":"library","name":"窗边阅读位 · 右","offset":[0.65,0.94,0.12],"yaw":0},
   {"id":"library-desk","room":"library","name":"藏书室书桌椅","offset":[0,0.87,0.04],"yaw":0},
-  {"id":"library-armchair","room":"library","name":"藏书室单人沙发","offset":[0,0.84,0.19],"yaw":0}
+  {"id":"library-armchair","room":"library","name":"藏书室单人沙发","offset":[0,0.84,0.19],"yaw":0},
+  {"id":"garden-reading-1","room":"garden","name":"植物园阅读长椅 · 左","offset":[-0.8,0.865,0.14],"yaw":0},
+  {"id":"garden-reading-2","room":"garden","name":"植物园阅读长椅 · 右","offset":[0.8,0.865,0.14],"yaw":0},
+  {"id":"garden-reading-3","room":"garden","name":"植物园窗边阅读位","offset":[0,0.865,0.14],"yaw":0},
+  {"id":"garden-tree-1","room":"garden","name":"柠檬树下 · 左","offset":[-0.736168,0.815,0.790224],"yaw":-0.75},
+  {"id":"garden-tree-2","room":"garden","name":"柠檬树下 · 右","offset":[0.736168,0.815,0.790224],"yaw":0.75},
+  {"id":"garden-lounge-1","room":"garden","name":"花园藤椅 · 左","offset":[0,0.9,0.07],"yaw":0},
+  {"id":"garden-lounge-2","room":"garden","name":"花园藤椅 · 右","offset":[0,0.9,0.07],"yaw":0}
 ]

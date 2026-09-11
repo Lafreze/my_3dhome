@@ -9,7 +9,7 @@ import {
 import seats from '../app/seat-catalog.json' with { type: 'json' };
 
 assert.equal(new Set(seats.map((s) => s.id)).size, seats.length);
-assert.equal(seats.length, 48);
+assert.equal(seats.length, 55);
 assert.equal(seats.filter((s) => s.kind === 'bed').length, 2);
 for (const seat of seats) {
   assert(seat.offset.every(Number.isFinite));
@@ -82,7 +82,7 @@ const sleep = resting.mutate('192.0.2.10', {
   appearance: { character: 'fox' },
 });
 assert.equal(sleep.visitors[0].posture, 'rest');
-assert.equal(sleep.capacity, 48);
+assert.equal(sleep.capacity, 55);
 assert.throws(
   () =>
     resting.mutate('192.0.2.11', {
@@ -262,5 +262,5 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 console.log(
-  '48 places; atomic bed rest/wake, sleeping privacy, shared gestures, cooldown/expiry, IP identity, capacity and HTTP boundaries passed.',
+  '55 places; atomic bed rest/wake, sleeping privacy, shared gestures, cooldown/expiry, IP identity, capacity and HTTP boundaries passed.',
 );

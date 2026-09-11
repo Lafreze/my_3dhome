@@ -99,7 +99,7 @@ export function createLibraryState() {
     turn: 1,
     direction: 1,
     ladderStop: 1,
-    ladderPosition: -0.2,
+    ladderPosition: libraryLadderStops[1],
     globeSpinning: true,
   };
   const stops = libraryLadderStops;

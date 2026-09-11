@@ -2,7 +2,7 @@
 export const libraryFurniture = {
   northLeft: { x: -3.55, z: -4.03, width: 1.6, depth: 0.64 },
   northRight: { x: 1.98, z: -4.03, width: 3.44, depth: 0.64 },
-  eastShelves: { x: 4.06, z: 0.04, width: 0.64, depth: 8.12 },
+  eastShelves: { x: 4.06, z: -0.84, width: 0.64, depth: 6.28 },
   windowSeat: { x: -1.28, z: -3.86, width: 2.86, depth: 0.87 },
   desk: { x: 0.3, z: -0.25, width: 2.65, depth: 1.4 },
   deskChair: { x: 0.3, z: 1.25, width: 0.82, depth: 0.87 },
@@ -11,9 +11,14 @@ export const libraryFurniture = {
   sideTable: { x: -1.28, z: 1.5, width: 0.52, depth: 0.52 },
   cart: { x: 1.65, z: 3.12, width: 1.1, depth: 0.64 },
 } as const;
-export const libraryLadderStops = [-2.55, -0.2, 2.3] as const;
+export const libraryLadderStops = [-2.7, -0.85, 1.25] as const;
 // Reserve the whole swept area, including the leaning feet, at every ladder position.
-export const libraryLadderLane = { x: 3.25, z: -0.1, width: 1.22, depth: 6.7 };
+export const libraryLadderLane = {
+  x: 3.25,
+  z: -0.725,
+  width: 1.22,
+  depth: 4.95,
+};
 export const libraryDoor = {
   axis: 'x',
   at: 14,
