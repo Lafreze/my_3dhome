@@ -1,4 +1,6 @@
 import type { RoomId } from './house-data';
+import { rooms } from './house-data.ts';
+import seatRoutes from '../config/visitor-routes.json' with { type: 'json' };
 
 export type ActorId = 'resident' | 'cat' | 'rabbit' | 'bird' | 'robot';
 export type Point = [number, number, number];
@@ -320,6 +322,18 @@ const adjacent: Record<RoomId, RoomId[]> = {
   gallery: ['living', 'bedroom', 'cafe'],
   cafe: ['bedroom', 'gallery'],
 };
+// NPCs and online guests share the same validated furniture access points.
+for (const n of navigationNodes) {
+  const seat =
+    n.seatId && seatRoutes.nodes[n.seatId as keyof typeof seatRoutes.nodes];
+  if (!seat) continue;
+  n.position = [
+    seat.approach[0] - rooms[n.room].x,
+    0.085,
+    seat.approach[2] - rooms[n.room].z,
+  ];
+  n.rotation = seat.yaw + Math.PI;
+}
 for (const n of navigationNodes)
   n.neighbors = navigationNodes
     .filter(

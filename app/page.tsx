@@ -1,5 +1,6 @@
 'use client';
 import CoffeeMenu from './coffee-menu';
+import RoomNotes from './room-notes';
 import CollectionAlbum from './collection-album';
 import { type CoffeeSnapshot } from './coffee-state';
 /* Local data-URL previews are already resized on upload; no image optimization server is used. */
@@ -81,6 +82,7 @@ import {
 } from './life-data';
 import { readCollections, createCollectionStore } from './life-collections';
 type Modal =
+  | 'roomNotes'
   | 'coffeeMenu'
   | 'postcard'
   | 'admin'
@@ -514,6 +516,10 @@ function StudioHome() {
       : profile.projects[index]?.title || '待布置展位';
   };
   const action = (id: ObjectId) => {
+    if (id.endsWith('Notes')) {
+      setModal('roomNotes');
+      return;
+    }
     if (id === 'wardrobe') {
       api.current?.focus('wardrobe');
       api.current?.interact('wardrobe');
@@ -1163,6 +1169,7 @@ function StudioHome() {
             {
               (
                 {
+                  roomNotes: '留在小屋的话',
                   coffeeMenu: '今天喝什么',
                   postcard: '小屋明信片',
                   tv: '家庭影院',
@@ -1193,6 +1200,17 @@ function StudioHome() {
                       ? 'A LITTLE ABOUT ME'
                       : 'SATORI / PERSONAL COLLECTION'}
           </DialogDescription>
+          {modal === 'roomNotes' && (
+            <RoomNotes
+              initialRoom={
+                selected
+                  ? roomForObject(selected)
+                  : view in rooms
+                    ? (view as RoomId)
+                    : 'study'
+              }
+            />
+          )}
           {modal === 'admin' && studio.admin && (
             <AdminPanel
               key="manager"

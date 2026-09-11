@@ -1,4 +1,6 @@
 import { prepareStandingMorph } from './visitor-pose-morph';
+import { refineVisitorSeated } from './visitor-seat-fit';
+import { smoothCharacterNormals } from './character-surface';
 import * as T from 'three';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
 import { createVisitorEyelids } from './visitor-eyelids';
@@ -179,6 +181,19 @@ async function loadCharacter(character: Character) {
     redundant.forEach(releaseAssetTexture);
     const parts = [...seated, ...standing];
     await prepareStandingMorph(parts);
+    refineVisitorSeated(parts);
+    for (const pose of ['sit', 'rest']) {
+      const geometries = parts
+        .filter((p) => p.pose === pose && !p.eyelid)
+        .map((p) => p.geometry);
+      smoothCharacterNormals(geometries);
+      smoothCharacterNormals(
+        geometries,
+        'visitorStandPosition',
+        'visitorStandNormal',
+      );
+    }
+    parts.forEach((part) => prepareRestGeometry(part.geometry, character));
     return parts;
   } catch (error) {
     disposeParts(seated);

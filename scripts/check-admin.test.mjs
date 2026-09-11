@@ -64,7 +64,7 @@ async function fixture(password = 'test-passphrase') {
     },
   };
 }
-test('public read, server-side auth, CSRF and logout protect every write', async () => {
+void test('public read, server-side auth, CSRF and logout protect every write', async () => {
   const f = await fixture();
   try {
     const initial = await f.request('/api/house');
@@ -150,7 +150,7 @@ test('public read, server-side auth, CSRF and logout protect every write', async
     await f.close();
   }
 });
-test('validation rejects scripts, fake images, unknown fields and stale revisions; concurrent saves serialize', async () => {
+void test('validation rejects scripts, fake images, unknown fields and stale revisions; concurrent saves serialize', async () => {
   const f = await fixture();
   try {
     await f.login();
@@ -190,7 +190,7 @@ test('validation rejects scripts, fake images, unknown fields and stale revision
     await f.close();
   }
 });
-test('login throttles guesses and missing environment password fails closed', async () => {
+void test('login throttles guesses and missing environment password fails closed', async () => {
   const f = await fixture();
   try {
     for (let i = 0; i < 5; i++)
@@ -213,7 +213,7 @@ test('login throttles guesses and missing environment password fails closed', as
   }
 });
 
-test('study artwork and arbitrary valid furniture colors persist across restart and remain public read-only', async () => {
+void test('study artwork and arbitrary valid furniture colors persist across restart and remain public read-only', async () => {
   const f = await fixture();
   try {
     await f.login();
@@ -244,6 +244,98 @@ test('study artwork and arbitrary valid furniture colors persist across restart 
       ).status,
       401,
     );
+  } finally {
+    await f.close();
+  }
+});
+
+void test('guest notes persist across sessions; only a current administrator can delete', async () => {
+  const f = await fixture();
+  try {
+    const create = await f.request('/api/notes', 'POST', {
+      room: 'living',
+      text: '<script>plain text only</script>你好',
+      author: '来客',
+    });
+    assert.equal(create.status, 201);
+    const id = create.data.notes[0].id;
+    assert.equal((await f.request('/api/notes', 'DELETE', { id })).status, 401);
+    await f.restart();
+    const publicRead = await f.request('/api/notes');
+    assert.equal(
+      publicRead.data.notes[0].text,
+      '<script>plain text only</script>你好',
+    );
+    assert(!JSON.stringify(publicRead.data).includes('cookie'));
+    await f.login();
+    assert.equal(
+      (await f.request('/api/notes', 'DELETE', { id }, { 'X-Studio-CSRF': '' }))
+        .status,
+      403,
+    );
+    assert.equal(
+      (
+        await f.request(
+          '/api/notes',
+          'DELETE',
+          { id },
+          { Origin: 'https://evil.example' },
+        )
+      ).status,
+      403,
+    );
+    assert.equal((await f.request('/api/notes', 'DELETE', { id })).status, 200);
+    await f.restart();
+    assert.equal((await f.request('/api/notes')).data.notes.length, 0);
+  } finally {
+    await f.close();
+  }
+});
+void test('public notes reject invalid input, rapid spam and cross-site writes', async () => {
+  const f = await fixture();
+  try {
+    const post = (data, headers) =>
+      f.request('/api/notes', 'POST', data, headers);
+    assert.equal(
+      (
+        await post(
+          { room: 'living', text: 'hello' },
+          { Origin: 'https://evil.example' },
+        )
+      ).status,
+      403,
+    );
+    assert.equal((await post({ room: 'missing', text: 'hello' })).status, 400);
+    f.advance(31000);
+    assert.equal(
+      (await post({ room: 'living', text: 'x'.repeat(241) })).status,
+      400,
+    );
+    f.advance(31000);
+    assert.equal(
+      (await post({ room: 'living', text: 'hello', admin: true })).status,
+      400,
+    );
+    f.advance(31000);
+    assert.equal((await post({ room: 'living', text: 'hello' })).status, 201);
+    assert.equal((await post({ room: 'living', text: 'again' })).status, 429);
+    const read = await f.request('/api/notes');
+    assert.equal(read.data.notes.length, 1);
+  } finally {
+    await f.close();
+  }
+});
+
+void test('parallel submissions cannot bypass the public note cooldown', async () => {
+  const f = await fixture();
+  try {
+    const results = await Promise.all(
+      Array.from({ length: 4 }, (_, i) =>
+        f.request('/api/notes', 'POST', { room: 'cafe', text: `note ${i}` }),
+      ),
+    );
+    assert.equal(results.filter((r) => r.status === 201).length, 1);
+    assert.equal(results.filter((r) => r.status === 429).length, 3);
   } finally {
     await f.close();
   }

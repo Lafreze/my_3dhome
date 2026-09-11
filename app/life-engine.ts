@@ -26,6 +26,8 @@ import {
   segmentClear,
   worldPoint,
 } from './life-navigation.ts';
+import { visitorTravelNodes } from './visitor-travel.mjs';
+import { sampleSeatTransfer } from './seat-transfer.mjs';
 
 export class SeededRandom {
   seed: number;
@@ -90,6 +92,12 @@ export class BehaviorStateMachine {
   }
 }
 export type LifeActor = {
+  seatTransition?: {
+    entering: boolean;
+    elapsed: number;
+    duration: number;
+    seatId: string;
+  };
   id: ActorId;
   node: string;
   target: string | null;
@@ -238,12 +246,29 @@ export class LifeEngine {
         hopTime: 0,
       };
       this.occupancy.actors.set(id, {
-        position: this.actors[id].position,
+        position: this.footprint(this.actors[id]),
         radius: actorSpecs[id].radius,
         active: active && id !== 'bird',
       });
       if (active) this.occupancy.reserve(n, id);
     }
+  }
+  private footprint(a: LifeActor): Point {
+    const seatId =
+      a.seatTransition?.seatId || (a.seated && this.node(a.node).seatId);
+    const seat =
+      seatId && visitorTravelNodes[seatId as keyof typeof visitorTravelNodes];
+    if (!seat || a.id !== 'resident') return a.position;
+    const transition = a.seatTransition;
+    return transition
+      ? (sampleSeatTransfer(
+          seat.position,
+          seat.approach,
+          transition.elapsed / transition.duration,
+          transition.entering,
+          0.085,
+        ).position as Point)
+      : ([...seat.position] as Point);
   }
   node(id: string) {
     const n = navigationNodes.find((n) => n.id === id);
@@ -381,6 +406,14 @@ export class LifeEngine {
       this.events.end(actor.id);
       return false;
     }
+    if (actor.id === 'resident' && actor.seated) {
+      actor.seatTransition = {
+        entering: false,
+        elapsed: 0,
+        duration: 0.85,
+        seatId: this.node(actor.node).seatId!,
+      };
+    }
     actor.seated = false;
     actor.position = [...from];
     actor.path = path;
@@ -411,6 +444,14 @@ export class LifeEngine {
       a.stayUntil = this.clock + 5;
       this.events.end(a.id);
       return;
+    }
+    if (a.id === 'resident' && n.seatId) {
+      a.seatTransition = {
+        entering: true,
+        elapsed: 0,
+        duration: 0.9,
+        seatId: n.seatId,
+      };
     }
     a.seated = !!n.seatId;
     if (a.id !== 'cat') a.rotation = n.rotation;
@@ -825,7 +866,7 @@ export class LifeEngine {
         this.visibleRoom(a.room) &&
         (a.id === 'resident' || a.id === 'cat' || a.id === secondary);
       this.occupancy.actors.set(a.id, {
-        position: a.position,
+        position: this.footprint(a),
         radius: actorSpecs[a.id].radius,
         active: a.active && a.id !== 'bird' && a.fsm.state !== 'ride',
       });
@@ -843,6 +884,11 @@ export class LifeEngine {
       }
       a.animationTime += step;
       a.fsm.update(step);
+      if (a.seatTransition) {
+        a.seatTransition.elapsed += step;
+        if (a.seatTransition.elapsed < a.seatTransition.duration) continue;
+        a.seatTransition = undefined;
+      }
       const owner = this.events.active?.actor;
       const canMove = !owner || owner === a.id || a.id === 'robot';
       const waitingForCat =

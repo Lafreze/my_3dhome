@@ -6,6 +6,8 @@ import { LifeEngine } from './life-engine';
 import { rememberLifeStarts, type LifeSession } from './life-session';
 export { loadLifeSession } from './life-session';
 import { attachResident, residentAssetId } from './resident-model';
+import { sampleSeatTransfer } from './seat-transfer.mjs';
+import { visitorTravelNodes } from './visitor-travel.mjs';
 import { catAssetId, loadCatVisual } from './cat-model';
 import { rabbitAssetId, attachRabbit } from './rabbit-model';
 import type { RoomAssets } from './asset-loading';
@@ -255,6 +257,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
       const model = models.get(a.id),
         position = new T.Vector3(...a.position);
       let rotation = a.rotation;
+      let seatBlend: number | undefined;
       if (a.seated) {
         const seat = engine.node(a.node).seatId,
           anchor = seat && k.seats.get(seat);
@@ -265,6 +268,27 @@ export function createLifeScene(k: Options, session: LifeSession) {
             anchor.getWorldQuaternion(new T.Quaternion()),
           );
           rotation = Math.atan2(forward.x, forward.z) + Math.PI;
+        }
+      }
+      if (a.id === 'resident' && a.seatTransition) {
+        const transition = a.seatTransition,
+          anchor = k.seats.get(transition.seatId);
+        const route =
+          visitorTravelNodes[
+            transition.seatId as keyof typeof visitorTravelNodes
+          ];
+        if (anchor && route) {
+          const seatPosition = anchor.getWorldPosition(new T.Vector3());
+          const sample = sampleSeatTransfer(
+            seatPosition.toArray(),
+            route.approach,
+            transition.elapsed / transition.duration,
+            transition.entering,
+            0.085,
+          );
+          position.fromArray(sample.position);
+          rotation = route.yaw + Math.PI;
+          seatBlend = 1 - sample.stand;
         }
       }
       if (a.id === 'cat') {
@@ -354,7 +378,11 @@ export function createLifeScene(k: Options, session: LifeSession) {
           a.position[2] > 8.3 &&
           a.position[2] < 9.5;
         model.animate(
-          a.fsm.state,
+          a.seatTransition
+            ? a.seatTransition.entering
+              ? 'settle'
+              : 'rise'
+            : a.fsm.state,
           a.animationTime,
           pose.dt,
           reduced,
@@ -364,6 +392,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
             travelDistance: a.travelDistance,
             moving: a.path.length > 0,
             crouched: duck,
+            seatBlend,
           },
         );
         pose.dt = 0;
@@ -460,6 +489,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
             triangles: m.triangles,
             downloadBytes: m.root.userData.downloadBytes ?? 0,
             bones: m.root.userData.bones ?? 0,
+            position: m.root.position.toArray(),
           },
         ]),
       ),

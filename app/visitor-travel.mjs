@@ -1,5 +1,6 @@
 import routes from '../config/visitor-routes.json' with { type: 'json' };
 import { humanScale } from './character-scale.mjs';
+import { sampleSeatTransfer } from './seat-transfer.mjs';
 export const visitorTravelNodes = routes.nodes;
 export const footLift = {
   bear: 0.46098,
@@ -32,10 +33,14 @@ export function createVisitorJourney(
   const walk =
     path.slice(1).reduce((sum, p, i) => sum + dist(path[i], p), 0) / walkSpeed;
   const exit = path.length
-    ? Math.max(0.75, dist(from.position, from.approach) / approachSpeed)
+    ? fromSeat.includes('sofa')
+      ? 0.22
+      : Math.max(0.75, dist(from.position, from.approach) / approachSpeed)
     : 0;
   const enter = path.length
-    ? Math.max(0.75, dist(to.position, to.approach) / approachSpeed)
+    ? toSeat.includes('sofa')
+      ? 0.28
+      : Math.max(0.75, dist(to.position, to.approach) / approachSpeed)
     : 0;
   const rise = fromPosture === 'rest' ? 1.15 : 0.7,
     settle = toPosture === 'rest' ? 1.25 : 0.8;
@@ -48,6 +53,7 @@ export function createVisitorJourney(
     path,
     walkSpeed,
     approachSpeed,
+    seatTransfer: 2,
     rise,
     exit,
     walk,
@@ -88,6 +94,18 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
     };
   }
   if (t < j.rise) {
+    if (j.seatTransfer === 2 && j.fromSeat.includes('sofa')) {
+      return {
+        ...base,
+        ...sampleSeatTransfer(
+          from.position,
+          from.approach,
+          t / j.rise,
+          false,
+          floor,
+        ),
+      };
+    }
     const v = ease(t / j.rise);
     return {
       ...base,
@@ -111,7 +129,9 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
       from.position[2],
     ],
     a = [from.approach[0], floor, from.approach[2]];
-  const exitYaw = Math.atan2(a[0] - start[0], a[2] - start[2]);
+  if (j.seatTransfer === 2 && j.fromSeat.includes('sofa'))
+    start.splice(0, 3, ...a);
+  const exitYaw = Math.atan2(a[0] - from.position[0], a[2] - from.position[2]);
   if (t < j.exit) {
     const v = ease(t / j.exit);
     return {
@@ -158,7 +178,11 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
       to.position[2],
     ],
     b = [to.approach[0], floor, to.approach[2]];
-  const entryYaw = Math.atan2(end[0] - b[0], end[2] - b[2]);
+  if (j.seatTransfer === 2 && j.toSeat.includes('sofa')) end.splice(0, 3, ...b);
+  const entryYaw =
+    j.seatTransfer === 2 && j.toSeat.includes('sofa')
+      ? to.yaw
+      : Math.atan2(end[0] - b[0], end[2] - b[2]);
   if (t < j.enter) {
     const v = ease(t / j.enter);
     return {
@@ -177,6 +201,22 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
   }
   t -= j.enter;
   const v = ease(Math.min(1, t / j.settle));
+  if (j.seatTransfer === 2 && j.toSeat.includes('sofa')) {
+    return {
+      ...base,
+      ...sampleSeatTransfer(
+        to.position,
+        to.approach,
+        t / j.settle,
+        true,
+        floor,
+      ),
+      phase: v < 1 ? 'settle' : 'seated',
+      seatId: j.toSeat,
+      yaw: to.yaw,
+      moving: v < 1,
+    };
+  }
   return {
     ...base,
     phase: v < 1 ? 'settle' : 'seated',

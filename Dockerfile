@@ -15,6 +15,7 @@ COPY --from=build --chown=node:node /app/dist/client ./dist/client
 COPY --from=build --chown=node:node /app/scripts/serve-local.mjs ./scripts/serve-local.mjs
 COPY --from=build --chown=node:node /app/scripts/seat-presence.mjs ./scripts/seat-presence.mjs
 COPY --from=build --chown=node:node /app/scripts/house-settings.mjs ./scripts/house-settings.mjs
+COPY --from=build --chown=node:node /app/scripts/room-notes.mjs ./scripts/room-notes.mjs
 COPY --from=build --chown=node:node /app/config/house-defaults.json ./config/house-defaults.json
 COPY --from=build --chown=node:node /app/config/wall-art-library.json ./config/wall-art-library.json
 COPY --from=build /app/scripts/start-server.sh ./scripts/start-server.sh
@@ -23,6 +24,7 @@ COPY --from=build --chown=node:node /app/app/visitor-appearance.json ./app/visit
 COPY --from=build --chown=node:node /app/app/visitor-expressions.json ./app/visitor-expressions.json
 COPY --from=build --chown=node:node /app/app/visitor-social.json ./app/visitor-social.json
 COPY --from=build --chown=node:node /app/app/visitor-travel.mjs ./app/visitor-travel.mjs
+COPY --from=build --chown=node:node /app/app/seat-transfer.mjs ./app/seat-transfer.mjs
 COPY --from=build --chown=node:node /app/app/character-scale.mjs ./app/character-scale.mjs
 COPY --from=build --chown=node:node /app/config/visitor-routes.json ./config/visitor-routes.json
 ENV STUDIO_DATA_DIR=/data

@@ -9,7 +9,7 @@ import {
 import routes from '../config/visitor-routes.json' with { type: 'json' };
 import { segmentClear, floorClear } from '../app/life-navigation.ts';
 
-test('all 32 seats connect through safe sampled floor paths with continuous rise, walk and settle', () => {
+void test('all 32 seats connect through safe sampled floor paths with continuous rise, walk and settle', () => {
   assert.equal(Object.keys(visitorTravelNodes).length, 32);
   assert.equal(Object.keys(routes.routes).length, 496);
   for (const [pair, path] of Object.entries(routes.routes)) {
@@ -36,7 +36,7 @@ test('all 32 seats connect through safe sampled floor paths with continuous rise
     assert.deepEqual(end.position, visitorTravelNodes[to].position);
   }
 });
-test('server reserves both seats, serializes passage use and ignores forged movement', () => {
+void test('server reserves both seats, serializes passage use and ignores forged movement', () => {
   let clock = 1000;
   const store = createPresenceStore({ now: () => clock });
   store.mutate('one', { action: 'sit', seatId: 'study-work', name: '栗栗' });
@@ -99,7 +99,7 @@ test('server reserves both seats, serializes passage use and ignores forged move
     0,
   );
 });
-test('seated phone and coffee gestures are shared, rate limited, and blocked while resting', () => {
+void test('seated phone and coffee gestures are shared, rate limited, and blocked while resting', () => {
   let clock = 1000;
   const store = createPresenceStore({ now: () => clock });
   store.mutate('one', { action: 'sit', seatId: 'study-work', name: '栗栗' });
@@ -118,4 +118,24 @@ test('seated phone and coffee gestures are shared, rate limited, and blocked whi
       .gesture.kind,
     'coffee',
   );
+});
+
+void test('every sofa is approached from its open front; visitors never stand on its cushion', () => {
+  for (const [id, node] of Object.entries(visitorTravelNodes).filter(([id]) =>
+    id.includes('sofa'),
+  )) {
+    const dx = node.approach[0] - node.position[0],
+      dz = node.approach[2] - node.position[2];
+    assert(dx * Math.sin(node.yaw) + dz * Math.cos(node.yaw) > 0.2, id);
+    const j = createVisitorJourney(id, 'gallery-bench-1', 'sit', 'sit', 0);
+    const riseEnd = sampleVisitorJourney(j, j.rise * 1000 + 1);
+    assert(
+      Math.hypot(
+        riseEnd.position[0] - node.approach[0],
+        riseEnd.position[2] - node.approach[2],
+      ) < 0.01,
+    );
+    assert.equal(riseEnd.stand, 1);
+    assert(riseEnd.position[1] < node.position[1], id + ' stands on the floor');
+  }
 });

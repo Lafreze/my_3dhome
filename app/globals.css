@@ -2152,3 +2152,113 @@ a {
 .visitor-social button:hover:not(:disabled) { background:#e7eadc; }
 .visitor-social button:disabled { opacity:.45; }
 .visitor-social small { grid-column:1/-1; color:#858b7c; font-size:11px; text-align:center; }
+
+/* Room guest notes: readable paper, quiet controls and a bounded mobile list. */
+.room-notes {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+}
+.note-room {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.note-room select,
+.note-form input,
+.note-form textarea {
+  border: 1px solid #b8b5a6;
+  border-radius: 8px;
+  background: #fcfaf3;
+  color: #344638;
+  padding: 9px 12px;
+  font: inherit;
+}
+.note-stack {
+  display: grid;
+  gap: 12px;
+  max-height: 38vh;
+  overflow-y: auto;
+  padding: 3px;
+}
+.guest-note {
+  background: #f4e8bd;
+  color: #3b4235;
+  border-radius: 3px 3px 12px 3px;
+  padding: 18px;
+  box-shadow: 0 2px 5px #59422212;
+}
+.guest-note > p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.guest-note footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #6d705c;
+}
+.guest-note button {
+  font-size: 11px;
+  text-decoration: underline;
+  padding: 2px 5px;
+  cursor: pointer;
+}
+.note-delete-confirm {
+  display: flex;
+  gap: 8px;
+}
+.note-form {
+  display: grid;
+  gap: 10px;
+}
+.note-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.note-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 88px;
+  max-height: 180px;
+}
+.note-form-bottom {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+.note-form input {
+  min-width: 0;
+  width: 40%;
+  flex: 1;
+}
+.note-form-bottom button {
+  white-space: nowrap;
+  padding: 9px 14px;
+}
+.note-form small,
+.note-empty {
+  font-size: 12px;
+  color: #707564;
+}
+.note-error {
+  font-size: 12px;
+  color: #925039;
+}
+@media (max-width: 600px) {
+  .note-stack {
+    max-height: 30vh;
+  }
+  .guest-note {
+    padding: 14px;
+  }
+}

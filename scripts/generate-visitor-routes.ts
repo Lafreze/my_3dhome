@@ -83,6 +83,10 @@ for (const seat of seats) {
   for (let radius = 0.6; radius <= 2; radius += 0.08)
     for (let i = 0; i < 32; i++) {
       const angle = yaw + seat.yaw + (i * Math.PI) / 16;
+      // A backrest is solid. Access sofas and chairs from their open front,
+      // never choose a shorter route through the rear of the furniture.
+      if (seat.id.includes('sofa') && Math.cos((i * Math.PI) / 16) < 0.35)
+        continue;
       const end: Point = [
         position[0] + Math.sin(angle) * radius,
         0.085,

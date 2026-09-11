@@ -1,6 +1,11 @@
 import houseDefaults from '../config/house-defaults.json';
 import { newObjects } from './house-data';
 export const objects = {
+  studyNotes: { name: '书桌便签', kind: 'NOTES', action: '看看 / 留句话' },
+  livingNotes: { name: '茶几便签', kind: 'NOTES', action: '看看 / 留句话' },
+  bedroomNotes: { name: '床边便签', kind: 'NOTES', action: '看看 / 留句话' },
+  galleryNotes: { name: '观展便签', kind: 'NOTES', action: '看看 / 留句话' },
+  cafeNotes: { name: '咖啡便签', kind: 'NOTES', action: '看看 / 留句话' },
   ...newObjects,
   deskFan: { name: '摇头小风扇', kind: 'BREEZE', action: '开关风扇' },
   deskJournal: {

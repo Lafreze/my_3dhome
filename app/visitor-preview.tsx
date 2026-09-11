@@ -48,7 +48,7 @@ export default function VisitorPreview({
     const scene = new T.Scene();
     const meshes: { mesh: T.Mesh; part: VisitorPart }[] = [];
     const ownedMaterials: T.Material[] = [];
-    const motion = { value: new T.Vector4() };
+    const motion = { value: new T.Vector4(0, 0, 0, 0) };
     const resting = { value: 0 };
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const started = performance.now();

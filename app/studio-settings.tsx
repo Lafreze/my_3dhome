@@ -36,6 +36,7 @@ type Studio = Snapshot & {
   error: string;
   login: (passphrase: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
   save: (patch: HousePatch, revision?: number) => Promise<void>;
 };
 const Context = createContext<Studio | null>(null);
@@ -128,10 +129,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const request = async (
     url: string,
     body: unknown,
-    method: 'POST' | 'PATCH' = 'POST',
+    method: 'POST' | 'PATCH' | 'DELETE' = 'POST',
   ) => {
     const response = await fetch(url, {
-      method: method === 'PATCH' ? 'PATCH' : 'POST',
+      method,
       headers: {
         'Content-Type': 'application/json',
         'X-Studio-CSRF': csrf.current,
@@ -160,6 +161,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     csrf.current = '';
     setAdmin(false);
   };
+  const deleteNote = async (id: string) => {
+    await request('/api/notes', { id }, 'DELETE');
+  };
   const save = async (
     patch: HousePatch,
     revision = current.current.revision,
@@ -169,7 +173,16 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   };
   return (
     <Context.Provider
-      value={{ ...snapshot, admin, ready, error, login, logout, save }}
+      value={{
+        ...snapshot,
+        admin,
+        ready,
+        error,
+        login,
+        logout,
+        save,
+        deleteNote,
+      }}
     >
       {children}
     </Context.Provider>

@@ -19,6 +19,7 @@ export type ActorModel = {
       moving: boolean;
       crouched?: boolean;
       travelDistance?: number;
+      seatBlend?: number;
     },
   ) => void;
   dispose: () => void;

@@ -13,6 +13,8 @@ import { createHouseLandscape, windowViews } from './house-landscape';
 import { addWindowCraft } from './window-craft';
 import { televisionScreen } from './television-screen';
 import { createWallCutaways } from './wall-cutaway';
+import { createCameraOcclusion } from './camera-occlusion';
+import { addRoomNotes } from './room-note-models';
 import { attachSeats, createSeatScene, type SeatAnchors } from './seat-scene';
 import { seatById, seats } from './seat-data';
 import { buildHouse } from './house-rooms';
@@ -1947,6 +1949,13 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     materials,
     textures,
   );
+  addRoomNotes({
+    roots: house.roots,
+    groups,
+    interactables,
+    materials,
+    textures,
+  });
   let life: LifeScene | undefined,
     lifePaused = false,
     lifeAudio: AudioContext | null = null,
@@ -1982,9 +1991,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     () => refreshShadows(),
     assets,
   );
+  const occlusion = createCameraOcclusion(groups);
   if (['localhost', '127.0.0.1'].includes(location.hostname))
     Object.assign(window, {
       __kuroVisitors: {
+        occlusion: occlusion.snapshot,
         snapshot: visitors.snapshots,
         idle: visitors.idleSnapshot,
         objects: quietObjects.snapshot,
@@ -2350,6 +2361,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     );
     quietObjects.update(dt, lifePaused, motionPreference.matches, activeView);
     livedDetails.update(dt, lifePaused, motionPreference.matches, activeView);
+    occlusion.restore();
     if (cutaways.update(activeView, camera.position)) refreshShadows();
     lampLight.intensity = T.MathUtils.lerp(
       lampLight.intensity,
@@ -2433,6 +2445,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     );
     controls.target.y = T.MathUtils.clamp(controls.target.y, 0.15, 4.5);
     camera.position.add(controls.target.clone().sub(unclamped));
+    occlusion.update(camera, controls.target, t, focusedObject);
     landscape.update(camera, t);
     tvScreen.update(camera);
     if (!tvScreen.sampleColor(televisionTint, t)) televisionTint.set('#a3bbc7');
@@ -2819,6 +2832,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       host.removeEventListener('pointerup', pointerUp);
       host.removeEventListener('pointercancel', pointerCancel);
       windowEnvironment.dispose();
+      occlusion.dispose();
       computerScreen.dispose();
       tvScreen.dispose();
       house.dispose();

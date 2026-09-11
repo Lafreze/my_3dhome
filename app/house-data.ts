@@ -167,6 +167,8 @@ export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
   galleryWindow: 'gallery',
 };
 export function roomForObject(id: string): RoomId {
+  if (id.endsWith('Notes') && id.slice(0, -5) in rooms)
+    return id.slice(0, -5) as RoomId;
   return objectRooms[id as keyof typeof objectRooms] ?? 'study';
 }
 // Relative to the media cabinet. Speaker cabinets stay completely outside the TV silhouette.
@@ -185,7 +187,7 @@ export const houseFurniture = {
   living: {
     sofa: { x: 0.55, z: 0.85, width: 3.55, depth: 1.38, facing: [0, -1] },
     media: { x: 0.45, z: -2.74, width: 5.35, depth: 0.72 },
-    table: { x: 0.55, z: -0.75, width: 1.75, depth: 0.83 },
+    table: { x: 0.55, z: -1.05, width: 1.75, depth: 0.83 },
     lamp: { x: 2.95, z: 1.08, width: 0.55, depth: 0.55 },
     record: { x: 2.88, z: -0.71, width: 0.94, depth: 0.76 },
   },

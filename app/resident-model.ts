@@ -1,5 +1,7 @@
 import * as T from 'three';
 import { humanScale } from './character-scale.mjs';
+import { prepareResidentSeated } from './resident-pose';
+import { configureCharacterSurface } from './character-surface';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
 import { assetManifest } from './asset-url';
 import type { ActorModel } from './life-models';
@@ -8,8 +10,8 @@ export const residentAssetId = 'character.resident';
 const smooth = (a: number, b: number, x: number) =>
   T.MathUtils.smoothstep(x, a, b);
 
-/** The supplied sculpture has no rig. A small, continuous skin keeps its original
- * hands-in-pockets silhouette while providing sitting, walking and head gestures. */
+/** The supplied sculpture has no rig. A tailored sitting morph preserves the
+ * pockets and torso; the small skin is used only for restrained ambient motion. */
 export async function attachResident(model: ActorModel, alive: () => boolean) {
   const gltf = await loadAssetGltf(residentAssetId);
   const source: T.Mesh[] = [];
@@ -44,6 +46,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     release();
     throw new Error('Resident asset contains no mesh');
   }
+  materials.forEach(configureCharacterSurface);
   const avatar = new T.Group(),
     bones: T.Bone[] = [];
   const add = (name: string, position: number[], parent?: T.Bone) => {
@@ -54,13 +57,13 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     bones.push(b);
     return b;
   };
-  const pelvis = add('resident.pelvis', [0, 0.62, 0]);
-  const spine = add('resident.spine', [0, 0.21, 0], pelvis);
+  const pelvis = add('resident.pelvis', [0, 0.47, 0]);
+  const spine = add('resident.spine', [0, 0.36, 0], pelvis);
   const head = add('resident.head', [0, 0.2, 0], spine);
   const legs = [-1, 1].map((side) => {
     const thigh = add(`resident.thigh.${side}`, [side * 0.13, 0, 0], pelvis);
-    const shin = add(`resident.shin.${side}`, [0, -0.3, 0], thigh);
-    const foot = add(`resident.foot.${side}`, [0, -0.23, -0.025], shin);
+    const shin = add(`resident.shin.${side}`, [0, -0.22, 0], thigh);
+    const foot = add(`resident.foot.${side}`, [0, -0.16, -0.025], shin);
     return { thigh, shin, foot };
   });
   const shoulders = [-1, 1].map((side) =>
@@ -69,9 +72,12 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
   avatar.updateMatrixWorld(true);
   const skeleton = new T.Skeleton(bones);
   let triangles = 0;
+  const seatedMeshes: T.SkinnedMesh[] = [],
+    contacts: number[] = [];
   for (const m of source) {
     const geo = m.geometry;
     geo.applyMatrix4(m.matrixWorld);
+    contacts.push(...prepareResidentSeated(geo));
     const position = geo.getAttribute('position'),
       indices = new Uint16Array(position.count * 4),
       weights = new Float32Array(position.count * 4);
@@ -79,7 +85,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
       const x = position.getX(i),
         y = position.getY(i),
         influences: [number, number][] = [];
-      const lower = 1 - smooth(0.54, 0.65, y);
+      const lower = 1 - smooth(0.43, 0.5, y);
       const headWeight = smooth(0.96, 1.04, y);
       const torso = smooth(0.63, 0.87, y) * (1 - headWeight);
       const addWeight = (b: T.Bone, w: number) => {
@@ -92,7 +98,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
       addWeight(spine, (torso - shoulder) * (1 - lower));
       addWeight(pelvis, (1 - headWeight - torso) * (1 - lower));
       const side = x < 0 ? 0 : 1;
-      const knee = 1 - smooth(0.28, 0.36, y),
+      const knee = 1 - smooth(0.215, 0.285, y),
         ankle = 1 - smooth(0.08, 0.14, y);
       addWeight(legs[side].thigh, lower * (1 - knee));
       addWeight(legs[side].shin, lower * knee * (1 - ankle));
@@ -119,8 +125,11 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     mesh.boundingSphere = mesh.boundingBox.getBoundingSphere(new T.Sphere());
     avatar.add(mesh);
     mesh.bind(skeleton, new T.Matrix4());
+    seatedMeshes.push(mesh);
     triangles += (geo.index?.count ?? position.count) / 3;
   }
+  contacts.sort((a, b) => a - b);
+  const seatContact = contacts[Math.floor(contacts.length * 0.02)] ?? 0.4;
   // Retain the existing contact shadow and fallback allocation for clean disposal.
   model.root.children.forEach((o) => {
     o.visible = o instanceof T.Mesh && o.geometry instanceof T.CircleGeometry;
@@ -132,7 +141,8 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
   model.root.userData.downloadBytes =
     assetManifest.assets[residentAssetId].size;
   model.root.userData.bones = bones.length;
-  let sitBlend = 0,
+  let initialized = false,
+    sitBlend = 0,
     crouchBlend = 0,
     headPitch = 0,
     headYaw = 0,
@@ -140,6 +150,11 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     previousState = '';
   const oldDispose = model.dispose;
   model.animate = (state, t, dt, reduced, seated = false, motion) => {
+    // Async replacement must appear in the current pose, never standing on a seat.
+    if (!initialized) {
+      sitBlend = seated ? 1 : 0;
+      initialized = true;
+    }
     if (previousState !== state) {
       previousState = state;
       gestureTime = 0;
@@ -147,10 +162,14 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     gestureTime += Math.min(dt, 0.1);
     const blend = reduced ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 7);
     sitBlend += ((seated ? 1 : 0) - sitBlend) * blend;
+    if (motion?.seatBlend !== undefined) sitBlend = motion.seatBlend;
     crouchBlend +=
       ((state === 'petCat' && !seated ? 1 : 0) - crouchBlend) * blend;
     bones.forEach((b) => b.rotation.set(0, 0, 0));
-    avatar.position.y = -0.55 * sitBlend - 0.25 * crouchBlend;
+    avatar.position.y = -seatContact * sitBlend - 0.16 * crouchBlend;
+    seatedMeshes.forEach((mesh) => {
+      mesh.morphTargetInfluences![0] = sitBlend;
+    });
     const walk =
       state === 'walk' && !reduced
         ? Math.sin(
@@ -161,9 +180,9 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
         : 0;
     legs.forEach((leg, i) => {
       const stride = walk * (i ? 1 : -1);
-      leg.thigh.rotation.x = 1.38 * sitBlend + 0.6 * crouchBlend + stride;
-      leg.shin.rotation.x = -1.38 * sitBlend - 1.05 * crouchBlend;
-      leg.foot.rotation.x = 0.08 * sitBlend + 0.35 * crouchBlend;
+      leg.thigh.rotation.x = 0.6 * crouchBlend + stride;
+      leg.shin.rotation.x = -1.05 * crouchBlend;
+      leg.foot.rotation.x = 0.35 * crouchBlend;
     });
     spine.rotation.x = 0.2 * crouchBlend;
     // This supplied model has a neutral neck: never apply the old model's roll correction.

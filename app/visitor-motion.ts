@@ -2,6 +2,7 @@ import * as T from 'three';
 import type { Character } from './visitor-appearance';
 import { visitorRestMatrix } from './visitor-rest.ts';
 import figures from './visitor-figure-profiles.json' with { type: 'json' };
+import { configureCharacterSurface } from './character-surface.ts';
 
 // Metres in the seated model's coordinate system; the cushion is y = 0.
 export const motionRig = {
@@ -113,6 +114,7 @@ export function configureVisitorMotion(
   eyelid = false,
   resting: { value: number } = { value: 0 },
 ) {
+  configureCharacterSurface(material);
   const previous = material.onBeforeCompile.bind(material);
   const previousKey = material.customProgramCacheKey();
   const rig = motionRig[character];

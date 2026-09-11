@@ -2,6 +2,7 @@ import { readFile, mkdir, open, rename, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import { visitorIP } from './seat-presence.mjs';
+import { createRoomNotes } from './room-notes.mjs';
 
 const defaults = JSON.parse(
   await readFile(
@@ -149,6 +150,8 @@ export async function createHouseHandler({
   now = Date.now,
 } = {}) {
   const file = resolve(dataDir, 'house-settings.json');
+  const roomNotes = await createRoomNotes(dataDir, now);
+  const noteAttempts = new Map();
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   let state = {
     version: 1,
@@ -229,8 +232,17 @@ export async function createHouseHandler({
   };
   return async (req, res) => {
     const path = new URL(req.url, 'http://localhost').pathname;
-    if (path !== '/api/house' && !path.startsWith('/api/admin/')) return false;
+    if (
+      path !== '/api/house' &&
+      path !== '/api/notes' &&
+      !path.startsWith('/api/admin/')
+    )
+      return false;
     try {
+      if (req.method === 'GET' && path === '/api/notes') {
+        send(res, 200, roomNotes.snapshot());
+        return true;
+      }
       if (req.method === 'GET' && path === '/api/house') {
         const etag = `"house-r${state.revision}"`;
         if (req.headers['if-none-match'] === etag) {
@@ -249,6 +261,26 @@ export async function createHouseHandler({
         return true;
       }
       sameOrigin(req);
+      if (req.method === 'POST' && path === '/api/notes') {
+        const value = await body(req, 4096);
+        keys(value, ['room', 'author', 'text']);
+        const ip = visitorIP(req, trustRailwayProxy);
+        for (const [key, times] of noteAttempts)
+          if (times.every((t) => t < now() - 600000)) noteAttempts.delete(key);
+        const recent = (noteAttempts.get(ip) || []).filter(
+          (t) => t > now() - 600000,
+        );
+        if (
+          recent.length >= 5 ||
+          (recent.length && now() - recent.at(-1) < 30000) ||
+          (!recent.length && noteAttempts.size >= 5000)
+        )
+          throw fail(429, '先歇一会儿，稍后再留一张便签。');
+        // Reserve the rate-limit slot before the queued disk write.
+        noteAttempts.set(ip, [...recent, now()]);
+        send(res, 201, await roomNotes.add(value));
+        return true;
+      }
       if (req.method === 'POST' && path === '/api/admin/login') {
         if (!password) throw fail(503, '管理暗号尚未配置。');
         const ip = visitorIP(req, trustRailwayProxy);
@@ -299,6 +331,12 @@ export async function createHouseHandler({
       if (!s) throw fail(401, '请先输入管理暗号。');
       if (req.headers['x-studio-csrf'] !== s.csrf)
         throw fail(403, '验证已失效，请重新进入管理模式。');
+      if (req.method === 'DELETE' && path === '/api/notes') {
+        const value = await body(req, 1024);
+        keys(value, ['id']);
+        send(res, 200, await roomNotes.remove(text(value.id, 64, true)));
+        return true;
+      }
       if (req.method === 'POST' && path === '/api/admin/logout') {
         sessions.delete(s.key);
         send(
