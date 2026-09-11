@@ -230,6 +230,19 @@ export function buildGameRoom(k: Kit) {
       l.rotation.set(0.4, a, 0.6);
     }
   }
+  const hallSections: {
+    group: T.Group;
+    room: 'living' | 'gallery' | 'cafe';
+  }[] = [];
+  function hallSection(z: number) {
+    const section = group(corridor, 0, 0, z);
+    const worldZ = z + rooms.corridor.z;
+    hallSections.push({
+      group: section,
+      room: worldZ < 3.4 ? 'living' : worldZ < 10.2 ? 'gallery' : 'cafe',
+    });
+    return section;
+  }
   const wall = (
     p: T.Group,
     width: number,
@@ -240,8 +253,9 @@ export function buildGameRoom(k: Kit) {
     door?: number,
     glazed = false,
   ) => {
-    const lower = group(p, x, 0, z),
-      upper = group(p, x, 0, z);
+    const section = room === 'corridor' ? hallSection(z) : group(p, 0, 0, z);
+    const lower = group(section, x),
+      upper = group(section, x);
     lower.rotation.y = upper.rotation.y = yaw;
     const edges = [-width / 2, width / 2];
     if (door !== undefined) edges.push(door - 0.7, door + 0.7);
@@ -282,7 +296,11 @@ export function buildGameRoom(k: Kit) {
     k.cutaways.add(
       [upper],
       { x: r.x + x, z: r.z + z, nx: Math.sin(yaw), nz: Math.cos(yaw) },
-      room === 'corridor' ? ['corridor', 'gallery', 'living'] : [room],
+      room === 'corridor'
+        ? x < 0
+          ? ['corridor']
+          : ['corridor', 'gallery', 'living']
+        : [room],
     );
     return upper;
   };
@@ -1098,21 +1116,28 @@ export function buildGameRoom(k: Kit) {
   }
   setRecords(readGameRecords());
   // Corridor uses the same floor and 1.4-unit portals. Future bays are outlines, not occupied rooms.
-  box(corridor, 2, 0.4, 21.6, 0, -0.23, 0, paleWood, 0.035);
-  addOakFloor(corridor, 1.92, 21.5, k.floorMaterials);
-  for (let z = -9.3; z < 10; z += 2.9) {
-    box(corridor, 0.045, 0.012, 0.5, 0, 0.094, z, brass);
-    const arrow = box(
-      corridor,
-      0.045,
-      0.012,
-      0.2,
-      -0.065,
-      0.094,
-      z - 0.2,
-      brass,
-    );
-    arrow.rotation.y = 0.7;
+  for (const room of ['living', 'gallery', 'cafe'] as const) {
+    const floor = hallSection(rooms[room].z - rooms.corridor.z);
+    box(floor, 2, 0.4, rooms[room].depth, 0, -0.23, 0, paleWood, 0.035);
+    addOakFloor(floor, 1.92, rooms[room].depth - 0.02, k.floorMaterials);
+    for (
+      let z = -rooms[room].depth / 2 + 1.2;
+      z < rooms[room].depth / 2;
+      z += 2.9
+    ) {
+      box(floor, 0.045, 0.012, 0.5, 0, 0.094, z, brass);
+      const arrow = box(
+        floor,
+        0.045,
+        0.012,
+        0.2,
+        -0.065,
+        0.094,
+        z - 0.2,
+        brass,
+      );
+      arrow.rotation.y = 0.7;
+    }
   }
   // Both corridor faces belong to the corridor. Room isolation must never remove its walls.
   // Window and door apertures match the main house; the corridor skin faces inward.
@@ -1199,18 +1224,18 @@ export function buildGameRoom(k: Kit) {
     ['corridorCafeDoor', -1, 10.95, Math.PI / 2, '05  咖啡厅 →'],
     ['corridorGalleryDoor', -1, 9.2, Math.PI / 2, '04  展示区 →'],
   ] as const) {
-    const portal = group(corridor, x * 0.89, 0, z - rooms.corridor.z, id);
+    const portal = group(hallSection(z - rooms.corridor.z), x * 0.89, 0, 0, id);
     portal.rotation.y = yaw;
     portal.userData.id = id;
     k.groups.set(id, portal);
     k.interactables.push(portal);
     label(portal, text, 1.25, 0, 3.08, 0.09);
     box(portal, 1.36, 0.025, 0.22, 0, 0.098, 0, paleWood);
-    k.cutaways.add([portal], { x: 13 + x, z, nx: -x, nz: 0 }, [
-      'corridor',
-      'gallery',
-      'living',
-    ]);
+    k.cutaways.add(
+      [portal],
+      { x: 13 + x, z, nx: -x, nz: 0 },
+      x < 0 ? ['corridor'] : ['corridor', 'gallery', 'living'],
+    );
   }
   const reservation = new T.Group();
   reservation.name = 'Future expansion footprints';
@@ -1369,6 +1394,9 @@ export function buildGameRoom(k: Kit) {
     setGameRecords: setRecords,
     setView(view: HouseView) {
       currentView = view;
+      for (const section of hallSections)
+        section.group.visible =
+          (view !== 'living' && view !== 'gallery') || section.room === view;
       reservation.visible = view === 'plan';
       ceiling.visible = view !== 'plan';
     },
