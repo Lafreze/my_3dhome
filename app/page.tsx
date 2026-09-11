@@ -1,6 +1,9 @@
 'use client';
 import CoffeeMenu from './coffee-menu';
 import RoomNotes from './room-notes';
+import GameRoomPanel, { type PlaySelection } from './game-room-panel';
+import { gameObjectIds, type GameId } from './game-engine';
+import { portalDestinations } from './game-layout';
 import CollectionAlbum from './collection-album';
 import { type CoffeeSnapshot } from './coffee-state';
 /* Local data-URL previews are already resized on upload; no image optimization server is used. */
@@ -241,6 +244,7 @@ function StudioHome() {
     [project, setProject] = useState(0),
     [photo, setPhoto] = useState(0),
     [page, setPage] = useState(0);
+  const [playing, setPlaying] = useState<PlaySelection>(null);
   const closeModal = useCallback(() => setModal(null), [setModal]);
   const [projectsOnly, setProjectsOnly] = useState(false),
     [editingProject, setEditingProject] = useState(0),
@@ -282,8 +286,10 @@ function StudioHome() {
     };
   }, []);
   useEffect(() => {
-    api.current?.setLifePaused(!!modal || seatPanel || environmentOpen);
-  }, [modal, seatPanel, environmentOpen, ready]);
+    api.current?.setLifePaused(
+      !!modal || !!playing || seatPanel || environmentOpen,
+    );
+  }, [modal, playing, seatPanel, environmentOpen, ready]);
   useEffect(() => {
     if (
       !selected ||
@@ -331,6 +337,28 @@ function StudioHome() {
             onSelect: (id) => {
               setSelected(id === 'computer' ? null : id);
               if (id === 'computer') setModal('computer');
+              if (id && id in portalDestinations) {
+                setSelected(null);
+                api.current?.setView(
+                  portalDestinations[id as keyof typeof portalDestinations],
+                );
+                return;
+              }
+              if (
+                id &&
+                (id in gameObjectIds ||
+                  id === 'gameCollection' ||
+                  id === 'gameConsole')
+              ) {
+                setSelected(null);
+                setPlaying(
+                  id in gameObjectIds
+                    ? gameObjectIds[id as keyof typeof gameObjectIds]
+                    : id === 'gameCollection'
+                      ? 'collection'
+                      : 'console',
+                );
+              }
               if (
                 id &&
                 [
@@ -469,6 +497,7 @@ function StudioHome() {
     }
   };
   const visit = (next: HouseView) => {
+    setPlaying(null);
     api.current?.setView(next);
     setSelected(null);
     setHover(null);
@@ -500,10 +529,29 @@ function StudioHome() {
     setHover(null);
   };
   const choose = (id: ObjectId) => {
+    if (id in portalDestinations) {
+      visit(portalDestinations[id as keyof typeof portalDestinations]);
+      setModal(null);
+      return;
+    }
     setModal(null);
     setSelected(id === 'computer' ? null : id);
     if (id === 'computer') setModal('computer');
     api.current?.focus(id);
+    if (
+      id in gameObjectIds ||
+      id === 'gameCollection' ||
+      id === 'gameConsole'
+    ) {
+      setSelected(null);
+      setPlaying(
+        id in gameObjectIds
+          ? gameObjectIds[id as keyof typeof gameObjectIds]
+          : id === 'gameCollection'
+            ? 'collection'
+            : 'console',
+      );
+    }
   };
   const objectTitle = (id: ObjectId) => {
     const index = (
@@ -516,6 +564,18 @@ function StudioHome() {
       : profile.projects[index]?.title || '待布置展位';
   };
   const action = (id: ObjectId) => {
+    if (id in portalDestinations) {
+      choose(id);
+      return;
+    }
+    if (
+      id in gameObjectIds ||
+      id === 'gameCollection' ||
+      id === 'gameConsole'
+    ) {
+      choose(id);
+      return;
+    }
     if (id.endsWith('Notes')) {
       setModal('roomNotes');
       return;
@@ -1121,6 +1181,24 @@ function StudioHome() {
           onClose={closeModal}
           onPower={tvPower}
           onScreen={tvScreen}
+        />
+      )}
+      {ready && (
+        <GameRoomPanel
+          selection={playing}
+          api={api}
+          onClose={() => {
+            setPlaying(null);
+            setSelected(null);
+            setHover(null);
+            api.current?.setView('gaming');
+          }}
+          onChoose={(id: GameId) => {
+            const object = (
+              Object.keys(gameObjectIds) as (keyof typeof gameObjectIds)[]
+            ).find((key) => gameObjectIds[key] === id)!;
+            choose(object);
+          }}
         />
       )}
       {ready && (

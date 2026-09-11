@@ -88,7 +88,7 @@ assert.equal(rooms.cafe.width, rooms.bedroom.width + rooms.gallery.width);
 assert.equal(roomAt(0, 14), 'cafe');
 assert.equal(roomAt(11, 17), 'cafe');
 assert.equal(roomAt(0, 20), undefined);
-assert.equal(houseBounds.maxZ, 18.2);
+assert(Math.abs(houseBounds.maxZ - 18.2) < 1e-6, 'South entrance line is preserved');
 // Display glass and checkout previously occupied the same volume. Keep all counter appliances separated.
 const countertop = footprint(cafeLayout.counter);
 const appliances = Object.entries(cafeCounterItems);

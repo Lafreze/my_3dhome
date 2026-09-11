@@ -18,7 +18,7 @@ export const cafeCounterItems = {
 } as const;
 export const cafeFloorPlants = {
   fern: { x: -7.3, z: 3.28, width: 0.66, depth: 0.66 },
-  ficus: { x: 7.23, z: -3.13, width: 0.58, depth: 0.58 },
+  ficus: { x: 2.2, z: 3.4, width: 0.58, depth: 0.58 },
   flowers: { x: 7.25, z: 3.59, width: 0.34, depth: 0.34 },
 } as const;
 export const cafeBistroTables = [-1.65, 0.45, 2.55].map((z) => ({

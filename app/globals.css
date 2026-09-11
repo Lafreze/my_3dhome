@@ -2262,3 +2262,260 @@ a {
     padding: 14px;
   }
 }
+
+
+/* Warm arcade controls share the house's wood, cream and garden palette. */
+.play-dialog {
+  width: min(94vw, 480px);
+  max-width: 94vw;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 22px;
+  gap: 13px;
+  border: 1px solid #cabc9f;
+  background: #f4efe1;
+  color: #324a3f;
+  border-radius: 22px;
+  box-shadow: 0 22px 90px #16281e55;
+}
+.play-dialog-board {
+  width: min(94vw, 610px);
+}
+.play-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.play-heading h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.play-eyebrow {
+  font: 10px monospace;
+  letter-spacing: 0.19em;
+  color: #81816b;
+}
+.play-description {
+  font-size: 12px;
+  color: #737a66;
+  line-height: 1.7;
+}
+.play-icon {
+  padding: 10px;
+  border-radius: 50%;
+  background: #e7e5d6;
+}
+.play-status {
+  background: #e4e8d8;
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  min-height: 38px;
+}
+.play-screen {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: min(43dvh, 365px);
+  aspect-ratio: 400/520;
+  margin: 0 auto;
+  border-radius: 13px;
+  border: 7px solid #293b31;
+  box-shadow: 0 0 0 2px #b2b99b;
+  image-rendering: pixelated;
+}
+.play-actions {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.play-actions button,
+.play-mode button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #cbd0bc;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 12px;
+  background: #ecebdd;
+}
+.play-actions .play-primary,
+.play-mode button[aria-pressed='true'] {
+  background: #49664e;
+  color: #fcf9ec;
+  border-color: #49664e;
+}
+.play-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.play-controls div {
+  display: flex;
+  gap: 6px;
+}
+.play-controls button {
+  min-width: 45px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid #bcbfa7;
+  border-bottom: 3px solid #a4af91;
+  border-radius: 9px;
+  background: #e4e6d4;
+  touch-action: manipulation;
+  font-size: 12px;
+}
+.play-controls button:active {
+  transform: translateY(2px);
+  border-bottom-width: 1px;
+}
+.play-dialog button:focus-visible {
+  outline: 3px solid #bd9052;
+  outline-offset: 2px;
+}
+.play-mode {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.play-mode span {
+  font-size: 11px;
+  color: #7d806c;
+  margin-left: auto;
+}
+.play-mode button:disabled {
+  opacity: 0.65;
+}
+.play-gomoku {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  width: min(100%, 51dvh);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  padding: 12px;
+  background: #cba776;
+  border: 8px solid #a88252;
+  border-radius: 8px;
+  box-shadow: inset 0 0 15px #80562b35;
+}
+.play-gomoku button {
+  position: relative;
+  aspect-ratio: 1;
+  background:
+    linear-gradient(
+      90deg,
+      transparent calc(50% - 0.5px),
+      #74623f calc(50% - 0.5px),
+      #74623f calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    ),
+    linear-gradient(
+      transparent calc(50% - 0.5px),
+      #74623f calc(50% - 0.5px),
+      #74623f calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    );
+  border: 0;
+  padding: 0;
+}
+.play-gomoku button span {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+}
+.play-gomoku .stone-1 span {
+  background: radial-gradient(circle at 35% 25%, #586056, #18221b 70%);
+  box-shadow: 1px 2px 2px #37261080;
+}
+.play-gomoku .stone-2 span {
+  background: radial-gradient(circle at 35% 25%, #fffdf5, #d6cbb5 80%);
+  box-shadow: 1px 2px 2px #37261070;
+}
+.play-gomoku .stone-last span:after {
+  content: '';
+  position: absolute;
+  width: 22%;
+  height: 22%;
+  top: 39%;
+  left: 39%;
+  border-radius: 50%;
+  background: #bf8054;
+}
+.play-gomoku .stone-win span {
+  outline: 2px solid #718548;
+}
+.play-gomoku button:not(:disabled):hover span {
+  background: #f3efd66e;
+}
+.play-library {
+  display: grid;
+  gap: 12px;
+}
+.play-game-card {
+  width: 100%;
+  padding: 19px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  border: 1px solid #d1c8ad;
+  border-radius: 13px;
+  background: #ebe7d7;
+}
+.play-game-card > span:nth-child(2) {
+  flex: 1;
+}
+.play-card-number {
+  font:
+    26px Georgia,
+    serif;
+  color: #9da187;
+}
+.play-game-card strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+}
+.play-game-card small {
+  display: block;
+  margin-top: 5px;
+  color: #7b806b;
+  font-size: 11px;
+}
+.play-earned {
+  color: #b48b48;
+}
+.play-unearned {
+  color: #b7bca8;
+}
+.play-storage,
+.play-coming {
+  font-size: 12px;
+  color: #7a806d;
+  line-height: 1.8;
+}
+@media (max-width: 520px) {
+  .play-dialog {
+    padding: 17px;
+    gap: 10px;
+  }
+  .play-gomoku {
+    padding: 6px;
+    border-width: 5px;
+  }
+  .play-mode span {
+    width: 100%;
+    margin: 0;
+  }
+  .play-screen {
+    height: min(38dvh, 320px);
+  }
+}

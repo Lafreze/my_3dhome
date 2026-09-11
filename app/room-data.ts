@@ -57,6 +57,12 @@ export type Profile = {
 };
 export const defaultProfile: Profile = houseDefaults.profile;
 export type RoomApi = {
+  setGameScreen: (
+    id: 'blocks' | 'snake',
+    canvas: HTMLCanvasElement | null,
+  ) => void;
+  setGameBoard: (cells: import('./game-engine').Stone[]) => void;
+  setGameRecords: (records: import('./game-engine').GameRecords) => void;
   visitorStatus: (id: string) => string;
   prepareCoffee: (drink: import('./coffee-state').Drink) => boolean;
   clearCoffee: () => void;

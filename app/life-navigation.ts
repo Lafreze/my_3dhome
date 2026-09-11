@@ -1,5 +1,12 @@
-import { rooms, roomAt, houseFurniture, type RoomId } from './house-data.ts';
+import {
+  rooms,
+  roomAt,
+  houseBounds,
+  houseFurniture,
+  type RoomId,
+} from './house-data.ts';
 import { layout, workChairTravel, drawerTravel } from './room-layout.ts';
+import { gameFurniture, expansionPortals } from './game-layout.ts';
 import {
   cafeLayout,
   cafeChairs,
@@ -23,6 +30,11 @@ type Footprint = {
 };
 export type Obstacle = Footprint & { room: RoomId; id: string };
 export const lifeObstacles: Obstacle[] = [
+  ...Object.entries(gameFurniture).map(([id, f]) => ({
+    ...f,
+    id,
+    room: 'gaming' as const,
+  })),
   ...Object.entries(layout).map(([id, f]) => ({
     ...f,
     id,
@@ -84,6 +96,7 @@ export const lifeObstacles: Obstacle[] = [
 ];
 // Existing 1.4-unit openings; the tuples describe the wall normal and portal centre.
 export const lifePortals = [
+  ...expansionPortals,
   { axis: 'x', at: 4, along: 1.75, a: 'study', b: 'living' },
   { axis: 'x', at: 4, along: 8.65, a: 'bedroom', b: 'gallery' },
   { axis: 'z', at: 3.4, along: 2.65, a: 'study', b: 'bedroom' },
@@ -232,8 +245,16 @@ export class NavigationGraph {
     let graph = this.graphs.get(actor);
     if (graph) return graph;
     graph = new Map();
-    for (let x = -27; x <= 85; x++)
-      for (let z = -23; z <= 129; z++) {
+    for (
+      let x = Math.ceil(houseBounds.minX / this.step);
+      x <= Math.floor(houseBounds.maxX / this.step);
+      x++
+    )
+      for (
+        let z = Math.ceil(houseBounds.minZ / this.step);
+        z <= Math.floor(houseBounds.maxZ / this.step);
+        z++
+      ) {
         const p: Point = [x * this.step, 0.085, z * this.step];
         if (floorClear(p, actor)) graph.set(this.key(x, z), p);
       }

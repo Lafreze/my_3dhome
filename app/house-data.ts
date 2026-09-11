@@ -44,6 +44,24 @@ export const rooms = {
     depth: 8,
     number: '05',
   },
+  gaming: {
+    name: '游戏房',
+    english: 'THE PLAY ROOM',
+    x: 18.5,
+    z: 6.8,
+    width: 9,
+    depth: 6.8,
+    number: '06',
+  },
+  corridor: {
+    name: '东侧连廊',
+    english: 'EAST WALK',
+    x: 13,
+    z: 7.4,
+    width: 2,
+    depth: 21.6,
+    number: '↗',
+  },
 } as const;
 export type RoomId = keyof typeof rooms;
 export type HouseView = RoomId | 'overview' | 'plan';
@@ -61,6 +79,58 @@ export const houseBounds = {
   maxZ: Math.max(...roomIds.map((id) => rooms[id].z + rooms[id].depth / 2)),
 };
 export const newObjects = {
+  gameExitDoor: {
+    name: '游戏房 → 东侧连廊',
+    kind: 'EAST WALK',
+    action: '回到连廊',
+  },
+  cafeEastDoor: {
+    name: '咖啡厅 → 东侧连廊',
+    kind: 'EAST WALK',
+    action: '进入连廊',
+  },
+  galleryEastDoor: {
+    name: '展示区 → 东侧连廊',
+    kind: 'EAST WALK',
+    action: '进入连廊',
+  },
+  corridorGameDoor: {
+    name: '连廊 → 游戏房',
+    kind: '06 · PLAY',
+    action: '进入游戏房',
+  },
+  corridorCafeDoor: {
+    name: '连廊 → 咖啡厅',
+    kind: '05 · COFFEE',
+    action: '回到咖啡厅',
+  },
+  corridorGalleryDoor: {
+    name: '连廊 → 展示区',
+    kind: '04 · GALLERY',
+    action: '回到展示区',
+  },
+  arcadeBlocks: {
+    name: '山丘街机 · 俄罗斯方块',
+    kind: 'ARCADE 01',
+    action: '开始游戏',
+  },
+  arcadeSnake: {
+    name: '花园街机 · 贪吃蛇',
+    kind: 'ARCADE 02',
+    action: '开始游戏',
+  },
+  gameTable: { name: '圆桌五子棋', kind: 'TABLETOP', action: '坐下来一局' },
+  gamePinball: { name: '森林弹珠台', kind: 'PINBALL', action: '发射钢珠' },
+  gameConsole: {
+    name: '家庭主机角',
+    kind: 'COMING NEXT',
+    action: '看看游戏预告',
+  },
+  gameCollection: {
+    name: '游戏收藏与成绩',
+    kind: 'COLLECTION',
+    action: '查看成绩与奖杯',
+  },
   cafePendulum: { name: '木作摆钟', kind: 'TIME', action: '看看时间' },
   cafeBell: { name: '咖啡台铃', kind: 'BRASS', action: '轻按台铃' },
   galleryRabbit: {
@@ -124,6 +194,18 @@ export const newObjects = {
   galleryWindow: { name: '展厅东窗', kind: 'E · 前庭', action: '时间与天气' },
 } as const;
 export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
+  gameExitDoor: 'gaming',
+  cafeEastDoor: 'cafe',
+  galleryEastDoor: 'gallery',
+  corridorGameDoor: 'corridor',
+  corridorCafeDoor: 'corridor',
+  corridorGalleryDoor: 'corridor',
+  arcadeBlocks: 'gaming',
+  arcadeSnake: 'gaming',
+  gameTable: 'gaming',
+  gamePinball: 'gaming',
+  gameConsole: 'gaming',
+  gameCollection: 'gaming',
   livingCurtains: 'living',
   bedroomCurtains: 'bedroom',
   galleryRabbit: 'gallery',

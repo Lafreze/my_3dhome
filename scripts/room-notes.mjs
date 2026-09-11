@@ -2,7 +2,15 @@ import { readFile, mkdir, open, rename, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-const rooms = new Set(['study', 'living', 'bedroom', 'gallery', 'cafe']);
+const rooms = new Set([
+  'study',
+  'living',
+  'bedroom',
+  'gallery',
+  'cafe',
+  'gaming',
+  'corridor',
+]);
 const fail = (status, message) => Object.assign(new Error(message), { status });
 export async function createRoomNotes(dataDir, now = Date.now) {
   const file = resolve(dataDir, 'room-notes.json');

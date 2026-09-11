@@ -1995,6 +1995,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   if (['localhost', '127.0.0.1'].includes(location.hostname))
     Object.assign(window, {
       __kuroVisitors: {
+        games: () => house.gameSnapshot(),
         occlusion: occlusion.snapshot,
         snapshot: visitors.snapshots,
         idle: visitors.idleSnapshot,
@@ -2455,6 +2456,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   }
   const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
+    setGameScreen: house.setGameScreen,
+    setGameBoard: house.setGameBoard,
+    setGameRecords: house.setGameRecords,
     setCameraMode(mode) {
       controls.mouseButtons.LEFT =
         mode === 'pan' ? T.MOUSE.PAN : T.MOUSE.ROTATE;
@@ -2554,11 +2558,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       else {
         const offset = new T.Vector3(rooms[view].x, 0, rooms[view].z);
         const vantage =
-          view === 'cafe'
-            ? new T.Vector3(10, 12, 21)
-            : view === 'bedroom'
-              ? new T.Vector3(2, 9.2, 15.5)
-              : initial.clone();
+          view === 'corridor'
+            ? new T.Vector3(11, 16, 25)
+            : view === 'gaming'
+              ? new T.Vector3(-10, 11, 15)
+              : view === 'cafe'
+                ? new T.Vector3(10, 12, 21)
+                : view === 'bedroom'
+                  ? new T.Vector3(2, 9.2, 15.5)
+                  : initial.clone();
 
         if (view === 'cafe' && camera.aspect < 1) vantage.multiplyScalar(1.12);
         moveTo(vantage.add(offset), target.clone().add(offset));
@@ -2604,8 +2612,22 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         this.reset();
         return;
       }
-      if (id === 'window' || id.endsWith('Window')) {
-        const aperture = windowViews[room],
+      if (room === 'gaming') {
+        const center = new T.Box3().setFromObject(g).getCenter(new T.Vector3());
+        controls.minDistance = 1.3;
+        const offset =
+          id === 'gameTable'
+            ? new T.Vector3(0.1, 3.3, 1.5)
+            : id === 'gameConsole'
+              ? new T.Vector3(-4.8, 1.1, 0.5)
+              : id === 'gameCollection'
+                ? new T.Vector3(0.2, 1, 4.7)
+                : new T.Vector3(0.3, 1.2, 4.2);
+        moveTo(center.clone().add(offset), center);
+        return;
+      }
+      if ((id === 'window' || id.endsWith('Window')) && room in windowViews) {
+        const aperture = windowViews[room as keyof typeof windowViews],
           bearing = T.MathUtils.degToRad(aperture.bearing);
         const center = new T.Vector3(...aperture.position);
         const inside = new T.Vector3(-Math.sin(bearing), 0, Math.cos(bearing));

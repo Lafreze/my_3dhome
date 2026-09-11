@@ -134,10 +134,19 @@ const nearby: Record<RoomId, RoomId[]> = {
   study: ['living', 'bedroom'],
   living: ['study', 'gallery'],
   bedroom: ['study', 'gallery', 'cafe'],
-  gallery: ['living', 'bedroom', 'cafe'],
-  cafe: ['bedroom', 'gallery'],
+  gallery: ['living', 'bedroom', 'cafe', 'corridor'],
+  cafe: ['bedroom', 'gallery', 'corridor'],
+  corridor: ['gallery', 'cafe', 'gaming'],
+  gaming: ['corridor'],
 };
-const rabbitRooms: RoomId[] = ['gallery', 'cafe', 'bedroom', 'study'];
+const rabbitRooms: RoomId[] = [
+  'gallery',
+  'cafe',
+  'bedroom',
+  'study',
+  'corridor',
+  'gaming',
+];
 export const birdAllowed = (e: Environment) =>
   e.time !== 'night' &&
   ['clear', 'cloudy'].includes(e.weather) &&

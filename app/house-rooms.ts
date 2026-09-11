@@ -9,6 +9,7 @@ import { curtainGeometry, type InteriorBreeze } from './interior-atmosphere';
 import { pillowGeometry, pillowPiping, drapedLinen } from './bed-linen';
 import type { WallCutaways } from './wall-cutaway';
 import { buildCafe } from './cafe-room';
+import { buildGameRoom } from './game-room';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { wallArt } from './wall-art-data';
 import { houseFinishes, galleryPrint, addOakFloor } from './house-finishes';
@@ -74,6 +75,7 @@ export function buildHouse(k: Kit) {
     brass,
     charcoal,
   } = k;
+  const passageDoors: ReturnType<typeof createInteriorDoor>[] = [];
   let disposed = false;
   const drapes: { room: RoomId; mesh: T.Mesh; side: number; width: number }[] =
     [];
@@ -93,8 +95,17 @@ export function buildHouse(k: Kit) {
     bedroom: new T.Group(),
     gallery: new T.Group(),
     cafe: new T.Group(),
+    gaming: new T.Group(),
+    corridor: new T.Group(),
   };
-  for (const id of ['living', 'bedroom', 'gallery', 'cafe'] as const) {
+  for (const id of [
+    'living',
+    'bedroom',
+    'gallery',
+    'cafe',
+    'gaming',
+    'corridor',
+  ] as const) {
     roots[id].position.set(rooms[id].x, 0, rooms[id].z);
     k.scene.add(roots[id]);
   }
@@ -483,22 +494,36 @@ export function buildHouse(k: Kit) {
       0,
       wallMaterial,
     );
-    b(
-      g,
-      (span - 3.28) / 2,
-      3.65,
-      0.17,
-      (span + 3.28) / 4,
-      1.83,
-      0,
-      wallMaterial,
-    );
+    if (room === 'gallery') {
+      // East extension: the existing window becomes an interior glazed bay beside a real doorway.
+      b(g, 0.3, 3.65, 0.17, 3.25, 1.83, 0, wallMaterial);
+      b(g, 1.46, 0.95, 0.17, 2.37, 3.175, 0, wallMaterial);
+      const door = createInteriorDoor(g, 2.4, oak, brass, materials);
+      passageDoors.push(door);
+      door.root.userData.id = 'galleryEastDoor';
+      k.groups.set('galleryEastDoor', door.root);
+      k.interactables.push(door.root);
+    } else
+      b(
+        g,
+        (span - 3.28) / 2,
+        3.65,
+        0.17,
+        (span + 3.28) / 4,
+        1.83,
+        0,
+        wallMaterial,
+      );
     b(g, 3.28, 0.91, 0.17, 0, 0.46, 0, wallMaterial);
     b(g, 3.28, 0.62, 0.17, 0, 3.35, 0, wallMaterial);
     b(g, span, 0.1, 0.2, 0, 3.67, 0, white);
-    b(g, span, 0.13, 0.2, 0, 0.15, 0.07, paleWood);
+    if (room === 'gallery') {
+      b(g, 5.1, 0.13, 0.2, -0.85, 0.15, 0.07, paleWood);
+      b(g, 0.3, 0.13, 0.2, 3.25, 0.15, 0.07, paleWood);
+    } else b(g, span, 0.13, 0.2, 0, 0.15, 0.07, paleWood);
     const w = child(g, 0, 1.98, 0.03);
-    windows.push(createWindowEnvironment(w, room, k.landscape));
+    if (room === 'gallery') b(w, 3.22, 2.12, 0.022, 0, 0, 0, glass);
+    else windows.push(createWindowEnvironment(w, room, k.landscape));
     addWindowCraft(w, paleWood, brass, materials);
     for (const x of [-1.67, 1.67]) b(w, 0.14, 2.35, 0.23, x, 0, 0.04, oak);
     for (const y of [-1.13, 1.13]) b(w, 3.49, 0.14, 0.23, 0, y, 0.04, oak);
@@ -506,7 +531,7 @@ export function buildHouse(k: Kit) {
     b(w, 3.22, 0.06, 0.08, 0, -0.05, 0.12, white);
     b(w, 3.57, 0.1, 0.4, 0, -1.18, 0.14, paleWood);
     // A narrow walnut screen is enough to articulate the plaster without adding clutter.
-    for (let i = 0; i < 9; i++)
+    for (let i = 0; i < (room === 'gallery' ? 0 : 9); i++)
       b(w, 0.035, 2.75, 0.048, 2.2 + i * 0.075, 0.12, 0.06, darkWood, 0.009);
     rod(w, [-1.94, 1.3, 0.15], [1.94, 1.3, 0.15], 0.025, brass);
     if (room === 'gallery') {
@@ -1816,7 +1841,6 @@ export function buildHouse(k: Kit) {
   plant(roots.gallery, -2.9, 0.08, 2.34, 1.65);
 
   // Shared partitions contain real 1.4-unit door openings, aligned with each room's aisles.
-  const passageDoors: ReturnType<typeof createInteriorDoor>[] = [];
   const partitions: { base: T.Group; upper: T.Group; neighbours: RoomId[] }[] =
     [];
   function partition(
@@ -1898,6 +1922,11 @@ export function buildHouse(k: Kit) {
     interactables: k.interactables,
     cutaways: k.cutaways,
     landscape: k.landscape,
+  });
+  const gameRoom = buildGameRoom({
+    ...k,
+    root: roots.gaming,
+    corridor: roots.corridor,
   });
   for (const id of ['livingArt1', 'livingArt2'] as const)
     k.cutaways.add(
@@ -2112,6 +2141,11 @@ export function buildHouse(k: Kit) {
       if (room === 'living') cupUntil = now + 8;
     },
     roots,
+    gameSnapshot: () => gameRoom.snapshot(),
+    setGameScreen: (id: 'blocks' | 'snake', canvas: HTMLCanvasElement | null) =>
+      gameRoom.setGameScreen(id, canvas),
+    setGameBoard: gameRoom.setGameBoard,
+    setGameRecords: gameRoom.setGameRecords,
     screen,
     setProjects: projectGallery.setProjects,
     setTVTint(color: T.Color) {
@@ -2129,6 +2163,7 @@ export function buildHouse(k: Kit) {
     clearCoffee: () => cafe.clearCoffee(),
     coffeeSnapshot: cafe.coffeeSnapshot,
     setFocus(id: ObjectId | null) {
+      gameRoom.setFocus(id);
       cafe.setFocus(id);
       projectGallery.focus(id);
       ceilingLighting.setPlan(id !== null);
@@ -2185,11 +2220,13 @@ export function buildHouse(k: Kit) {
       });
     },
     setLamp(on: boolean) {
+      gameRoom.setLamp(on);
       masterLight = on;
       ceilingLighting.set(on);
       cafe.setLamp(on);
     },
     setView(view: HouseView) {
+      gameRoom.setView(view);
       ceilingLighting.setPlan(view === 'plan');
       galleryPlan = view === 'plan';
       projectGallery.focus(null);
@@ -2225,6 +2262,7 @@ export function buildHouse(k: Kit) {
       blanketCloth.color.copy(bedCloth.color).multiplyScalar(0.7);
     },
     interact(id: ObjectId, detail?: 'appearance') {
+      gameRoom.interact(id);
       cafe.interact(id);
       if (id === 'livingCurtains') curtainOpen.living = !curtainOpen.living;
       if (id === 'bedroomCurtains') curtainOpen.bedroom = !curtainOpen.bedroom;
@@ -2269,6 +2307,7 @@ export function buildHouse(k: Kit) {
       viewer: T.Camera,
     ) {
       now = t;
+      gameRoom.update(t, dt, reduced, night);
       if (roots.living.visible) {
         livingRecord.update(dt, musicOn, reduced);
         recordPivot.rotation.y = livingRecord.angle;
@@ -2436,6 +2475,7 @@ export function buildHouse(k: Kit) {
     },
     roomForObject,
     dispose() {
+      gameRoom.dispose();
       cupSteam.dispose();
       disposed = true;
       pictureMaterials.forEach((entry) => entry.current?.dispose());

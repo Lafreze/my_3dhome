@@ -138,6 +138,8 @@ export function createWindowEnvironment(
     bedroom: 63,
     gallery: 89,
     cafe: 113,
+    gaming: 139,
+    corridor: 163,
   }[room];
   let state: Environment = { time: 'afternoon', weather: 'clear' };
   let previous = -Infinity;
