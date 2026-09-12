@@ -1,11 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Group, MeshStandardMaterial, Vector3, Mesh, Raycaster } from 'three';
-import { houseDoorLayout } from '../app/house-door-layout.ts';
+import {
+  houseDoorLayout,
+  destinationThroughDoor,
+} from '../app/house-door-layout.ts';
 import { createInteriorDoor } from '../app/interior-doors.ts';
 import { expansionPortals } from '../app/game-layout.ts';
 import { rooms } from '../app/house-data.ts';
 import { floorClear } from '../app/life-navigation.ts';
+
+test('clicking every shared door enters the other room from either side', () => {
+  for (const door of houseDoorLayout) {
+    const [a, b] = door.rooms;
+    if (!b) {
+      assert.equal(destinationThroughDoor(door.id, a), undefined);
+      continue;
+    }
+    assert.equal(destinationThroughDoor(door.id, a), b);
+    assert.equal(destinationThroughDoor(door.id, b), a);
+    if (door.other) {
+      assert.equal(destinationThroughDoor(door.other, a), b);
+      assert.equal(destinationThroughDoor(door.other, b), a);
+    }
+  }
+  assert.equal(destinationThroughDoor('unknown', 'study'), undefined);
+});
 
 test('every room and expansion passage has one correctly aligned physical door', () => {
   for (const room of Object.keys(rooms))

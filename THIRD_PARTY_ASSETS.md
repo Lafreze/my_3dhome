@@ -89,3 +89,5 @@ The six character pose GLBs and the gallery sculpture remain `pending` for R2 pu
 ## Room details (2026-09-11)
 
 [Book Pattern](https://polyhaven.com/a/book_pattern), by Rob Tuytel / Poly Haven, is used under [CC0](https://polyhaven.com/license) on the study archive box, listening journal, portable console pouch, library blotter and garden seed wallet. The 1K color, OpenGL normal and roughness maps are stored locally; source URLs, sizes and SHA-256 hashes are recorded in `public/materials/manifest.json` and the production catalog. No third-party image host is required at runtime. New door geometry, flower arrangements, paper labels and room props are original procedural models.
+
+The 2026-09-12 miniature house map, bound-book construction, book covers, page edges, furniture joinery and end-grain graphics are original code-authored assets. Existing wood, cloth and leather materials retain their recorded licenses; no additional remote assets or runtime image hosts were introduced.

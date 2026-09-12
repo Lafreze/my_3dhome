@@ -109,37 +109,37 @@ export const newObjects = {
   doorStudyLiving: {
     name: '书房与客厅 · 长虹玻璃门',
     kind: 'DOOR',
-    action: '打开 / 关上房门',
+    action: '进入相邻房间',
   },
   doorBedroomGallery: {
     name: '卧室与展示区 · 木门',
     kind: 'DOOR',
-    action: '打开 / 关上房门',
+    action: '进入相邻房间',
   },
   doorStudyBedroom: {
     name: '书房与卧室 · 木门',
     kind: 'DOOR',
-    action: '打开 / 关上房门',
+    action: '进入相邻房间',
   },
   doorLivingGallery: {
     name: '客厅与展示区 · 玻璃门',
     kind: 'DOOR',
-    action: '打开 / 关上房门',
+    action: '进入相邻房间',
   },
   doorBedroomCafe: {
     name: '卧室与咖啡厅 · 木门',
     kind: 'DOOR',
-    action: '打开 / 关上房门',
+    action: '进入相邻房间',
   },
   doorGalleryCafe: {
     name: '展示区与咖啡厅 · 格栅门',
     kind: 'DOOR',
-    action: '打开 / 关上房门',
+    action: '进入相邻房间',
   },
   cafeEntranceDoor: {
     name: '咖啡厅南侧入口门',
     kind: 'DOOR',
-    action: '打开 / 关上房门',
+    action: '打开入口门',
   },
   libraryGardenDoor: {
     name: '藏书室 → 植物园',

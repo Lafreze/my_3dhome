@@ -2,6 +2,7 @@ import { RecordMechanism } from './record-mechanism';
 import { createInteriorDoor } from './interior-doors';
 import { houseDoorLayout } from './house-door-layout';
 import { addRoomLifeDetails } from './room-life-details';
+import { addFurnitureCraft } from './furniture-craft';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { appearanceColor } from './studio-settings';
 import { wallArtUrl } from './wall-art-images';
@@ -1959,71 +1960,6 @@ export function buildHouse(k: Kit) {
       true,
     );
   k.cutaways.add([art], { x: 8, z: 3.4, nx: 0, nz: 1 }, ['gallery'], true);
-  const planLabels = new T.Group();
-  k.scene.add(planLabels);
-  for (const [id, spec] of Object.entries(rooms)) {
-    const c = document.createElement('canvas');
-    c.width = 384;
-    c.height = 128;
-    const ctx = c.getContext('2d')!;
-    ctx.fillStyle = '#faf6e9';
-    ctx.beginPath();
-    ctx.roundRect(8, 16, 368, 96, 48);
-    ctx.fill();
-    ctx.fillStyle = '#435540';
-    ctx.font = '38px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${spec.number}  ${spec.name}`, 192, 78);
-    const texture = new T.CanvasTexture(c);
-    texture.colorSpace = T.SRGBColorSpace;
-    textures.push(texture);
-    const material = new T.SpriteMaterial({
-      map: texture,
-      depthTest: false,
-      depthWrite: false,
-      toneMapped: false,
-    });
-    materials.push(material);
-    const sprite = new T.Sprite(material);
-    sprite.position.set(spec.x, 1, spec.z + spec.depth / 2 - 0.65);
-    sprite.scale.set(2.15, 0.72, 1);
-    sprite.renderOrder = 30;
-    sprite.userData.room = id;
-    planLabels.add(sprite);
-  }
-  const compassCanvas = document.createElement('canvas');
-  compassCanvas.width = compassCanvas.height = 128;
-  const cc = compassCanvas.getContext('2d')!;
-  cc.fillStyle = '#52624c';
-  cc.font = '26px sans-serif';
-  cc.textAlign = 'center';
-  cc.fillText('N', 64, 28);
-  cc.beginPath();
-  cc.moveTo(64, 38);
-  cc.lineTo(47, 94);
-  cc.lineTo(64, 82);
-  cc.lineTo(81, 94);
-  cc.closePath();
-  cc.fill();
-  const compassTexture = new T.CanvasTexture(compassCanvas);
-  compassTexture.colorSpace = T.SRGBColorSpace;
-  textures.push(compassTexture);
-  const compassMaterial = new T.MeshBasicMaterial({
-    map: compassTexture,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-    toneMapped: false,
-  });
-  materials.push(compassMaterial);
-  const compass = new T.Mesh(new T.PlaneGeometry(1.1, 1.1), compassMaterial);
-  compass.rotation.x = -Math.PI / 2;
-  compass.position.set(4, 0.6, -4.18);
-  compass.renderOrder = 30;
-  planLabels.add(compass);
-  planLabels.visible = false;
-
-  // Merge static siblings by material, preserving all interactive and animated groups.
   function batch(parent: T.Object3D) {
     parent.children
       .filter((o) => o instanceof T.Group)
@@ -2143,6 +2079,7 @@ export function buildHouse(k: Kit) {
     batch(p.upper);
   }
   addRoomLifeDetails({ ...k, roots });
+  addFurnitureCraft({ ...k, roots });
   let pulled = false,
     joyOut = false,
     consoleOn = false,
@@ -2276,6 +2213,12 @@ export function buildHouse(k: Kit) {
         position: d.mount.position.toArray(),
         ...d.snapshot(),
       })),
+    openDoor(id: ObjectId) {
+      const door = passageDoors.find(
+        (d) => d.spec.id === id || d.spec.other === id,
+      );
+      door?.openFor();
+    },
     setView(view: HouseView) {
       passageDoors.forEach((d) => {
         d.mount.visible =
@@ -2292,7 +2235,6 @@ export function buildHouse(k: Kit) {
       galleryPlan = view === 'plan';
       projectGallery.focus(null);
       cafe.setPlan(view === 'plan');
-      planLabels.visible = view === 'plan';
       art.visible = galleryLamps.visible = view !== 'plan';
       const all = view === 'overview' || view === 'plan';
       for (const id of Object.keys(rooms) as RoomId[])

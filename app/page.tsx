@@ -13,6 +13,7 @@ import GameRoomPanel, { type PlaySelection } from './game-room-panel';
 import { gameObjectIds, type GameId } from './game-engine';
 import { portalDestinations } from './game-layout';
 import { houseDoorLayout } from './house-door-layout';
+import HouseMap from './house-map';
 import CollectionAlbum from './collection-album';
 import { type CoffeeSnapshot } from './coffee-state';
 /* Local data-URL previews are already resized on upload; no image optimization server is used. */
@@ -94,6 +95,7 @@ import {
 } from './life-data';
 import { readCollections, createCollectionStore } from './life-collections';
 type Modal =
+  | 'map'
   | 'roomNotes'
   | 'coffeeMenu'
   | 'postcard'
@@ -258,6 +260,9 @@ function StudioHome() {
   const [barSelection, setBarSelection] = useState<BarSelection>(null);
   const [playing, setPlaying] = useState<PlaySelection>(null);
   const closeModal = useCallback(() => setModal(null), [setModal]);
+  useEffect(() => {
+    api.current?.setMapOpen(modal === 'map');
+  }, [modal, ready]);
   const [projectsOnly, setProjectsOnly] = useState(false),
     [editingProject, setEditingProject] = useState(0),
     [saving, setSaving] = useState(false),
@@ -375,16 +380,11 @@ function StudioHome() {
                 return;
               }
               if (id === 'computer') setModal('computer');
-              if (id && id in portalDestinations) {
-                api.current?.interact(id);
-                setSelected(null);
-                api.current?.setView(
-                  portalDestinations[id as keyof typeof portalDestinations],
-                );
-                return;
-              }
-              if (id && houseDoorLayout.some((d) => d.id === id)) {
-                api.current?.interact(id);
+              if (
+                id &&
+                houseDoorLayout.some((d) => d.id === id || d.other === id)
+              ) {
+                api.current?.enterDoor(id);
                 setSelected(null);
                 return;
               }
@@ -549,6 +549,17 @@ function StudioHome() {
     setSelected(null);
     setHover(null);
   };
+  const openMap = () => {
+    setPlaying(null);
+    setBarSelection(null);
+    setLibrarySelection(null);
+    api.current?.libraryCommand({ type: 'return' });
+    setSeatPanel(false);
+    setEnvironmentOpen(false);
+    setSelected(null);
+    setHover(null);
+    setModal('map');
+  };
   const tvPower = useCallback(
     (on: boolean, source?: string) => api.current?.setTelevision(on, source),
     [],
@@ -576,14 +587,8 @@ function StudioHome() {
     setHover(null);
   };
   const choose = (id: ObjectId) => {
-    if (id in portalDestinations) {
-      api.current?.interact(id);
-      visit(portalDestinations[id as keyof typeof portalDestinations]);
-      setModal(null);
-      return;
-    }
-    if (houseDoorLayout.some((d) => d.id === id)) {
-      api.current?.interact(id);
+    if (houseDoorLayout.some((d) => d.id === id || d.other === id)) {
+      api.current?.enterDoor(id);
       setSelected(null);
       setModal(null);
       return;
@@ -916,7 +921,7 @@ function StudioHome() {
           <button
             className="wordmark"
             onClick={reset}
-            aria-label="回到工作室全景"
+            aria-label="重置当前房间视角"
           >
             <span className="brand-dot" />
             <span>
@@ -1104,7 +1109,11 @@ function StudioHome() {
               <select
                 aria-label="房间与视角"
                 value={view}
-                onChange={(e) => visit(e.target.value as HouseView)}
+                onChange={(e) =>
+                  e.target.value === 'map'
+                    ? openMap()
+                    : visit(e.target.value as HouseView)
+                }
               >
                 <optgroup label="房间">
                   {(Object.keys(rooms) as RoomId[]).map((id) => (
@@ -1113,9 +1122,8 @@ function StudioHome() {
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="整屋">
-                  <option value="overview">整屋全景</option>
-                  <option value="plan">房屋俯瞰图</option>
+                <optgroup label="导航">
+                  <option value="map">房间缩略地图</option>
                 </optgroup>
               </select>
               <ChevronDown size={13} aria-hidden="true" />
@@ -1344,7 +1352,7 @@ function StudioHome() {
       >
         <DialogContent
           showCloseButton={false}
-          className={`studio-dialog ${modal === 'works' || modal === 'photos' ? 'gallery-dialog' : ''} ${modal === 'settings' ? 'settings-dialog' : ''} ${modal === 'tv' ? 'cinema-dialog' : ''}`}
+          className={`studio-dialog ${modal === 'map' ? 'map-dialog' : ''} ${modal === 'works' || modal === 'photos' ? 'gallery-dialog' : ''} ${modal === 'settings' ? 'settings-dialog' : ''} ${modal === 'tv' ? 'cinema-dialog' : ''}`}
         >
           <DialogClose
             className="dialog-close icon-button"
@@ -1356,6 +1364,7 @@ function StudioHome() {
             {
               (
                 {
+                  map: '小屋地图',
                   roomNotes: '留在小屋的话',
                   coffeeMenu: '今天喝什么',
                   postcard: '小屋明信片',
@@ -1375,18 +1384,29 @@ function StudioHome() {
             }
           </DialogTitle>
           <DialogDescription>
-            {modal === 'tv'
-              ? 'SATORI / HOME CINEMA'
-              : modal === 'settings'
-                ? '保存到小屋，向所有访客展示。'
-                : modal === 'works'
-                  ? 'SELECTED WORK'
-                  : modal === 'photos'
-                    ? 'COLLECTED MOMENTS'
-                    : modal === 'about'
-                      ? 'A LITTLE ABOUT ME'
-                      : 'SATORI / PERSONAL COLLECTION'}
+            {modal === 'map'
+              ? '每一间房，都有自己的日常。'
+              : modal === 'tv'
+                ? 'SATORI / HOME CINEMA'
+                : modal === 'settings'
+                  ? '保存到小屋，向所有访客展示。'
+                  : modal === 'works'
+                    ? 'SELECTED WORK'
+                    : modal === 'photos'
+                      ? 'COLLECTED MOMENTS'
+                      : modal === 'about'
+                        ? 'A LITTLE ABOUT ME'
+                        : 'SATORI / PERSONAL COLLECTION'}
           </DialogDescription>
+          {modal === 'map' && (
+            <HouseMap
+              current={view in rooms ? (view as RoomId) : 'study'}
+              onVisit={(room) => {
+                setModal(null);
+                visit(room);
+              }}
+            />
+          )}
           {modal === 'roomNotes' && (
             <RoomNotes
               initialRoom={
@@ -1713,7 +1733,7 @@ function StudioHome() {
           {modal === 'help' && (
             <div className="help-content">
               <p>
-                底部菜单切换房间或整屋全景，选择「房屋俯瞰图」查看完整平面布局。拖动空白处环顾，滚轮或双指缩放。
+                点击房门进入相邻房间，也可以在底部菜单切换房间。选择「房间缩略地图」查看布局并直接进入；拖动空白处环顾，滚轮或双指缩放。
               </p>
               <p>
                 点击物件靠近，再使用物件卡上的按钮：打开抽屉、转动雕塑、浇水，或浏览作品。

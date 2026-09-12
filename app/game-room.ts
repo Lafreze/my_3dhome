@@ -1136,24 +1136,6 @@ export function buildGameRoom(k: Kit) {
     const floor = hallSection(rooms[room].z - rooms.corridor.z);
     box(floor, 2, 0.4, rooms[room].depth, 0, -0.23, 0, paleWood, 0.035);
     addOakFloor(floor, 1.92, rooms[room].depth - 0.02, k.floorMaterials);
-    for (
-      let z = -rooms[room].depth / 2 + 1.2;
-      z < rooms[room].depth / 2;
-      z += 2.9
-    ) {
-      box(floor, 0.045, 0.012, 0.5, 0, 0.094, z, brass);
-      const arrow = box(
-        floor,
-        0.045,
-        0.012,
-        0.2,
-        -0.065,
-        0.094,
-        z - 0.2,
-        brass,
-      );
-      arrow.rotation.y = 0.7;
-    }
   }
   // Both corridor faces belong to the corridor. Room isolation must never remove its walls.
   // Window and door apertures match the main house; the corridor skin faces inward.

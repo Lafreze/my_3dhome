@@ -1,5 +1,16 @@
 import type { RoomId } from './house-data';
 
+export function destinationThroughDoor(
+  id: string,
+  current: string,
+): RoomId | undefined {
+  const door = houseDoorLayout.find((d) => d.id === id || d.other === id);
+  if (!door || door.rooms.length < 2) return;
+  if (door.rooms.some((room) => room === current))
+    return door.rooms.find((room) => room !== current);
+  return id === door.other ? door.rooms[0] : door.rooms[1];
+}
+
 export type DoorStyle = 'reeded' | 'solid' | 'clear' | 'lattice';
 export const houseDoorLayout = [
   {

@@ -2,6 +2,118 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @custom-variant dark (&:is(.dark *));
+
+.map-dialog[data-slot='dialog-content'] {
+  width: min(760px, calc(100vw - 28px));
+  max-width: 760px;
+  background: #f7f3e9;
+  gap: 12px;
+}
+.house-map {
+  color: #455244;
+}
+.house-map-caption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin: 4px 0 18px;
+  color: #737966;
+}
+.house-map-grid {
+  position: relative;
+  width: 100%;
+  margin: auto;
+  max-height: 57dvh;
+}
+.house-map-room {
+  position: absolute;
+  border: 3px solid #f7f3e9;
+  border-radius: 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px;
+  color: #4d5746;
+  transition:
+    filter 0.15s,
+    box-shadow 0.15s;
+}
+.house-map-room:hover {
+  filter: brightness(1.04);
+  box-shadow: inset 0 0 0 2px #829071;
+}
+.house-map-room:focus-visible {
+  outline: 3px solid #4e6745;
+  outline-offset: 1px;
+  z-index: 3;
+}
+.house-map-room.is-current {
+  box-shadow: inset 0 0 0 2px #4e6745;
+}
+.house-map-room strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.house-map-number {
+  font-size: 10px;
+  letter-spacing: 2px;
+  opacity: 0.6;
+}
+.house-map-room small {
+  font-size: 10px;
+  color: #4c6e40;
+}
+.map-corridor strong {
+  writing-mode: vertical-rl;
+  letter-spacing: 4px;
+}
+.map-corridor .house-map-number {
+  display: none;
+}
+.map-corridor small {
+  writing-mode: vertical-rl;
+  font-size: 9px;
+}
+.house-map-openings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.house-map-note {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #858570;
+  text-align: center;
+  margin: 16px 0 0;
+}
+@media (max-width: 520px) {
+  .map-dialog[data-slot='dialog-content'] {
+    padding: 20px 14px;
+  }
+  .house-map-room {
+    border-width: 2px;
+    gap: 3px;
+    border-radius: 5px;
+  }
+  .house-map-room strong {
+    font-size: 11px;
+  }
+  .house-map-number {
+    font-size: 8px;
+  }
+  .house-map-room small {
+    font-size: 8px;
+  }
+  .house-map-caption {
+    font-size: 10px;
+    margin-bottom: 12px;
+  }
+}
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

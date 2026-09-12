@@ -1,6 +1,7 @@
+import { boundBooks } from './bound-books';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { makeSurface } from './house-finishes';
-import { houseDoorLayout } from './house-door-layout';
+import { houseDoorLayout, destinationThroughDoor } from './house-door-layout';
 import { appearanceColor } from './studio-settings';
 import { wallArtUrl, loadFramedArt } from './wall-art-images';
 import { createSteamEffect } from './steam-effect';
@@ -484,6 +485,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     const head = sphere(parent, 0.013, x, y, z, brass, 1, 1, 0.35);
     box(head, 0.015, 0.002, 0.002, 0, 0, 0.005, charcoal, 0.001);
   }
+  const bookWorkshop = boundBooks(materials, textures);
+  let flatBookIndex = 0;
   function paperBook(
     parent: T.Object3D,
     w: number,
@@ -492,17 +495,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     x: number,
     y: number,
     z: number,
-    cover: T.Material,
+    _cover: T.Material,
   ) {
-    const g = new T.Group();
-    parent.add(g);
+    const g = bookWorkshop.flat(parent, w, d, h, flatBookIndex++);
     g.position.set(x, y, z);
-    box(g, w, h * 0.78, d, 0, h / 2, 0, white, 0.004);
-    for (const yy of [0.006, h - 0.006])
-      box(g, w + 0.018, 0.012, d + 0.018, 0, yy, 0, cover, 0.006);
-    box(g, 0.019, h, d + 0.015, -w / 2, h / 2, 0, cover, 0.006);
-    for (let i = 1; i < 7; i++)
-      box(g, w - 0.016, 0.001, d - 0.01, 0.005, (h * i) / 7, 0, cream, 0.001);
     return g;
   }
   const hemi = new T.HemisphereLight('#eef5f0', '#a3886a', 2.4);
@@ -1198,25 +1194,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           0.004,
         );
       }
-      if (i === 2)
-        box(book, 0.016, 0.075, 0.005, 0, h + 0.007, 0.16, terra, 0.001);
-      box(book, w, h, 0.36, 0, h / 2, 0.07, bookMats[(i + level) % 5], 0.009);
-      box(book, w - 0.022, h - 0.027, 0.323, 0, h / 2, 0.079, cream, 0.004);
-      box(book, w, h, 0.025, 0, h / 2, 0.253, bookMats[(i + level) % 5], 0.006);
-      for (const y of [0.065, h - 0.065])
-        box(book, w * 0.78, 0.012, 0.002, 0, y, 0.268, brass, 0.001);
-      for (let j = 0; j < 3; j++)
-        box(
-          book,
-          w * 0.57,
-          0.006,
-          0.002,
-          0,
-          h * 0.55 - j * 0.026,
-          0.269,
-          white,
-          0.001,
-        );
+      bookWorkshop.upright(book, w, h, 0.36, level * 9 + i);
     }
     if (level === 1) {
       for (let i = 0; i < 3; i++)
@@ -2003,6 +1981,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         library: () => house.librarySnapshot(),
         garden: () => house.gardenSnapshot(),
         doors: () => house.doorSnapshot(),
+        rendering: () => ({
+          view: activeView,
+          mapOpen,
+          frame: renderer.info.render.frame,
+          calls: renderer.info.render.calls,
+        }),
         doorPoint: (id: ObjectId) => {
           const g = groups.get(id);
           if (!g || !houseDoorLayout.some((d) => d.id === id || d.other === id))
@@ -2289,10 +2273,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   let environment: Environment = { time: 'sunset', weather: 'clear' };
   let lightTarget = environmentLight(environment);
   const start = performance.now();
+  let mapOpen = false;
   let last = performance.now();
   function animate(now: number) {
     frameId = requestAnimationFrame(animate);
-    if (document.hidden) {
+    if (document.hidden || mapOpen) {
       last = now;
       return;
     }
@@ -2490,6 +2475,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   }
   const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
+    setMapOpen(open) {
+      mapOpen = open;
+      if (!open) refreshShadows();
+    },
+    enterDoor(id) {
+      const destination = destinationThroughDoor(id, activeView);
+      house.openDoor(id);
+      if (destination) this.setView(destination);
+    },
     librarySnapshot: house.librarySnapshot,
     gardenSnapshot: house.gardenSnapshot,
     libraryCommand: house.libraryCommand,
@@ -2553,6 +2547,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       refreshShadows();
     },
     setView(view) {
+      if (!(view in rooms)) return; // Full-house views were replaced by the lightweight DOM map.
       refreshShadows();
       activeView = view;
       focusedObject = null;
@@ -2652,7 +2647,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       moveTo(controls.target.clone().add(delta), controls.target.clone());
     },
     focus(id) {
-      // A shared doorway belongs to the room currently being viewed; opening it does not move the camera.
+      // Door navigation uses the current side; focusing must not switch to its primary room first.
       if (houseDoorLayout.some((d) => d.id === id || d.other === id)) return;
       const room = roomForObject(id);
       const entering = activeView !== room;
