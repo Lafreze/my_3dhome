@@ -476,5 +476,18 @@
       "corridor"
     ],
     "attributionRequired": false
+  },
+  {
+    "id": "art.fuji-dusk-panorama",
+    "name": "富士暮樱 · 三联画",
+    "author": "OpenAI image generation for kuro.cafe",
+    "sourceUrl": "",
+    "license": "AI-generated original for this project",
+    "licenseUrl": "",
+    "modifications": "Continuous Fuji and cherry blossom sunset panorama; shared texture with independent panel UVs",
+    "rooms": [
+      "gallery"
+    ],
+    "attributionRequired": false
   }
 ]

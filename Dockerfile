@@ -16,6 +16,7 @@ COPY --from=build --chown=node:node /app/scripts/serve-local.mjs ./scripts/serve
 COPY --from=build --chown=node:node /app/scripts/seat-presence.mjs ./scripts/seat-presence.mjs
 COPY --from=build --chown=node:node /app/scripts/house-settings.mjs ./scripts/house-settings.mjs
 COPY --from=build --chown=node:node /app/scripts/room-notes.mjs ./scripts/room-notes.mjs
+COPY --from=build --chown=node:node /app/scripts/model-library.mjs ./scripts/model-library.mjs
 COPY --from=build --chown=node:node /app/config/house-defaults.json ./config/house-defaults.json
 COPY --from=build --chown=node:node /app/config/wall-art-library.json ./config/wall-art-library.json
 COPY --from=build /app/scripts/start-server.sh ./scripts/start-server.sh

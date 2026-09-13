@@ -312,7 +312,7 @@ export function addRoomLifeDetails(k: {
     'Gallery / exhibition leaflet pocket',
     0,
     0.52,
-    0.515,
+    0.595,
   );
   box(leaflet, 0.35, 0.21, 0.04, 0, 0, 0, wood);
   for (let i = 0; i < 3; i++) {

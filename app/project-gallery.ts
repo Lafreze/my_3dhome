@@ -1,12 +1,16 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { defaultProfile, type ObjectId, type Project } from './room-data';
+import type { ObjectId, Project } from './room-data';
+import { exhibits, exhibitObjects } from './exhibit-data';
+import { galleryPlinths, galleryCabinet } from './gallery-layout';
+import {
+  loadAssetGltf,
+  releaseAssetTexture,
+  type RoomAssets,
+} from './asset-loading';
+import type { WallCutaways } from './wall-cutaway';
 
-export const galleryProjectIndex: Partial<Record<ObjectId, number>> = {
-  gallerySculpture: 0,
-  galleryGame: 1,
-  galleryCase: 2,
-};
+export const galleryProjectIndex = exhibitObjects;
 
 type Kit = {
   root: T.Group;
@@ -16,24 +20,34 @@ type Kit = {
   interactables: T.Object3D[];
   oak: T.MeshStandardMaterial;
   brass: T.MeshStandardMaterial;
+  assets: RoomAssets;
+  cutaways: WallCutaways;
+  onReady: () => void;
 };
 
-/** Editable project covers, a small object portrait and a focused pool of light per work. */
+/** Three supplied sculptures and a shallow, wall-mounted collection cabinet. */
 export function createProjectGallery(k: Kit) {
+  let disposed = false,
+    focus: ObjectId | null = null;
+  const geometry = new Set<T.BufferGeometry>(),
+    modelMaterials = new Set<T.Material>(),
+    modelTextures = new Set<T.Texture>();
   const material = (color: string, roughness = 0.65, metalness = 0) => {
     const m = new T.MeshStandardMaterial({ color, roughness, metalness });
     m.userData.live = true;
     k.materials.push(m);
     return m;
   };
-  const plaster = material('#dfd8c9', 0.93),
-    ink = material('#2b3438', 0.33, 0.45),
-    sage = material('#7d8877'),
-    paper = material('#eee9dc', 0.85),
-    bronze = k.brass;
-  const lens = material('#fff0d1');
-  lens.emissive.set('#ffd397');
-  lens.emissiveIntensity = 0.8;
+  const plaster = material('#e1dacc', 0.93),
+    ink = material('#323a3a', 0.5, 0.25),
+    bronze = material('#b99a65', 0.38, 0.6);
+  const glass = material('#d7e5e2', 0.14, 0.05);
+  glass.transparent = true;
+  glass.opacity = 0.11;
+  glass.depthWrite = false;
+  const glow = material('#fff0cf');
+  glow.emissive.set('#ffe0a8');
+  glow.emissiveIntensity = 0.6;
   const mesh = (
     p: T.Object3D,
     geo: T.BufferGeometry,
@@ -57,350 +71,284 @@ export function createProjectGallery(k: Kit) {
     y: number,
     z: number,
     m: T.Material,
-    radius = 0.02,
+    r = 0.014,
   ) =>
     mesh(
       p,
-      new RoundedBoxGeometry(w, h, d, 3, Math.min(radius, h / 3, w / 3, d / 3)),
+      new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 3, h / 3, d / 3)),
       m,
       x,
       y,
       z,
     );
-  const specs = [
-    { id: 'gallerySculpture' as const, x: 0.1, z: -0.45, w: 1, d: 1, h: 1.02 },
-    { id: 'galleryGame' as const, x: -2.9, z: -0.15, w: 1, d: 1, h: 1.02 },
-    { id: 'galleryCase' as const, x: 2.5, z: 0.2, w: 1, d: 1, h: 1.02 },
-  ];
-  const covers = specs.map((spec, index) => {
+  const plaque = (
+    parent: T.Object3D,
+    title: string,
+    subtitle: string,
+    w: number,
+    h: number,
+    x: number,
+    y: number,
+    z: number,
+  ) => {
     const canvas = document.createElement('canvas');
-    canvas.width = 768;
-    canvas.height = 1080;
+    canvas.width = 1024;
+    canvas.height = 256;
+    const c = canvas.getContext('2d')!;
+    c.fillStyle = '#eee8da';
+    c.fillRect(0, 0, 1024, 256);
+    c.fillStyle = '#786a51';
+    c.font = '24px sans-serif';
+    c.fillText(subtitle, 38, 65, 948);
+    c.fillStyle = '#35423b';
+    c.font = '48px sans-serif';
+    c.fillText(title, 38, 142, 948);
+    c.fillStyle = '#7c7e6f';
+    c.font = '23px sans-serif';
+    c.fillText('SATORI  /  SELECT TO EXPLORE', 38, 204, 948);
     const texture = new T.CanvasTexture(canvas);
     texture.colorSpace = T.SRGBColorSpace;
     texture.anisotropy = 8;
     k.textures.push(texture);
-    const cover = material('#ffffff', 0.89);
-    cover.map = texture;
-    const labelCanvas = document.createElement('canvas');
-    labelCanvas.width = 640;
-    labelCanvas.height = 180;
-    const labelTexture = new T.CanvasTexture(labelCanvas);
-    labelTexture.colorSpace = T.SRGBColorSpace;
-    k.textures.push(labelTexture);
-    const card = material('#ffffff');
-    card.map = labelTexture;
-    const group = new T.Group();
-    group.position.set(spec.x, 0, spec.z);
-    group.userData.id = spec.id;
+    const m = material('#ffffff');
+    m.map = texture;
+    const panel = box(parent, w, h, 0.009, x, y, z, m, 0.003);
+    panel.castShadow = false;
+  };
+  const cabinet = new T.Group();
+  cabinet.name = 'Gallery / model archive cabinet';
+  cabinet.userData.id = 'galleryArchive';
+  cabinet.position.set(galleryCabinet.x, 0, galleryCabinet.z);
+  cabinet.rotation.y = Math.PI / 2;
+  k.root.add(cabinet);
+  k.groups.set('galleryArchive', cabinet);
+  k.interactables.push(cabinet);
+  const cw = galleryCabinet.depth,
+    cd = galleryCabinet.width,
+    ch = galleryCabinet.height;
+  box(cabinet, cw, ch - 0.17, 0.055, 0, ch / 2 + 0.075, -cd / 2 + 0.035, k.oak);
+  for (const x of [-cw / 2 + 0.04, cw / 2 - 0.04])
+    box(cabinet, 0.08, ch - 0.13, cd, x, ch / 2 + 0.065, 0, k.oak);
+  for (const y of [0.15, 0.83, 1.48, 2.13, ch - 0.03])
+    box(cabinet, cw, 0.065, cd, 0, y, 0, k.oak);
+  box(cabinet, cw - 0.17, 0.23, cd - 0.03, 0, 0.31, 0, ink);
+  plaque(
+    cabinet,
+    '三维藏品室',
+    'THE OBJECT ARCHIVE',
+    1.24,
+    0.26,
+    0,
+    2.34,
+    cd / 2 + 0.013,
+  );
+  for (const x of [-0.12, 0.12])
+    box(cabinet, 0.018, 0.26, 0.024, x, 1.28, cd / 2 + 0.044, bronze, 0.005);
+  // Sliding glazing stays inside the cabinet footprint, including when selected.
+  for (const x of [-0.405, 0.405]) {
+    const pane = mesh(
+      cabinet,
+      new T.PlaneGeometry(0.79, 1.65),
+      glass,
+      x,
+      1.31,
+      cd / 2 + 0.014,
+    );
+    pane.castShadow = false;
+  }
+  for (const y of [0.79, 1.44, 2.09])
+    box(cabinet, 1.58, 0.012, 0.018, 0, y, -0.19, glow, 0.003);
+  const miniatures = [0.435, 0.875, 1.525].map((y) => {
+    const g = new T.Group();
+    g.position.set(0, y, 0);
+    cabinet.add(g);
+    return g;
+  });
+  k.cutaways.add([cabinet], { x: 4, z: 6.55, nx: 1, nz: 0 }, ['gallery'], true);
+
+  // Soft studio reflections belong only to the metal exhibits, keeping room finishes unchanged.
+  const faces = [
+    '#b9c3c7',
+    '#c1b9aa',
+    '#e9e5dc',
+    '#5a6268',
+    '#ccd1cd',
+    '#839098',
+  ].map((color, index) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const c = canvas.getContext('2d')!;
+    c.fillStyle = color;
+    c.fillRect(0, 0, 128, 128);
+    if (index !== 3) {
+      const gradient = c.createLinearGradient(0, 0, 128, 128);
+      gradient.addColorStop(0, '#fff8e6');
+      gradient.addColorStop(1, color);
+      c.fillStyle = gradient;
+      c.fillRect(18, 10, 76, 85);
+    }
+    return canvas;
+  });
+  const reflections = new T.CubeTexture(faces);
+  reflections.colorSpace = T.SRGBColorSpace;
+  reflections.needsUpdate = true;
+  k.textures.push(reflections);
+  const track = new T.Group();
+  k.root.add(track);
+  box(track, 5.2, 0.045, 0.065, 0.32, 3.6, 0.5, ink, 0.008);
+  const displays = galleryPlinths.map((spec, index) => {
+    const item = exhibits[index],
+      group = new T.Group();
     group.name = spec.id;
+    group.userData.id = spec.id;
+    group.position.set(spec.x, 0, spec.z);
     k.root.add(group);
     k.groups.set(spec.id, group);
     k.interactables.push(group);
     box(
       group,
-      spec.w,
-      spec.h - 0.13,
-      spec.d,
+      spec.width,
+      spec.height - 0.14,
+      spec.depth,
       0,
-      (spec.h + 0.03) / 2,
+      (spec.height + 0.14) / 2,
       0,
       plaster,
-      0.026,
+      0.023,
     );
-    box(group, spec.w - 0.06, 0.06, spec.d - 0.06, 0, 0.105, 0, ink, 0.008);
-    const rotating = new T.Group();
-    rotating.position.y = spec.h;
-    rotating.name = `${spec.id}/turntable`;
-    group.add(rotating);
+    box(
+      group,
+      spec.width - 0.08,
+      0.06,
+      spec.depth - 0.08,
+      0,
+      0.16,
+      0,
+      ink,
+      0.008,
+    );
+    const turntable = new T.Group();
+    turntable.position.y = spec.height;
+    group.add(turntable);
     mesh(
-      rotating,
-      new T.CylinderGeometry(spec.w * 0.47, spec.w * 0.47, 0.035, 64),
+      turntable,
+      new T.CylinderGeometry(0.51, 0.51, 0.045, 64),
       k.oak,
       0,
-      0.018,
+      0.024,
       0,
     );
-    const plaque = box(
+    plaque(
       group,
-      spec.w * 0.77,
-      0.155,
-      0.012,
+      item.title,
+      `0${index + 1} / ${item.category}`,
+      0.91,
+      0.23,
       0,
-      spec.h - 0.25,
-      spec.d / 2 + 0.008,
-      card,
-      0.002,
+      0.64,
+      spec.depth / 2 + 0.011,
     );
-    plaque.castShadow = false;
-    if (index === 0) {
-      // A silicon die floats within a circuit-board portrait; no invented performance claims.
-      const chip = new T.Group();
-      chip.rotation.set(-0.2, 0.35, 0.1);
-      chip.position.y = 0.45;
-      rotating.add(chip);
-      box(chip, 0.6, 0.08, 0.6, 0, 0, 0, ink);
-      box(chip, 0.29, 0.035, 0.29, 0, 0.056, 0, bronze, 0.009);
-      for (let i = 0; i < 8; i++)
-        for (const side of [-1, 1]) {
-          box(
-            chip,
-            0.055,
-            0.018,
-            0.1,
-            -0.24 + i * 0.069,
-            0,
-            side * 0.33,
-            bronze,
-            0.002,
-          );
-          box(
-            chip,
-            0.1,
-            0.018,
-            0.055,
-            side * 0.33,
-            0,
-            -0.24 + i * 0.069,
-            bronze,
-            0.002,
-          );
+    const mount = new T.Group();
+    mount.position.y = 0.048;
+    turntable.add(mount);
+    group.userData.modelStatus = 'loading';
+    k.assets.register('gallery', item.roomAssetId!, async () => {
+      const gltf = await loadAssetGltf(item.roomAssetId!);
+      const model = gltf.scene;
+      model.traverse((o) => {
+        if (o instanceof T.Mesh) {
+          geometry.add(o.geometry);
+          o.castShadow = true;
+          o.receiveShadow = false;
+          for (const m of Array.isArray(o.material)
+            ? o.material
+            : [o.material]) {
+            modelMaterials.add(m);
+            if (m instanceof T.MeshStandardMaterial) {
+              m.envMap = reflections;
+              m.envMapIntensity = 0.95;
+            }
+            for (const v of Object.values(m))
+              if (v instanceof T.Texture) {
+                v.anisotropy = 8;
+                modelTextures.add(v);
+              }
+          }
         }
-      for (let i = 0; i < 4; i++)
-        box(
-          chip,
-          0.235,
-          0.004,
-          0.011,
-          0,
-          0.076,
-          -0.084 + i * 0.056,
-          ink,
-          0.001,
-        );
-      mesh(
-        rotating,
-        new T.CylinderGeometry(0.018, 0.032, 0.37, 12),
-        bronze,
-        0,
-        0.205,
-        0,
-      );
-      const orbit = mesh(
-        rotating,
-        new T.TorusGeometry(0.42, 0.01, 8, 72),
-        bronze,
-        0,
-        0.46,
-        0,
-      );
-      orbit.rotation.set(0.5, 0.3, -0.4);
-    } else if (index === 1) {
-      // A tiny game world: shelter, companion and an orbiting play token.
-      box(rotating, 0.32, 0.3, 0.31, -0.075, 0.24, 0, sage, 0.035);
-      const roof = mesh(
-        rotating,
-        new T.ConeGeometry(0.3, 0.22, 4),
-        k.oak,
-        -0.075,
-        0.48,
-        0,
-      );
-      roof.rotation.y = Math.PI / 4;
-      box(rotating, 0.08, 0.13, 0.008, -0.075, 0.195, 0.161, ink);
-      for (const [x, y, r] of [
-        [0.15, 0.16, 0.075],
-        [0.11, 0.245, 0.035],
-        [0.2, 0.245, 0.035],
-      ])
-        mesh(rotating, new T.SphereGeometry(r, 20, 12), paper, x, y, 0.12);
-    } else {
-      for (let i = 0; i < 3; i++) {
-        const card = new T.Group();
-        card.position.set((i - 1) * 0.15, 0.3, (i - 1) * 0.12);
-        card.rotation.set(-0.12, (i - 1) * 0.25, (i - 1) * -0.15);
-        rotating.add(card);
-        box(card, 0.26, 0.42, 0.024, 0, 0, 0, ink, 0.018);
-        const ring = mesh(
-          card,
-          new T.TorusGeometry(0.064, 0.004, 6, 40),
-          bronze,
-          0,
-          0.01,
-          0.016,
-        );
-        ring.scale.y = 1.3;
-        mesh(card, new T.SphereGeometry(0.018, 12, 8), paper, 0, 0.12, 0.018);
+      });
+      if (disposed) {
+        release();
+        return;
       }
-    }
-    const light = new T.SpotLight('#ffe0ad', 5, 5, 0.4, 0.75, 1.6);
-    light.position.set(spec.x + 0.12, 3.22, spec.z - 0.42);
-    light.target.position.set(spec.x, spec.h + 0.18, spec.z);
-    light.name = `${spec.id}/spotlight`;
+      const bounds = new T.Box3().setFromObject(model),
+        size = bounds.getSize(new T.Vector3()),
+        center = bounds.getCenter(new T.Vector3());
+      const fit = Math.min(1.0 / Math.hypot(size.x, size.z), 1.36 / size.y);
+      model.position.sub(new T.Vector3(center.x, bounds.min.y, center.z));
+      const holder = new T.Group();
+      holder.add(model);
+      holder.scale.setScalar(fit);
+      mount.add(holder);
+      const miniature = holder.clone(true);
+      miniature.scale.multiplyScalar(index === 0 ? 0.26 : 0.38);
+      miniatures[index].add(miniature);
+      group.userData.modelStatus = 'ready';
+      k.onReady();
+    });
+    const light = new T.SpotLight('#fff0dc', 5, 5, 0.5, 0.7, 1.5);
+    light.position.set(spec.x + 0.1, 3.32, spec.z + 0.55);
+    light.target.position.set(spec.x, 1.65, spec.z);
     k.root.add(light, light.target);
     const fixture = new T.Group();
-    k.root.add(fixture);
     fixture.position.copy(light.position);
     fixture.lookAt(light.target.position);
+    k.root.add(fixture);
     mesh(
       fixture,
-      new T.CylinderGeometry(0.075, 0.075, 0.19, 24),
+      new T.CylinderGeometry(0.07, 0.08, 0.18, 20),
       ink,
     ).rotation.x = Math.PI / 2;
-    mesh(fixture, new T.CircleGeometry(0.067, 24), lens, 0, 0, 0.1);
+    mesh(fixture, new T.CircleGeometry(0.063, 24), glow, 0, 0, 0.095);
     const hanger = new T.Group();
     k.root.add(hanger);
     box(
       hanger,
-      0.035,
-      0.37,
-      0.035,
-      spec.x + 0.12,
-      3.435,
-      spec.z - 0.42,
+      0.018,
+      0.23,
+      0.018,
+      light.position.x,
+      3.455,
+      light.position.z,
       ink,
-      0.006,
+      0.004,
     );
-    box(
-      hanger,
-      0.035,
-      0.035,
-      Math.abs(spec.z - 0.32) + 0.06,
-      spec.x + 0.12,
-      3.61,
-      (spec.z - 0.32) / 2 - 0.1,
-      ink,
-      0.006,
-    );
-    return {
-      hanger,
-      canvas,
-      texture,
-      cover,
-      labelCanvas,
-      labelTexture,
-      rotating,
-      light,
-      fixture,
-      index,
-      id: spec.id,
-      revision: 0,
-      signature: '',
-    };
+    if (Math.abs(light.position.z - 0.5) > 0.04)
+      box(
+        hanger,
+        0.025,
+        0.03,
+        Math.abs(light.position.z - 0.5) + 0.06,
+        light.position.x,
+        3.6,
+        (light.position.z + 0.5) / 2,
+        ink,
+        0.006,
+      );
+    return { id: spec.id, turntable, light, fixture, hanger };
   });
-  const rail = new T.Group();
-  k.root.add(rail);
-  box(rail, 5.75, 0.045, 0.065, -0.05, 3.61, -0.1, ink, 0.01);
-  let focus: ObjectId | null = null,
-    disposed = false;
-  function setProjects(projects: Project[]) {
-    covers.forEach((entry) => {
-      const project = projects[entry.index];
-      const signature = JSON.stringify(project ?? null);
-      if (entry.signature === signature) return;
-      entry.signature = signature;
-      const revision = ++entry.revision;
-      const c = entry.canvas.getContext('2d')!,
-        label = entry.labelCanvas.getContext('2d')!;
-      c.fillStyle = '#e8e1d2';
-      c.fillRect(0, 0, 768, 1080);
-      c.fillStyle = '#343d3c';
-      c.fillRect(54, 62, 660, 740);
-      c.strokeStyle = '#c4b18a';
-      c.lineWidth = 3;
-      if (entry.index === 0) {
-        for (let i = 0; i < 7; i++) {
-          c.strokeRect(210 + i * 19, 230 + i * 19, 348 - i * 38, 348 - i * 38);
-          c.beginPath();
-          c.moveTo(82, 280 + i * 41);
-          c.lineTo(200, 280 + i * 41);
-          c.moveTo(568, 280 + i * 41);
-          c.lineTo(686, 280 + i * 41);
-          c.stroke();
-        }
-      } else if (entry.index === 1) {
-        for (let i = 0; i < 7; i++) {
-          c.fillStyle = i % 2 ? '#879a80' : '#d9ccb0';
-          c.fillRect(
-            125 + (i % 3) * 163,
-            210 + Math.floor(i / 3) * 153,
-            139,
-            126,
-          );
-        }
-      } else {
-        for (let i = 0; i < 3; i++) {
-          c.save();
-          c.translate(260 + i * 125, 410);
-          c.rotate((i - 1) * 0.23);
-          c.fillStyle = '#343d3c';
-          c.fillRect(-95, -175, 190, 350);
-          c.strokeRect(-95, -175, 190, 350);
-          c.beginPath();
-          c.ellipse(0, 0, 52, 74, 0, 0, Math.PI * 2);
-          c.stroke();
-          c.restore();
-        }
-      }
-      c.fillStyle = '#4b514b';
-      c.font = '24px sans-serif';
-      c.fillText(project?.category || 'OPEN DISPLAY', 54, 868, 660);
-      c.font = '36px sans-serif';
-      c.fillText(project?.title || '待布置展位', 54, 935, 660);
-      c.font = '19px sans-serif';
-      c.fillText(
-        project?.image ? 'SELECTED WORK' : 'PROJECT COVER / 项目概念封面',
-        54,
-        1013,
-        660,
-      );
-      label.fillStyle = '#ede7db';
-      label.fillRect(0, 0, 640, 180);
-      label.fillStyle = '#3f4945';
-      label.font = '24px sans-serif';
-      label.fillText(
-        `0${entry.index + 1} / ${project?.category || 'OPEN DISPLAY'}`,
-        22,
-        49,
-        596,
-      );
-      label.font = '35px sans-serif';
-      label.fillText(project?.title || '待布置展位', 22, 111, 596);
-      label.font = '18px sans-serif';
-      label.fillText(
-        project ? '点击阅读项目 · SELECT TO EXPLORE' : '在作品编辑器添加项目',
-        22,
-        154,
-        596,
-      );
-      entry.texture.needsUpdate = entry.labelTexture.needsUpdate = true;
-      if (project?.image) {
-        const image = new Image();
-        image.crossOrigin = 'anonymous';
-        image.onload = () => {
-          if (disposed || entry.revision !== revision) return;
-          const scale = Math.min(660 / image.width, 740 / image.height);
-          c.fillStyle = '#343d3c';
-          c.fillRect(54, 62, 660, 740);
-          c.drawImage(
-            image,
-            54 + (660 - image.width * scale) / 2,
-            62 + (740 - image.height * scale) / 2,
-            image.width * scale,
-            image.height * scale,
-          );
-          entry.texture.needsUpdate = true;
-        };
-        image.src = project.image;
-      }
-    });
+  function release() {
+    geometry.forEach((g) => g.dispose());
+    modelMaterials.forEach((m) => m.dispose());
+    modelTextures.forEach(releaseAssetTexture);
+    geometry.clear();
+    modelMaterials.clear();
+    modelTextures.clear();
   }
-  setProjects(defaultProfile.projects);
   return {
-    covers: covers.map((c) => ({ material: c.cover, texture: c.texture })),
-    setProjects,
+    // Personal project editing remains available from the study portfolio.
+    setProjects: (_projects: Project[]) => {},
     focus(id: ObjectId | null) {
-      focus = id && galleryProjectIndex[id] !== undefined ? id : null;
+      focus = id;
     },
     update(
       dt: number,
@@ -409,22 +357,24 @@ export function createProjectGallery(k: Kit) {
       enabled: boolean,
       plan: boolean,
     ) {
-      for (const entry of covers) {
+      for (const entry of displays) {
         const selected = focus === entry.id;
-        if (selected && !reduced) entry.rotating.rotation.y += dt * 0.16;
+        if (selected && !reduced)
+          entry.turntable.rotation.y += Math.min(dt, 0.05) * 0.13;
         entry.light.intensity = T.MathUtils.lerp(
           entry.light.intensity,
-          enabled ? (selected ? 12 : focus ? 1.8 : night ? 7 : 4.5) : 0,
+          enabled ? (selected ? 10 : night ? 6 : 4.7) : 0,
           1 - Math.exp(-dt * 3),
         );
-        rail.visible =
+        entry.fixture.visible =
           entry.hanger.visible =
-          entry.fixture.visible =
+          track.visible =
             !plan && !focus;
       }
     },
     dispose() {
       disposed = true;
+      release();
     },
   };
 }

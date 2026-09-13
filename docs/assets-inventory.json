@@ -1,5 +1,5 @@
 {
-  "version": "54b31e89478623d1",
+  "version": "4be70ee73a0c2be4",
   "roomSizes": {
     "study": {
       "bytes": 5606248,
@@ -14,8 +14,8 @@
       "files": 10
     },
     "gallery": {
-      "bytes": 7444838,
-      "files": 14
+      "bytes": 9808620,
+      "files": 18
     },
     "cafe": {
       "bytes": 7610980,
@@ -40,7 +40,13 @@
     "character.noir.sit",
     "character.noir.rest",
     "character.rose.sit",
-    "character.rose.rest"
+    "character.rose.rest",
+    "exhibit.seraph.room",
+    "exhibit.seraph.detail",
+    "exhibit.reaper.room",
+    "exhibit.reaper.detail",
+    "exhibit.aureole.room",
+    "exhibit.aureole.detail"
   ],
   "inventory": [
     {
@@ -51,6 +57,11 @@
     {
       "path": "public/artwork/evening-window.webp",
       "bytes": 6538,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/artwork/fuji-dusk-panorama.webp",
+      "bytes": 477846,
       "classification": "catalogued-production"
     },
     {
@@ -211,6 +222,51 @@
     {
       "path": "public/models/cat-hi3d.json",
       "bytes": 638,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/exhibits/aureole-detail.glb",
+      "bytes": 1659016,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/exhibits/aureole-room.glb",
+      "bytes": 621612,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/exhibits/aureole.webp",
+      "bytes": 14342,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/exhibits/reaper-detail.glb",
+      "bytes": 1598316,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/exhibits/reaper-room.glb",
+      "bytes": 596380,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/exhibits/reaper.webp",
+      "bytes": 12606,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/exhibits/seraph-detail.glb",
+      "bytes": 1793032,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/exhibits/seraph-room.glb",
+      "bytes": 667944,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/exhibits/seraph.webp",
+      "bytes": 17390,
       "classification": "excluded-unused-or-documentation"
     },
     {

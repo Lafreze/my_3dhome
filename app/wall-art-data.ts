@@ -22,20 +22,20 @@ export const wallArt = [
   {
     id: 'galleryArt1',
     room: '展示区',
-    name: '展厅 · 作品一',
-    aspect: 0.96 / 1.39,
+    name: '富士暮樱 · 暮樱',
+    aspect: 1.15 / 1.64,
   },
   {
     id: 'galleryArt2',
     room: '展示区',
-    name: '展厅 · 作品二',
-    aspect: 0.96 / 1.39,
+    name: '富士暮樱 · 富士',
+    aspect: 1.15 / 1.64,
   },
   {
     id: 'galleryArt3',
     room: '展示区',
-    name: '展厅 · 作品三',
-    aspect: 0.96 / 1.39,
+    name: '富士暮樱 · 晚照',
+    aspect: 1.15 / 1.64,
   },
 ] as const;
 export type WallArtId = (typeof wallArt)[number]['id'];

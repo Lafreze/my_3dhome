@@ -91,7 +91,7 @@ export const lifeObstacles: Obstacle[] = [
     width: 1.35,
     depth: 2.55,
   },
-  { room: 'gallery', id: 'plant', x: -2.9, z: 2.34, width: 0.7, depth: 0.7 },
+  { room: 'gallery', id: 'plant', x: -3.1, z: 2.78, width: 0.7, depth: 0.7 },
   ...Object.entries(cafeLayout).map(([id, f]) => ({
     ...f,
     id,

@@ -960,6 +960,106 @@
       "sourceSha256": "f6e0fa087ba7003ad5c3884e360303e71688d0bbb3d5e01f085bfffa976bee3a",
       "transform": "webp-lossless",
       "name": "Book Pattern / woven book cloth"
+    },
+    {
+      "id": "exhibit.seraph.room",
+      "source": "public/models/exhibits/seraph-room.glb",
+      "path": "models/exhibits/seraph-room.glb",
+      "type": "model",
+      "room": "gallery",
+      "rooms": [
+        "gallery"
+      ],
+      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "author": "User-supplied Hi3D model",
+      "sourceUrl": "",
+      "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
+      "approval": "pending"
+    },
+    {
+      "id": "exhibit.seraph.detail",
+      "source": "public/models/exhibits/seraph-detail.glb",
+      "path": "models/exhibits/seraph-detail.glb",
+      "type": "model",
+      "room": "archive",
+      "rooms": [],
+      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "author": "User-supplied Hi3D model",
+      "sourceUrl": "",
+      "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
+      "approval": "pending"
+    },
+    {
+      "id": "exhibit.reaper.room",
+      "source": "public/models/exhibits/reaper-room.glb",
+      "path": "models/exhibits/reaper-room.glb",
+      "type": "model",
+      "room": "gallery",
+      "rooms": [
+        "gallery"
+      ],
+      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "author": "User-supplied Hi3D model",
+      "sourceUrl": "",
+      "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
+      "approval": "pending"
+    },
+    {
+      "id": "exhibit.reaper.detail",
+      "source": "public/models/exhibits/reaper-detail.glb",
+      "path": "models/exhibits/reaper-detail.glb",
+      "type": "model",
+      "room": "archive",
+      "rooms": [],
+      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "author": "User-supplied Hi3D model",
+      "sourceUrl": "",
+      "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
+      "approval": "pending"
+    },
+    {
+      "id": "exhibit.aureole.room",
+      "source": "public/models/exhibits/aureole-room.glb",
+      "path": "models/exhibits/aureole-room.glb",
+      "type": "model",
+      "room": "gallery",
+      "rooms": [
+        "gallery"
+      ],
+      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "author": "User-supplied Hi3D model",
+      "sourceUrl": "",
+      "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
+      "approval": "pending"
+    },
+    {
+      "id": "exhibit.aureole.detail",
+      "source": "public/models/exhibits/aureole-detail.glb",
+      "path": "models/exhibits/aureole-detail.glb",
+      "type": "model",
+      "room": "archive",
+      "rooms": [],
+      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "author": "User-supplied Hi3D model",
+      "sourceUrl": "",
+      "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
+      "approval": "pending"
+    },
+    {
+      "id": "art.fuji-dusk-panorama",
+      "source": "public/artwork/fuji-dusk-panorama.webp",
+      "path": "images/artwork/fuji-dusk-panorama.webp",
+      "type": "image",
+      "room": "gallery",
+      "rooms": [
+        "gallery"
+      ],
+      "license": "AI-generated original for this project",
+      "author": "OpenAI image generation for kuro.cafe",
+      "sourceUrl": "",
+      "modifications": "Continuous Fuji and cherry blossom sunset panorama; shared texture with independent panel UVs",
+      "approval": "approved",
+      "name": "富士暮樱 · 三联画"
     }
   ]
 }

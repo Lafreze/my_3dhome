@@ -1,0 +1,35 @@
+[
+  {
+    "id": "seraph",
+    "title": "圣翼守望者",
+    "category": "SACRED / MECHA",
+    "description": "白金装甲与蓝色核心构成的天使机甲。环形翼架、法杖与层叠裙甲，勾勒出庄严的守望者姿态。",
+    "sourceName": "科幻神圣天使机甲战士",
+    "assetId": "exhibit.seraph.detail",
+    "roomAssetId": "exhibit.seraph.room",
+    "thumbnail": "/models/exhibits/seraph.webp",
+    "accent": "#bac9d5"
+  },
+  {
+    "id": "reaper",
+    "title": "暗夜收割者",
+    "category": "DARK / CYBERPUNK",
+    "description": "暗黑赛博朋克风格的死神机甲。紫色镰刃与幽暗装甲相互映衬，机械骨架和锐利甲片构成富有张力的轮廓。",
+    "sourceName": "风格化黑暗赛博朋克死神机甲",
+    "assetId": "exhibit.reaper.detail",
+    "roomAssetId": "exhibit.reaper.room",
+    "thumbnail": "/models/exhibits/reaper.webp",
+    "accent": "#9ba7ba"
+  },
+  {
+    "id": "aureole",
+    "title": "鎏金圣辉",
+    "category": "GILDED / ANGEL",
+    "description": "带翼的鎏金机甲天使。光环、长枪与层叠羽翼相互呼应，转动视角，可以细看金属纹饰和翼缘的结构。",
+    "sourceName": "精致鎏金带翼神圣机甲天使",
+    "assetId": "exhibit.aureole.detail",
+    "roomAssetId": "exhibit.aureole.room",
+    "thumbnail": "/models/exhibits/aureole.webp",
+    "accent": "#cfaf73"
+  }
+]

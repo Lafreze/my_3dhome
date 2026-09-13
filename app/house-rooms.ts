@@ -21,7 +21,8 @@ import { wallArt } from './wall-art-data';
 import { houseFinishes, galleryPrint, addOakFloor } from './house-finishes';
 import { houseLighting } from './house-lighting';
 import { createProjectGallery } from './project-gallery';
-import { loadGalleryModel } from './gallery-model';
+import { galleryTriptych } from './gallery-layout';
+import { deferredTexture, fetchAssetBytes } from './asset-loading';
 import type { RoomAssets } from './asset-loading';
 import type { HouseLandscape } from './house-landscape';
 import { addWindowCraft } from './window-craft';
@@ -1742,33 +1743,11 @@ export function buildHouse(k: Kit) {
     interactables: k.interactables,
     oak,
     brass,
+    assets: k.assets,
+    cutaways: k.cutaways,
+    onReady: k.onModelReady,
   });
   const galleryRug = group('gallery');
-  const rabbitPlinth = group('gallery', 'galleryRabbit', 2.65, 0, -2.15);
-  b(rabbitPlinth, 0.92, 0.86, 0.92, 0, 0.52, 0, cream, 0.025);
-  b(rabbitPlinth, 0.96, 0.055, 0.96, 0, 0.978, 0, oak, 0.018);
-  const rabbitMount = new T.Group();
-  rabbitMount.position.y = 1.01;
-  rabbitPlinth.add(rabbitMount);
-  rabbitMount.userData.modelStatus = 'loading';
-  const rabbitModel = loadGalleryModel(rabbitMount, k.onModelReady, k.assets);
-  const plaqueCanvas = document.createElement('canvas');
-  plaqueCanvas.width = 512;
-  plaqueCanvas.height = 144;
-  const plaqueContext = plaqueCanvas.getContext('2d')!;
-  plaqueContext.fillStyle = '#eee9dc';
-  plaqueContext.fillRect(0, 0, 512, 144);
-  plaqueContext.fillStyle = '#384039';
-  plaqueContext.font = '32px sans-serif';
-  plaqueContext.fillText('皇冠兔 / CROWNED RABBIT', 20, 52);
-  plaqueContext.font = '24px sans-serif';
-  plaqueContext.fillText('雕塑优化 · 材质细化 · 点击阅读', 20, 104);
-  const plaqueMap = new T.CanvasTexture(plaqueCanvas);
-  plaqueMap.colorSpace = T.SRGBColorSpace;
-  textures.push(plaqueMap);
-  const plaqueMaterial = mat('#ffffff');
-  plaqueMaterial.map = plaqueMap;
-  b(rabbitPlinth, 0.79, 0.22, 0.014, 0, 0.66, 0.47, plaqueMaterial, 0.003);
   b(
     galleryRug,
     6.9,
@@ -1781,23 +1760,144 @@ export function buildHouse(k: Kit) {
     0.014,
   );
   const art = group('gallery', 'galleryArt');
+  const panoramaPanels = Array.from({ length: 3 }, (_, i) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const texture = new T.Texture<HTMLCanvasElement | HTMLImageElement>(canvas);
+    texture.colorSpace = T.SRGBColorSpace;
+    texture.anisotropy = 8;
+    texture.repeat.set(1 / 3, 1);
+    texture.offset.x = i / 3;
+    texture.needsUpdate = true;
+    textures.push(texture);
+    return texture;
+  });
+  k.assets.register('gallery', 'art.fuji-dusk-panorama', async () => {
+    const bytes = await fetchAssetBytes('art.fuji-dusk-panorama');
+    if (disposed) return;
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'image/webp' }));
+    try {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+      if (!disposed)
+        for (const texture of panoramaPanels) {
+          texture.dispose();
+          texture.image = image;
+          texture.needsUpdate = true;
+        }
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  });
   for (let i = 0; i < 3; i++) {
     const id = `galleryArt${i + 1}` as ObjectId,
-      frame = group('gallery', id, -0.65 + i * 1.43, 0, 0);
+      frame = group('gallery', id, galleryTriptych.centers[i], 0, 0);
     art.add(frame);
-    b(frame, 1.25, 1.68, 0.09, 0, 2.05, -3.145, oak, 0.018);
-    b(frame, 1.14, 1.57, 0.013, 0, 2.05, -3.09, white, 0.005);
-    const { texture, material } = projectGallery.covers[[1, 0, 2][i]];
+    const {
+      frameWidth: w,
+      frameHeight: h,
+      y,
+      z,
+      imageWidth: iw,
+      imageHeight: ih,
+    } = galleryTriptych;
+    b(frame, w, h, 0.065, 0, y, z - 0.045, oak, 0.012);
+    b(frame, w - 0.06, h - 0.06, 0.014, 0, y, z - 0.003, white, 0.003);
+    const texture = panoramaPanels[i],
+      material = mat('#ffffff', 0.88);
+    material.map = texture;
     pictureMaterials.set(id, { material, original: texture });
     mesh(
       frame,
-      new T.PlaneGeometry(0.96, 1.39),
+      new T.PlaneGeometry(iw, ih),
       material,
       0,
-      2.05,
-      -3.079,
+      y,
+      z + 0.009,
     ).castShadow = false;
-    label(frame, `0${i + 1} / SELECTED WORK`, 0, 1.08, -3.07, 0.62);
+    label(
+      frame,
+      ['01 / SAKURA', '02 / FUJI', '03 / DUSK'][i],
+      0,
+      1.08,
+      z + 0.014,
+      0.65,
+    );
+  }
+  // Independent companion prints on the south wall and the west return.
+  const extraArt = [
+    {
+      x: -1.95,
+      z: 3.16,
+      y: 2.18,
+      yaw: Math.PI,
+      asset: 'art.botanical-study',
+      title: '04 / BOTANICAL',
+      w: 1.02,
+      h: 1.38,
+    },
+    {
+      x: -0.38,
+      z: 3.16,
+      y: 2.18,
+      yaw: Math.PI,
+      asset: 'art.quiet-hills',
+      title: '05 / QUIET HILLS',
+      w: 1.02,
+      h: 1.38,
+    },
+    {
+      x: 3.05,
+      z: 3.16,
+      y: 2.18,
+      yaw: Math.PI,
+      asset: 'art.evening-window',
+      title: '06 / EVENING',
+      w: 1.02,
+      h: 1.38,
+    },
+    {
+      x: -3.8,
+      z: -2.48,
+      y: 2.52,
+      yaw: Math.PI / 2,
+      asset: 'art.quiet-hills',
+      title: '07 / STILLNESS',
+      w: 0.7,
+      h: 0.94,
+    },
+  ];
+  for (const spec of extraArt) {
+    const frame = group('gallery');
+    frame.name = `Gallery / ${spec.title}`;
+    frame.position.set(spec.x, spec.y, spec.z);
+    frame.rotation.y = spec.yaw;
+    b(frame, spec.w, spec.h, 0.065, 0, 0, 0, oak, 0.012);
+    b(frame, spec.w - 0.06, spec.h - 0.06, 0.012, 0, 0, 0.037, white, 0.003);
+    const texture = deferredTexture(k.assets, 'gallery', spec.asset);
+    texture.colorSpace = T.SRGBColorSpace;
+    texture.anisotropy = 8;
+    textures.push(texture);
+    const material = mat('#ffffff', 0.9);
+    material.map = texture;
+    mesh(
+      frame,
+      new T.PlaneGeometry(spec.w - 0.15, spec.h - 0.15),
+      material,
+      0,
+      0,
+      0.046,
+    ).castShadow = false;
+    label(frame, spec.title, 0, -spec.h / 2 - 0.14, 0.048, 0.57);
+    k.cutaways.add(
+      [frame],
+      spec.yaw === Math.PI
+        ? { x: 8, z: 10.2, nx: 0, nz: -1 }
+        : { x: 4, z: 4.73, nx: 1, nz: 0 },
+      ['gallery'],
+      true,
+    );
   }
   const galleryLamps = group('gallery', 'galleryLight');
   b(galleryLamps, 5.5, 0.06, 0.065, 0.65, 3.32, -2.64, charcoal, 0.015);
@@ -1832,7 +1932,7 @@ export function buildHouse(k: Kit) {
   feet(galleryBench, 1.98, 0.47, 0.39);
   b(galleryBench, 2.25, 0.09, 0.67, 0, 0.49, 0, oak, 0.04);
   cushion(galleryBench, 2.19, 0.13, 0.63, 0, 0.59, 0, ivoryCloth);
-  plant(roots.gallery, -2.9, 0.08, 2.34, 1.65);
+  plant(roots.gallery, -3.1, 0.08, 2.78, 1.65);
 
   // Shared partitions contain real 1.4-unit door openings, aligned with each room's aisles.
   const partitions: { base: T.Group; upper: T.Group; neighbours: RoomId[] }[] =
@@ -2507,7 +2607,6 @@ export function buildHouse(k: Kit) {
       disposed = true;
       pictureMaterials.forEach((entry) => entry.current?.dispose());
       projectGallery.dispose();
-      rabbitModel.dispose();
       windows.forEach((w) => w.dispose());
       cafe.dispose();
     },

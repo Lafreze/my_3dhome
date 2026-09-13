@@ -10,6 +10,7 @@ import {
 } from 'react';
 import defaults from '../config/house-defaults.json';
 import type { Profile } from './room-data';
+import type { Exhibit } from './exhibit-data';
 export type Appearance = Record<
   keyof typeof defaults.appearance,
   number | string
@@ -37,6 +38,10 @@ type Studio = Snapshot & {
   login: (passphrase: string) => Promise<void>;
   logout: () => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
+  uploadModel: (
+    file: File,
+    metadata: { title: string; description: string },
+  ) => Promise<Exhibit>;
   save: (patch: HousePatch, revision?: number) => Promise<void>;
 };
 const Context = createContext<Studio | null>(null);
@@ -164,6 +169,30 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const deleteNote = async (id: string) => {
     await request('/api/notes', { id }, 'DELETE');
   };
+  const uploadModel = async (
+    file: File,
+    metadata: { title: string; description: string },
+  ) => {
+    if (!admin) throw Error('请先进入管理模式。');
+    const response = await fetch('/api/models', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'model/gltf-binary',
+        'X-Studio-CSRF': csrf.current,
+        'X-Model-Metadata': encodeURIComponent(JSON.stringify(metadata)),
+      },
+      body: file,
+    });
+    const value = await response.json();
+    if (!response.ok) {
+      if (response.status === 401) {
+        setAdmin(false);
+        csrf.current = '';
+      }
+      throw Error(value.error || '模型保存失败，请重试。');
+    }
+    return value as Exhibit;
+  };
   const save = async (
     patch: HousePatch,
     revision = current.current.revision,
@@ -182,6 +211,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         logout,
         save,
         deleteNote,
+        uploadModel,
       }}
     >
       {children}

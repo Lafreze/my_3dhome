@@ -1,3 +1,4 @@
+import { galleryPlinths, galleryCabinet } from './gallery-layout.ts';
 import { curiosities, isCuriosity } from './exploration-data.ts';
 export const rooms = {
   study: {
@@ -304,10 +305,10 @@ export const newObjects = {
   },
   cafePendulum: { name: '木作摆钟', kind: 'TIME', action: '看看时间' },
   cafeBell: { name: '咖啡台铃', kind: 'BRASS', action: '轻按台铃' },
-  galleryRabbit: {
-    name: '皇冠兔 · 建模练习',
-    kind: '3D SCULPTURE',
-    action: '查看建模说明',
+  galleryArchive: {
+    name: '三维藏品展柜',
+    kind: 'OBJECT ARCHIVE',
+    action: '进入三维藏品室',
   },
   cafeEspresso: {
     name: '双头意式咖啡机',
@@ -324,9 +325,9 @@ export const newObjects = {
   bedroomCurtains: { name: '卧室窗帘', kind: 'LINEN', action: '开合窗帘' },
   livingArt1: { name: '客厅 · 林间', kind: 'ART', action: '自定义画作' },
   livingArt2: { name: '客厅 · 暖日', kind: 'ART', action: '自定义画作' },
-  galleryArt1: { name: '展厅 · 作品一', kind: 'ART', action: '自定义画作' },
-  galleryArt2: { name: '展厅 · 作品二', kind: 'ART', action: '自定义画作' },
-  galleryArt3: { name: '展厅 · 作品三', kind: 'ART', action: '自定义画作' },
+  galleryArt1: { name: '富士暮樱 · 暮樱', kind: 'ART', action: '自定义画作' },
+  galleryArt2: { name: '富士暮樱 · 富士', kind: 'ART', action: '自定义画作' },
+  galleryArt3: { name: '富士暮樱 · 晚照', kind: 'ART', action: '自定义画作' },
   television: { name: '家庭影院', kind: 'CINEMA', action: '打开电视' },
   livingSofa: { name: '模块沙发', kind: 'LOUNGE', action: '更换织物' },
   switch: { name: 'Switch 游戏机', kind: 'PLAY', action: '取下 / 装回手柄' },
@@ -348,18 +349,30 @@ export const newObjects = {
   wardrobe: { name: '木作衣柜', kind: 'WARDROBE', action: '更换角色造型' },
   bedroomWindow: { name: '卧室西窗', kind: 'W · 庭院', action: '时间与天气' },
   bedroomBook: { name: '睡前读物', kind: 'READING', action: '翻开手记' },
-  galleryArt: { name: '个人作品展', kind: 'SELECTED WORK', action: '浏览作品' },
+  galleryArt: {
+    name: '富士暮樱 · 三联画',
+    kind: 'THREE QUIET MOMENTS',
+    action: '欣赏画作',
+  },
   livingRecord: {
     name: '黑胶听音台',
     kind: 'LISTENING',
     action: '播放 / 暂停',
   },
-  galleryCase: { name: '右侧展位', kind: 'GENERATIVE', action: '阅读项目' },
-  galleryGame: { name: '左侧展位', kind: 'PLAY', action: '阅读项目' },
+  galleryCase: {
+    name: '鎏金圣辉',
+    kind: 'GILDED / ANGEL',
+    action: '进入模型查看器',
+  },
+  galleryGame: {
+    name: '暗夜收割者',
+    kind: 'DARK / CYBERPUNK',
+    action: '进入模型查看器',
+  },
   gallerySculpture: {
-    name: '中央展位',
-    kind: 'FEATURED',
-    action: '阅读项目',
+    name: '圣翼守望者',
+    kind: 'SACRED / MECHA',
+    action: '进入模型查看器',
   },
   galleryLight: { name: '展览照明', kind: 'LIGHT', action: '开灯 / 关灯' },
   galleryWindow: { name: '展厅东窗', kind: 'E · 连廊画廊', action: '望向连廊' },
@@ -417,7 +430,7 @@ export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
   gameCollection: 'gaming',
   livingCurtains: 'living',
   bedroomCurtains: 'bedroom',
-  galleryRabbit: 'gallery',
+  galleryArchive: 'gallery',
   cafeEspresso: 'cafe',
   cafeBell: 'cafe',
   cafePendulum: 'cafe',
@@ -492,10 +505,10 @@ export const houseFurniture = {
     readingChair: { x: -2.92, z: 0.15, width: 1.04, depth: 1.08 },
   },
   gallery: {
-    crownedRabbit: { x: 2.65, z: -2.15, width: 0.92, depth: 0.92 },
-    sculpture: { x: 0.1, z: -0.45, width: 1.0, depth: 1.0 },
-    case: { x: 2.5, z: 0.2, width: 1, depth: 1 },
+    cabinet: galleryCabinet,
+    sculpture: galleryPlinths[0],
+    catalogue: galleryPlinths[1],
+    case: galleryPlinths[2],
     bench: { x: -0.1, z: 2.1, width: 2.25, depth: 0.67 },
-    catalogue: { x: -2.9, z: -0.15, width: 1, depth: 1 },
   },
 } as const;

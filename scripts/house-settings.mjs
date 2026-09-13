@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import { visitorIP } from './seat-presence.mjs';
 import { createRoomNotes } from './room-notes.mjs';
+import { createModelLibrary } from './model-library.mjs';
 
 const defaults = JSON.parse(
   await readFile(
@@ -151,6 +152,7 @@ export async function createHouseHandler({
 } = {}) {
   const file = resolve(dataDir, 'house-settings.json');
   const roomNotes = await createRoomNotes(dataDir, now);
+  const modelLibrary = await createModelLibrary(dataDir, now);
   const noteAttempts = new Map();
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   let state = {
@@ -235,10 +237,25 @@ export async function createHouseHandler({
     if (
       path !== '/api/house' &&
       path !== '/api/notes' &&
+      path !== '/api/models' &&
+      !path.startsWith('/api/models/') &&
       !path.startsWith('/api/admin/')
     )
       return false;
     try {
+      if (req.method === 'GET' && path === '/api/models') {
+        send(res, 200, { items: modelLibrary.list() });
+        return true;
+      }
+      if (
+        ['GET', 'HEAD'].includes(req.method) &&
+        path.startsWith('/api/models/')
+      ) {
+        const match = /^\/api\/models\/([a-f0-9-]{36})\.glb$/.exec(path);
+        if (!match) throw fail(404, '没有找到这件模型。');
+        await modelLibrary.serve(req, res, match[1]);
+        return true;
+      }
       if (req.method === 'GET' && path === '/api/notes') {
         send(res, 200, roomNotes.snapshot());
         return true;
@@ -331,6 +348,10 @@ export async function createHouseHandler({
       if (!s) throw fail(401, '请先输入管理暗号。');
       if (req.headers['x-studio-csrf'] !== s.csrf)
         throw fail(403, '验证已失效，请重新进入管理模式。');
+      if (req.method === 'POST' && path === '/api/models') {
+        send(res, 201, await modelLibrary.add(req));
+        return true;
+      }
       if (req.method === 'DELETE' && path === '/api/notes') {
         const value = await body(req, 1024);
         keys(value, ['id']);

@@ -15,6 +15,7 @@ import { portalDestinations } from './game-layout';
 import { houseDoorLayout } from './house-door-layout';
 import HouseMap from './house-map';
 import CollectionAlbum from './collection-album';
+import { exhibits, exhibitObjects } from './exhibit-data';
 import {
   curiosities,
   curiosityIds,
@@ -117,7 +118,6 @@ type Modal =
   | 'settings'
   | 'help'
   | 'objects'
-  | 'rabbitModel'
   | 'collections'
   | null;
 const safeUrl = (s: string) => {
@@ -287,7 +287,6 @@ function StudioHome() {
       ctx: AudioContext;
       timer: ReturnType<typeof setInterval>;
     } | null>(null);
-  const projectIntro = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!lifeBubble) return;
     const id = setTimeout(() => setLifeBubble(''), 4500);
@@ -331,19 +330,9 @@ function StudioHome() {
     ready,
   ]);
   useEffect(() => {
-    if (
-      !selected ||
-      !['gallerySculpture', 'galleryGame', 'galleryCase'].includes(selected)
-    )
-      return;
-    projectIntro.current = setTimeout(
-      () => quickAction.current(selected),
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900,
-    );
-    return () => {
-      if (projectIntro.current) clearTimeout(projectIntro.current);
-    };
-  }, [selected]);
+    if (ready && new URLSearchParams(location.search).get('room') === 'gallery')
+      api.current?.setView('gallery');
+  }, [ready]);
   const notify = useCallback((s: string) => {
     setToast(s);
     if (timer.current) clearTimeout(timer.current);
@@ -418,6 +407,7 @@ function StudioHome() {
               if (
                 id &&
                 [
+                  'galleryArchive',
                   'deskFan',
                   'cafePendulum',
                   'wardrobe',
@@ -599,6 +589,10 @@ function StudioHome() {
     setHover(null);
   };
   const choose = (id: ObjectId) => {
+    if (id === 'galleryArchive') {
+      location.assign('/models');
+      return;
+    }
     if (houseDoorLayout.some((d) => d.id === id || d.other === id)) {
       api.current?.enterDoor(id);
       setSelected(null);
@@ -638,14 +632,8 @@ function StudioHome() {
     }
   };
   const objectTitle = (id: ObjectId) => {
-    const index = (
-      { gallerySculpture: 0, galleryGame: 1, galleryCase: 2 } as Partial<
-        Record<ObjectId, number>
-      >
-    )[id];
-    return index === undefined
-      ? objects[id].name
-      : profile.projects[index]?.title || '待布置展位';
+    const index = exhibitObjects[id];
+    return index === undefined ? objects[id].name : exhibits[index].title;
   };
   const action = (id: ObjectId) => {
     if (id in libraryObjectIds) {
@@ -687,31 +675,10 @@ function StudioHome() {
       setModal('coffeeMenu');
       return;
     }
-    if (id === 'galleryRabbit') {
-      setModal('rabbitModel');
-      return;
-    }
-    const exhibit = { gallerySculpture: 0, galleryGame: 1, galleryCase: 2 }[
-      id as 'gallerySculpture' | 'galleryGame' | 'galleryCase'
-    ];
-    if (exhibit !== undefined) {
-      if (projectIntro.current) clearTimeout(projectIntro.current);
-      if (!profile.projects[exhibit]) {
-        if (!studio.admin) {
-          notify('这个展位还在准备中。');
-          return;
-        }
-        draftRevision.current = studio.revision;
-        editorSession.current++;
-        setProjectsOnly(true);
-        setDraft(structuredClone(profile));
-        setEditingProject(0);
-        setModal('settings');
-      } else {
-        setProject(exhibit);
-        discover('story.gallery', 'gallery');
-        setModal('works');
-      }
+    if (id === 'galleryArchive' || exhibitObjects[id] !== undefined) {
+      location.assign(
+        `/models${exhibitObjects[id] === undefined ? '' : '#' + exhibits[exhibitObjects[id]].id}`,
+      );
       return;
     }
     if (id === 'computer') {
@@ -729,7 +696,13 @@ function StudioHome() {
       setModal('tv');
       return;
     }
-    if (id === 'desk' || id === 'frame' || id === 'galleryArt') {
+    if (id === 'galleryArt') {
+      setSelected('galleryArt1');
+      api.current?.focus('galleryArt1');
+      setModal('wallArt');
+      return;
+    }
+    if (id === 'desk' || id === 'frame') {
       setModal('works');
       return;
     }
@@ -1059,6 +1032,11 @@ function StudioHome() {
               </button>
             </div>
             <h2>{objectTitle(selected)}</h2>
+            {exhibitObjects[selected] !== undefined && (
+              <p className="curiosity-description">
+                {exhibits[exhibitObjects[selected]].description}
+              </p>
+            )}
             {selectedCuriosity && (
               <p className="curiosity-description">
                 {collectionData[selectedCuriosity.collection]
@@ -1420,7 +1398,6 @@ function StudioHome() {
                   settings: projectsOnly ? '编辑我的作品' : '布置你的工作室',
                   help: '随意探索',
                   objects: '屋内物件',
-                  rabbitModel: '皇冠兔 · 建模手记',
                   collections: '小屋收藏册',
                   admin: '布置小屋',
                 } as Record<string, string>
@@ -1476,29 +1453,6 @@ function StudioHome() {
                 setModal('wallArt');
               }}
             />
-          )}
-          {modal === 'rabbitModel' && (
-            <div className="model-note">
-              <p>
-                保留原始皇冠兔的轮廓与表情，把高密度雕塑整理成适合网页展示的作品。
-              </p>
-              <dl>
-                <dt>轮廓优化</dt>
-                <dd>
-                  由约 200 万原始面优化为 116,828
-                  个三角面，重点保留耳朵、脸部与毛发层次。
-                </dd>
-                <dt>材质细化</dt>
-                <dd>
-                  象牙白绒毛、柔和的顶点颜色过渡和缎面金饰；眼睛沿用原始拓扑，避免浮在表面的叠片。
-                </dd>
-                <dt>网页呈现</dt>
-                <dd>
-                  独立 GLB 约 3.4
-                  MiB，进入展示区后按需加载。原始工程与源模型继续保留。
-                </dd>
-              </dl>
-            </div>
           )}
           {modal === 'coffeeMenu' && (
             <CoffeeMenu

@@ -100,7 +100,11 @@ const server = createServer(async (req, res) => {
       res.end();
       return;
     }
-    let file = resolve(root, '.' + path);
+    // Static prerender emits models.html; keep the public route extensionless.
+    let file = resolve(
+      root,
+      path === '/models' || path === '/models/' ? 'models.html' : '.' + path,
+    );
     if (file !== resolve(root) && !file.startsWith(resolve(root) + sep)) {
       res.writeHead(403);
       res.end();
