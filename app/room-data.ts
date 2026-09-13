@@ -1,6 +1,8 @@
 import houseDefaults from '../config/house-defaults.json';
 import { newObjects } from './house-data';
+import { curiosities } from './exploration-data';
 export const objects = {
+  ...curiosities,
   studyNotes: { name: '书桌便签', kind: 'NOTES', action: '看看 / 留句话' },
   livingNotes: { name: '茶几便签', kind: 'NOTES', action: '看看 / 留句话' },
   bedroomNotes: { name: '床边便签', kind: 'NOTES', action: '看看 / 留句话' },

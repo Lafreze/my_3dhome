@@ -15,6 +15,13 @@ import { portalDestinations } from './game-layout';
 import { houseDoorLayout } from './house-door-layout';
 import HouseMap from './house-map';
 import CollectionAlbum from './collection-album';
+import {
+  curiosities,
+  curiosityIds,
+  isCuriosity,
+  explorationProgress,
+  type CuriosityId,
+} from './exploration-data';
 import { type CoffeeSnapshot } from './coffee-state';
 /* Local data-URL previews are already resized on upload; no image optimization server is used. */
 /* oxlint-disable next/no-img-element */
@@ -177,6 +184,9 @@ function StudioHome() {
   const [cameraMode, setCameraMode] = useState<'orbit' | 'pan'>('orbit');
   const [lifeBubble, setLifeBubble] = useState('');
   const [collectionData, setCollectionData] = useState<CollectionData>({});
+  const [curiosityBusy, setCuriosityBusy] = useState<
+    Partial<Record<CuriosityId, boolean>>
+  >({});
   const [collectionQueue, setCollectionQueue] = useState<string[]>([]);
   const furniturePicker = useRef<HTMLInputElement>(null);
   const furnitureTarget = useRef<keyof Appearance>('bed');
@@ -346,6 +356,8 @@ function StudioHome() {
         if (disposed || !host.current) return;
         try {
           api.current = createRoom(host.current, {
+            onCuriosity: (id, active) =>
+              setCuriosityBusy((state) => ({ ...state, [id]: active })),
             onLifeBubble: setLifeBubble,
             onCoffee: (state) => {
               setCoffeeState(state);
@@ -911,6 +923,12 @@ function StudioHome() {
   };
   const current =
     profile.projects[Math.min(project, profile.projects.length - 1)];
+  const wander = explorationProgress(collectionData);
+  const nearbyCuriosity = curiosityIds.find(
+    (id) => curiosities[id].room === view,
+  );
+  const selectedCuriosity =
+    selected && isCuriosity(selected) ? curiosities[selected] : null;
   return (
     <main
       className={`studio ${night ? 'night' : ''} ${selected ? 'focused' : ''} ${quiet && ready && !modal && !selected && !environmentOpen && !seatPanel ? 'quiet' : ''}`}
@@ -1026,7 +1044,10 @@ function StudioHome() {
           </div>
         )}
         {selected && (
-          <aside className="object-card" aria-live="polite">
+          <aside
+            className={`object-card${selectedCuriosity ? ' curiosity-card' : ''}`}
+            aria-live="polite"
+          >
             <div>
               <small>{objects[selected].kind}</small>
               <button
@@ -1038,27 +1059,50 @@ function StudioHome() {
               </button>
             </div>
             <h2>{objectTitle(selected)}</h2>
+            {selectedCuriosity && (
+              <p className="curiosity-description">
+                {collectionData[selectedCuriosity.collection]
+                  ? selectedCuriosity.story
+                  : selectedCuriosity.hint}
+              </p>
+            )}
             {(studio.admin ||
               (!(selected in appearanceLabels) && selected !== 'cafeSeat') ||
               selected === 'controller') && (
               <button
                 className="object-action"
+                disabled={
+                  isCuriosity(selected) && Boolean(curiosityBusy[selected])
+                }
                 onClick={() => action(selected)}
               >
-                {selected === 'lamp'
-                  ? lamp
-                    ? '关灯'
-                    : '开灯'
-                  : selected === 'record' ||
-                      selected === 'livingSpeakers' ||
-                      selected === 'livingRecord'
-                    ? music
-                      ? '暂停音乐'
-                      : '播放音乐'
-                    : objects[selected].action}
+                {isCuriosity(selected) && curiosityBusy[selected]
+                  ? '细节正在慢慢展开…'
+                  : selected === 'lamp'
+                    ? lamp
+                      ? '关灯'
+                      : '开灯'
+                    : selected === 'record' ||
+                        selected === 'livingSpeakers' ||
+                        selected === 'livingRecord'
+                      ? music
+                        ? '暂停音乐'
+                        : '播放音乐'
+                      : objects[selected].action}
                 <ArrowUpRight size={16} />
               </button>
             )}
+            {selectedCuriosity &&
+              collectionData[selectedCuriosity.collection] && (
+                <button
+                  className="curiosity-next"
+                  onClick={() => choose(selectedCuriosity.next)}
+                >
+                  下一处线索 ·{' '}
+                  {rooms[curiosities[selectedCuriosity.next].room].name}
+                  <ArrowRight size={13} />
+                </button>
+              )}
             {selected === 'controller' && studio.admin && (
               <button
                 className="text-button"
@@ -1501,6 +1545,7 @@ function StudioHome() {
           )}
           {modal === 'collections' && (
             <CollectionAlbum
+              onInspect={choose}
               data={collectionData}
               onVisit={(room) => {
                 setModal(null);
@@ -1707,6 +1752,46 @@ function StudioHome() {
           )}
           {modal === 'objects' && (
             <>
+              <section
+                className="explore-invitation"
+                aria-label="附近的拾光线索"
+              >
+                <div>
+                  <small>漫游拾光</small>
+                  <span>
+                    {wander.found} / {wander.total} 个发现
+                  </span>
+                </div>
+                <progress
+                  value={wander.found}
+                  max={wander.total}
+                  aria-label="已发现的小机关"
+                />
+                <h3>
+                  {nearbyCuriosity
+                    ? curiosities[nearbyCuriosity].name
+                    : '让好奇心带路。'}
+                </h3>
+                <p>
+                  {nearbyCuriosity
+                    ? curiosities[nearbyCuriosity].hint
+                    : '十个房间，十件值得停下来拨动的小物。'}
+                </p>
+                <div className="explore-invitation-actions">
+                  {nearbyCuriosity && (
+                    <button onClick={() => choose(nearbyCuriosity)}>
+                      {collectionData[curiosities[nearbyCuriosity].collection]
+                        ? '再玩一次'
+                        : '靠近看看'}
+                      <ArrowUpRight size={14} />
+                    </button>
+                  )}
+                  <button onClick={() => setModal('collections')}>
+                    查看漫游线索
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              </section>
               <div className="objects-grid">
                 {(Object.keys(objects) as ObjectId[])
                   .filter(

@@ -2241,7 +2241,59 @@ a {
 .coffee-menu output { display:block; margin:10px 0; color:#667455; }
 .collection-tabs { display:flex; gap:8px; margin:16px 0; }
 .collection-tabs button { border:0; padding:9px 12px; border-radius:20px; color:#727b67; background:#eeeee4; font-size:12px; }
-.collection-tabs button[aria-selected=true] { color:#fff; background:#6c7a5d; }
+.collection-tabs button[aria-pressed=true] { color:#fff; background:#6c7a5d; }
+
+/* Quiet, illustrated clues connect the physical objects without covering the room. */
+.curiosity-description { margin: 0 0 15px; color: #6f7566; font-size: 12px; line-height: 1.85; }
+.curiosity-next { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 12px 0 3px; padding: 11px 0; border: 0; border-top: 1px solid #dedfce; background: none; color: #637453; font-size: 11px; text-align: left; }
+.object-action:disabled { opacity: 0.65; cursor: wait; }
+.explore-invitation { margin: 4px 0 24px; padding: 22px; border: 1px solid #d8ddcb; border-radius: 14px; background: #f0f2e9; }
+.explore-invitation > div:first-child { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: #708063; }
+.explore-invitation > div:first-child small { letter-spacing: 2px; }
+.explore-invitation h3 { margin: 17px 0 6px; color: #344b39; font-size: 19px; font-weight: 500; }
+.explore-invitation p { margin: 0; font-size: 12px; line-height: 1.8; color: #717866; }
+.explore-invitation-actions { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 17px; }
+.explore-invitation-actions button { display: inline-flex; align-items: center; gap: 7px; border: none; padding: 4px 0; background: none; color: #4d6545; font-size: 12px; }
+.explore-invitation progress, .exploration-trail > progress { display: block; width: 100%; height: 3px; margin-top: 13px; border: none; border-radius: 2px; appearance: none; overflow: hidden; background: #dfe4d4; }
+.explore-invitation progress::-webkit-progress-bar, .exploration-trail > progress::-webkit-progress-bar { background: #dfe4d4; }
+.explore-invitation progress::-webkit-progress-value, .exploration-trail > progress::-webkit-progress-value { background: #748562; }
+.explore-invitation progress::-moz-progress-bar, .exploration-trail > progress::-moz-progress-bar { background: #748562; }
+.collection-tabs { flex-wrap: wrap; }
+.trail-intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 10px; }
+.trail-intro > div > small { color: #8c957e; letter-spacing: 2px; font-size: 9px; }
+.trail-intro h3 { margin: 10px 0 4px; font-weight: 500; font-size: 23px; color: #364c3b; line-height: 1.5; }
+.trail-count { flex-shrink: 0; font: 36px Georgia, serif; color: #6e7c5d; }
+.trail-count small { font-size: 16px; color: #90977f; }
+.trail-description { margin: 15px 0; color: #7a806d; font-size: 12px; line-height: 1.85; }
+.trail-continue { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 12px 16px; margin: 18px 0; background: #e9eddf; border: 1px solid #d7deca; border-radius: 8px; color: #4d6545; font-size: 12px; }
+.trail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.trail-card { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 19px; border: 1px solid #e2e1d5; border-radius: 10px; background: #f8f7f0; text-align: left; color: #8e9981; transition: border-color 160ms, background 160ms; }
+.trail-card:hover, .trail-card:focus-visible { background: #f1f1e7; border-color: #95a282; }
+.trail-card.found { background: #f4f0e5; color: #8a7656; border-color: #d8cdae; }
+.trail-card-top { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; line-height: 1.5; }
+.trail-card-top > span:last-child { flex-shrink: 0; }
+.trail-card svg:not(.lucide) { display: block; width: 114px; height: 90px; margin: 10px auto 5px; flex-shrink: 0; }
+.trail-card h4 { margin: 5px 0 8px; font-size: 15px; font-weight: 500; color: #44553d; }
+.trail-card p { margin: 0 0 18px; font-size: 11px; line-height: 1.9; color: #7a7c69; }
+.trail-card-link { margin-top: auto; display: flex; align-items: center; gap: 7px; font-size: 10px; }
+.night .curiosity-description { color: #afb9a5; }
+.night .curiosity-next { color: #bcc9ad; border-color: #4d5b48; }
+@media (max-width: 480px) {
+  .curiosity-card { left: 16px; right: 58px; width: auto; bottom: 130px; padding: 11px 15px; }
+  .curiosity-card h2 { margin-bottom: 10px; font-size: 17px; }
+  .curiosity-card .curiosity-description { margin-bottom: 7px; line-height: 1.65; }
+  .curiosity-card .curiosity-next { margin: 6px 0 2px; padding: 8px 0; }
+  .curiosity-card .object-action { padding: 10px 0 7px; }
+  .explore-invitation { padding: 17px; }
+  .trail-intro h3 { font-size: 18px; }
+  .trail-grid { gap: 9px; }
+  .trail-card { padding: 12px; }
+  .trail-card-top { font-size: 9px; flex-wrap: wrap; }
+  .trail-card h4 { font-size: 13px; }
+  .collection-tabs { gap: 5px; }
+  .collection-tabs button { padding: 9px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .trail-card { transition: none; } }
 .collection-picture { display:block; width:100%; height:110px; object-fit:cover; border-radius:10px; }
 .life-card small { display:block; font-size:10px; margin:10px 0; }
 .postcard-content img { width:100%; border-radius:12px; }

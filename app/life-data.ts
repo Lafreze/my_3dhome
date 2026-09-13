@@ -1,4 +1,5 @@
 import type { RoomId } from './house-data';
+import { curiosityCards } from './exploration-data.ts';
 import { rooms } from './house-data.ts';
 import seatRoutes from '../config/visitor-routes.json' with { type: 'json' };
 
@@ -468,6 +469,7 @@ export const eventRules = {
   greeting: { cooldown: 8, duration: 3 },
 } as const;
 export const collectionCards = {
+  ...curiosityCards,
   'story.pressedLeaf': {
     title: '手记里的叶子',
     mark: '叶',

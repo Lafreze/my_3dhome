@@ -23,6 +23,8 @@ import { buildHouse } from './house-rooms';
 import { createLivedInDetails } from './lived-in-details';
 import { RecordMechanism } from './record-mechanism';
 import { createQuietObjects } from './quiet-objects';
+import { createExplorationModels } from './exploration-models';
+import { isCuriosity, type CuriosityId } from './exploration-data';
 import {
   rooms,
   roomAt,
@@ -55,6 +57,7 @@ import type { ActorId, CollectionData } from './life-data';
 import type { Visitor } from './seat-data';
 
 type Options = {
+  onCuriosity: (id: CuriosityId, active: boolean) => void;
   onCoffee: (state: CoffeeSnapshot) => void;
   onLifeBubble: (text: string) => void;
   onCollections: (data: CollectionData, message: string) => void;
@@ -1960,6 +1963,19 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     moment: () => life?.objectMoment(),
     bellReply: () => life?.ringBell() ?? false,
   });
+  const exploration = createExplorationModels({
+    roots: house.roots,
+    groups,
+    interactables,
+    materials,
+    textures,
+    oak,
+    brass,
+    cutaways,
+    collect: options.onCollections,
+    moment: () => life?.objectMoment(),
+    changed: options.onCuriosity,
+  });
   breeze.add(leafMat);
   house.setView('study');
   if (seatAnchors.size !== seats.length)
@@ -2016,6 +2032,20 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         idle: visitors.idleSnapshot,
         gifts: visitors.gifts,
         objects: quietObjects.snapshot,
+        exploration: exploration.snapshot,
+        objectPoint: (id: ObjectId) => {
+          const g = groups.get(id);
+          if (!g) return null;
+          const p = new T.Box3()
+            .setFromObject(g)
+            .getCenter(new T.Vector3())
+            .project(camera);
+          const r = renderer.domElement.getBoundingClientRect();
+          return {
+            x: r.left + ((p.x + 1) * r.width) / 2,
+            y: r.top + ((1 - p.y) * r.height) / 2,
+          };
+        },
         devices: livedDetails.snapshot,
         record: () => ({
           phase: studyRecord.phase,
@@ -2258,6 +2288,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     );
     camera.updateProjectionMatrix();
     if (focusedObject === 'television') frameTelevision();
+    if (focusedObject && isCuriosity(focusedObject))
+      queueMicrotask(() => {
+        if (focusedObject) api.focus(focusedObject);
+      });
     if (activeView === 'plan') queueMicrotask(() => api.setView('plan'));
   };
   const observer = new ResizeObserver(resize);
@@ -2378,6 +2412,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       life?.eventBusy() ?? false,
     );
     quietObjects.update(dt, lifePaused, motionPreference.matches, activeView);
+    exploration.update(dt, lifePaused, motionPreference.matches, activeView);
     livedDetails.update(dt, lifePaused, motionPreference.matches, activeView);
     occlusion.restore();
     if (cutaways.update(activeView, camera.position)) refreshShadows();
@@ -2661,6 +2696,33 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         this.reset();
         return;
       }
+      controls.maxPolarAngle = Math.PI / 2.15;
+      if (isCuriosity(id)) {
+        const center = new T.Box3().setFromObject(g).getCenter(new T.Vector3());
+        const directions: Partial<Record<CuriosityId, T.Vector3>> = {
+          galleryFlipbook: new T.Vector3(1, 0.42, 0.25),
+          corridorChime: new T.Vector3(-1, -0.1, 0.55),
+          bedroomMusicBox: new T.Vector3(-0.45, 1, 1),
+          cafeGrinder: new T.Vector3(0.3, 0.65, 1),
+        };
+        const dir = (directions[id] ?? new T.Vector3(0.24, 0.6, 1)).normalize();
+        const distance =
+          id === 'corridorChime' ? 1.65 : id === 'bedroomMusicBox' ? 1 : 1.5;
+        // Portrait screens reserve the lower area for the action card.
+        if (camera.aspect < 0.85) {
+          const right = new T.Vector3()
+            .crossVectors(new T.Vector3(0, 1, 0), dir)
+            .normalize();
+          const up = new T.Vector3().crossVectors(dir, right).normalize();
+          center.addScaledVector(
+            up,
+            -distance * Math.tan(T.MathUtils.degToRad(camera.fov / 2)) * 0.38,
+          );
+        }
+        controls.minDistance = 0.55;
+        moveTo(center.clone().addScaledVector(dir, distance), center);
+        return;
+      }
       if (room === 'garden') {
         const center = new T.Box3().setFromObject(g).getCenter(new T.Vector3());
         controls.minDistance = 1.2;
@@ -2853,6 +2915,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     interact(id, detail) {
       refreshShadows();
+      if (isCuriosity(id)) {
+        if (exploration.interact(id)) refreshShadows(9000);
+        return;
+      }
       if (['cafeEspresso', 'cafePourOver'].includes(id)) life?.claimCoffee();
       house.interact(id, detail);
       if (id === 'bed')
@@ -2934,6 +3000,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       });
     },
     dispose() {
+      exploration.dispose();
       quietObjects.dispose();
       coffeeSteam.dispose();
       disposed = true;

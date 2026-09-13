@@ -1,3 +1,4 @@
+import { curiosities, isCuriosity } from './exploration-data.ts';
 export const rooms = {
   study: {
     name: '书房',
@@ -457,6 +458,7 @@ export const objectRooms: Record<keyof typeof newObjects, RoomId> = {
   galleryWindow: 'gallery',
 };
 export function roomForObject(id: string): RoomId {
+  if (isCuriosity(id)) return curiosities[id].room;
   if (id.endsWith('Notes') && id.slice(0, -5) in rooms)
     return id.slice(0, -5) as RoomId;
   return objectRooms[id as keyof typeof objectRooms] ?? 'study';

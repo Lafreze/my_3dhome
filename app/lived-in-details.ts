@@ -408,7 +408,8 @@ export function createLivedInDetails(k: {
   // Only two or three items on each bedside surface; no new floor obstacles.
   const bedside = group(k.roots.bedroom, -2.55, 0.744, -1.94);
   bedside.name = 'bedside-used-details';
-  box(bedside, 0.19, 0.035, 0.11, rust, -0.2, 0.02, -0.15);
+  // Keep the spectacle case beside the books, clear of the music-box lid and base.
+  box(bedside, 0.19, 0.035, 0.11, rust, -0.235, 0.02, 0.2);
   const water = group(bedside, 0.21, 0, -0.1);
   lathe(
     water,
