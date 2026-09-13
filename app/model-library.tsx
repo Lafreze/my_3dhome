@@ -116,14 +116,12 @@ export default function ModelLibrary() {
     location.assign('#' + item.id);
     setAuto(false);
     if (innerWidth <= 700)
-      host.current
-        ?.closest('.model-library')
-        ?.scrollTo({
-          top: 120,
-          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? 'instant'
-            : 'smooth',
-        });
+      host.current?.closest('.model-library')?.scrollTo({
+        top: 120,
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'instant'
+          : 'smooth',
+      });
   };
   const upload = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -189,7 +187,11 @@ export default function ModelLibrary() {
         <a className="archive-brand" href="/">
           SATORI<small>OBJECT ARCHIVE</small>
         </a>
-        <button className="archive-manage" onClick={() => setManage((v) => !v)}>
+        <button
+          className="archive-manage"
+          aria-label={studio.admin ? '添加藏品' : '管理藏品'}
+          onClick={() => setManage((v) => !v)}
+        >
           <Plus size={16} />
           <span>{studio.admin ? '添加藏品' : '管理藏品'}</span>
         </button>

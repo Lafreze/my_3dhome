@@ -2765,7 +2765,7 @@ a {
 .archive-notice { display:flex; justify-content:space-between; align-items:center; padding:13px 16px; margin:0 0 20px; background:#e4e9d9; color:#5c6d50; border:1px solid #ccd5be; border-radius:6px; font-size:12px; }
 .archive-notice button { border:0; background:none; color:inherit; }
 .archive-overlay { background:#1b261d88; backdrop-filter:blur(9px); }
-.archive-upload { position:fixed; display:block; max-width:calc(100vw - 36px); color:#344139; font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif; background:#f5f2e9; width:460px; max-width:100%; max-height:calc(100dvh - 48px); overflow:auto; border-radius:14px; padding:34px; box-shadow:0 24px 80px #15231533; }
+.archive-upload { position:fixed; display:block; max-width:calc(100vw - 36px); color:#344139; font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif; background:#f5f2e9; width:460px; max-width:calc(100vw - 36px); max-height:calc(100dvh - 48px); overflow:auto; border-radius:14px; padding:34px; box-shadow:0 24px 80px #15231533; }
 .archive-upload-close { position:absolute; right:20px; top:20px; border:0; background:none; color:#778068; }
 .archive-upload > small { color:#9a9f87; letter-spacing:1.8px; font-size:8px; }
 .archive-upload h2 { margin:14px 0 20px; font-size:23px; font-weight:500; }
