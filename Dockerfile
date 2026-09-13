@@ -19,6 +19,7 @@ COPY --from=build --chown=node:node /app/scripts/seat-presence.mjs ./scripts/sea
 COPY --from=build --chown=node:node /app/scripts/house-settings.mjs ./scripts/house-settings.mjs
 COPY --from=build --chown=node:node /app/scripts/room-notes.mjs ./scripts/room-notes.mjs
 COPY --from=build --chown=node:node /app/scripts/model-library.mjs ./scripts/model-library.mjs
+COPY --from=build --chown=node:node /app/scripts/model-uploads.mjs ./scripts/model-uploads.mjs
 COPY --from=build --chown=node:node /app/scripts/model-storage.mjs ./scripts/model-storage.mjs
 COPY --from=build --chown=node:node /app/scripts/model-compression.mjs ./scripts/model-compression.mjs
 COPY --from=build --chown=node:node /app/scripts/model-compression-worker.mjs ./scripts/model-compression-worker.mjs

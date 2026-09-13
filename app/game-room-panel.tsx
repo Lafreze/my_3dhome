@@ -10,7 +10,6 @@ import {
   Pause,
   Play,
   RotateCcw,
-  Trophy,
   X,
 } from 'lucide-react';
 import {
@@ -38,8 +37,37 @@ import {
   type Gomoku,
 } from './game-engine';
 import type { RoomApi } from './room-data';
+import CabinetPlayer, { GameLibrary } from './cabinet-player';
+import { cabinetIds, type CabinetId } from './cabinet-engine';
 export type PlaySelection = GameId | 'collection' | 'console' | null;
-export default function GameRoomPanel({
+type PanelProps = {
+  selection: PlaySelection;
+  onClose: () => void;
+  onChoose: (id: Exclude<PlaySelection, null>) => void;
+  api: React.RefObject<RoomApi | null>;
+};
+export default function GameRoomPanel(props: PanelProps) {
+  if (props.selection === 'console' || props.selection === 'collection')
+    return (
+      <GameLibrary
+        consoleOnly={props.selection === 'console'}
+        onClose={props.onClose}
+        onChoose={props.onChoose}
+      />
+    );
+  if (cabinetIds.includes(props.selection as CabinetId))
+    return (
+      <CabinetPlayer
+        key={props.selection}
+        id={props.selection as CabinetId}
+        api={props.api}
+        onClose={props.onClose}
+        onLibrary={() => props.onChoose('collection')}
+      />
+    );
+  return <ClassicGamePanel {...props} />;
+}
+function ClassicGamePanel({
   selection,
   onClose,
   onChoose,
@@ -47,7 +75,7 @@ export default function GameRoomPanel({
 }: {
   selection: PlaySelection;
   onClose: () => void;
-  onChoose: (id: GameId) => void;
+  onChoose: (id: Exclude<PlaySelection, null>) => void;
   api: React.RefObject<RoomApi | null>;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
@@ -116,6 +144,7 @@ export default function GameRoomPanel({
       selection === 'blocks' || selection === 'snake'
         ? createArcade(selection)
         : null;
+    if (game.current) game.current.target = 20;
     board.current = createGomoku();
     renderArcade();
     redraw((n) => n + 1);
@@ -127,15 +156,20 @@ export default function GameRoomPanel({
   }, [selection, api, renderArcade]);
   useEffect(() => {
     if (selection !== 'blocks' && selection !== 'snake') return;
-    const timer = setInterval(
-      () => {
-        if (game.current?.status === 'playing') {
-          tickArcade(game.current);
-          renderArcade();
-        }
-      },
-      selection === 'blocks' ? 600 : 170,
-    );
+    let elapsed = 0;
+    const timer = setInterval(() => {
+      if (game.current?.status === 'playing') {
+        elapsed += 50;
+        const speed =
+          selection === 'blocks'
+            ? Math.max(130, 600 - Math.floor(game.current.progress / 4) * 85)
+            : Math.max(90, 170 - game.current.progress * 4);
+        if (elapsed < speed) return;
+        elapsed = 0;
+        tickArcade(game.current);
+        renderArcade();
+      }
+    }, 50);
     const hidden = () => {
       if (document.hidden && game.current?.status === 'playing') {
         game.current.status = 'paused';
@@ -198,6 +232,7 @@ export default function GameRoomPanel({
     awarded.current = false;
     if (selection === 'blocks' || selection === 'snake') {
       game.current = createArcade(selection);
+      game.current.target = 20;
       game.current.status = 'playing';
       renderArcade();
     } else {
@@ -250,7 +285,7 @@ export default function GameRoomPanel({
             ? '已暂停'
             : g?.status === 'ready'
               ? '按开始，给自己一小段游戏时间'
-              : `得分 ${g?.score ?? 0} · ${g?.progress ?? 0} / ${selection === 'blocks' ? '5 行' : '8 枚果实'}`;
+              : `得分 ${g?.score ?? 0} · ${g?.progress ?? 0} / ${selection === 'blocks' ? '20 行' : '20 枚果实'}`;
   return (
     <Dialog
       open={selection !== null}
@@ -290,43 +325,10 @@ export default function GameRoomPanel({
               : selection === 'gomoku'
                 ? '单人练习或同屏双人 · 棋子同步落在房间的圆桌上'
                 : selection === 'blocks'
-                  ? '消除 5 行赢取山丘奖杯 · ↑ 旋转，↓ 加速，空格落到底'
-                  : '吃到 8 枚果实赢取花园奖杯 · 方向键或 WASD 移动'}
+                  ? '消除 20 行赢取山丘奖杯 · ↑ 旋转，↓ 加速，空格落到底'
+                  : '吃到 20 枚果实赢取花园奖杯 · 方向键或 WASD 移动'}
         </DialogDescription>
-        {selection === 'collection' || selection === 'console' ? (
-          <div className="play-library">
-            {selection === 'console' && (
-              <p className="play-coming">
-                主机区目前播放赛车演示。首版开放以下三款游戏，点击卡片即可前往对应设备。
-              </p>
-            )}
-            {(Object.keys(gameNames) as GameId[]).map((id, i) => (
-              <button
-                key={id}
-                className="play-game-card"
-                onClick={() => onChoose(id)}
-              >
-                <span className="play-card-number">0{i + 1}</span>
-                <span>
-                  <strong>{gameNames[id]}</strong>
-                  <small>
-                    {id === 'gomoku' ? '圆桌 · 单人 / 双人' : '街机 · 单人挑战'}
-                  </small>
-                  <small>
-                    最高 {records[id].best} · 通关 {records[id].wins} 次
-                  </small>
-                </span>
-                <Trophy
-                  size={24}
-                  className={records[id].wins ? 'play-earned' : 'play-unearned'}
-                />
-              </button>
-            ))}
-            <p className="play-storage">
-              成绩保存在当前浏览器。每款游戏首次通关，会在房间里增加一件实体奖杯或奖牌。
-            </p>
-          </div>
-        ) : (
+        {
           <>
             <output className="play-status" aria-live="polite">
               {status}
@@ -403,6 +405,7 @@ export default function GameRoomPanel({
                   ? '开始对局'
                   : '重新开始'}
               </button>
+              <button onClick={() => onChoose('collection')}>游戏库</button>
               <button onClick={onClose}>返回房间</button>
             </div>
             {selection !== 'gomoku' && (
@@ -430,7 +433,7 @@ export default function GameRoomPanel({
               </div>
             )}
           </>
-        )}
+        }
         {!saved && (
           <output className="play-storage">
             浏览器未能保存成绩，本次游玩记录仍保留在当前页面。

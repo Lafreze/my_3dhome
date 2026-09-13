@@ -2,7 +2,8 @@ import { corridorArtworks, corridorArtTexture } from './corridor-art';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { addOakFloor } from './house-finishes';
+import type { PinballView } from './cabinet-engine';
+import { addOakFloor, makeSurface } from './house-finishes';
 import { drapedLinen } from './bed-linen';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { rooms, type HouseView } from './house-data';
@@ -53,6 +54,8 @@ export function buildGameRoom(k: Kit) {
     steel = mat('#b9c4c1', 0.19, 0.9),
     ink = mat('#172b24'),
     leaf = mat('#6a8658');
+  Object.assign(steel, makeSurface('brushed-metal', k.textures));
+  steel.roughness = 0.24;
   const cloth = k.textile('#839172'),
     throwCloth = k.textile('#e3d6b9'),
     cushionCloth = k.textile('#c49e61');
@@ -92,7 +95,13 @@ export function buildGameRoom(k: Kit) {
     mesh(
       p,
       r
-        ? new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 3, h / 3, d / 3))
+        ? new RoundedBoxGeometry(
+            w,
+            h,
+            d,
+            r >= 0.045 ? 4 : 2,
+            Math.min(r, w / 3, h / 3, d / 3),
+          )
         : new T.BoxGeometry(w, h, d),
       m,
       x,
@@ -119,7 +128,16 @@ export function buildGameRoom(k: Kit) {
     z: number,
     m: T.Material,
     name?: string,
-  ) => mesh(p, new T.SphereGeometry(r, 16, 10), m, x, y, z, name);
+  ) =>
+    mesh(
+      p,
+      new T.SphereGeometry(r, r > 0.035 ? 24 : 16, r > 0.035 ? 16 : 10),
+      m,
+      x,
+      y,
+      z,
+      name,
+    );
   const group = (p: T.Object3D, x = 0, y = 0, z = 0, name?: string) => {
     const g = new T.Group();
     g.position.set(x, y, z);
@@ -454,6 +472,20 @@ export function buildGameRoom(k: Kit) {
     for (let j = 0; j < 8; j++)
       box(g, 0.46, 0.012, 0.02, 0, 1.18 + j * 0.023, 0.449, darkWood, 0.003);
     label(g, 'FREE PLAY', 0.51, 0, 0.35, 0.454);
+    for (const x of [-0.17, 0.17])
+      for (const y of [0.425, 0.88]) {
+        cyl(g, 0.012, 0.012, 0.008, x, y, 0.464, steel).rotation.x =
+          Math.PI / 2;
+        box(g, 0.014, 0.003, 0.002, x, y, 0.47, ink, 0);
+      }
+    for (const x of [-0.48, 0.48])
+      for (const z of [-0.17, 0.17]) {
+        cyl(deck, 0.013, 0.013, 0.004, x, 0.067, z, steel);
+        box(deck, 0.014, 0.002, 0.003, x, 0.07, z, ink, 0);
+      }
+    box(g, 1.02, 0.012, 0.017, 0, 2.61, -0.16, steel, 0.004);
+    for (let j = 0; j < 11; j++)
+      box(g, 0.005, 0.085, 0.004, -0.47 + j * 0.02, 2.5, -0.14, ink, 0);
   }
   // Pinball: sloping enclosed playfield, real rails, bumper caps, hinged flippers and a spring plunger.
   const pin = object('gamePinball', f.pinball.x, f.pinball.z);
@@ -476,7 +508,7 @@ export function buildGameRoom(k: Kit) {
     'pinball/field-art',
     (ctx) => {
       const h = ctx.canvas.height;
-      ctx.fillStyle = '#78916a';
+      ctx.fillStyle = '#244956';
       ctx.fillRect(0, 0, 640, h);
       ctx.strokeStyle = '#ddc787';
       ctx.lineWidth = 12;
@@ -486,7 +518,7 @@ export function buildGameRoom(k: Kit) {
       ctx.fillStyle = '#e9d7ac';
       ctx.font = 'bold 68px serif';
       ctx.textAlign = 'center';
-      ctx.fillText('FOREST', 320, h * 0.43);
+      ctx.fillText('ORBIT', 320, h * 0.43);
       ctx.font = '30px monospace';
       ctx.fillText('PINBALL CLUB', 320, h * 0.5);
     },
@@ -588,7 +620,7 @@ export function buildGameRoom(k: Kit) {
   box(pin, 1.2, 0.77, 0.17, 0, 1.9, -0.88, oak);
   const pinScore = label(
     pin,
-    'FOREST  /  0000',
+    'ORBIT  /  0000',
     1.04,
     0,
     2.1,
@@ -745,7 +777,7 @@ export function buildGameRoom(k: Kit) {
     0,
     2.23,
     -0.054,
-    'console/racing-demo',
+    'console/game-screen',
     () => {},
   );
   const paintRace = (t: number) => {
@@ -780,10 +812,11 @@ export function buildGameRoom(k: Kit) {
     }
     ctx.fillStyle = '#efe5c8';
     ctx.font = '16px monospace';
-    ctx.fillText('SUNDAY DRIVE  /  DEMO', 18, h - 15);
+    ctx.fillText('SUNDAY DRIVE  /  PRESS PLAY', 18, h - 15);
     tv.texture.needsUpdate = true;
   };
   paintRace(0);
+  displays.console = tv;
   function controller(p: T.Object3D, x: number, y: number, z: number, s = 1) {
     const g = group(p, x, y, z);
     g.scale.setScalar(s);
@@ -806,11 +839,57 @@ export function buildGameRoom(k: Kit) {
       );
     box(g, 0.055, 0.012, 0.016, -0.1, 0.047, -0.029, charcoal);
     box(g, 0.016, 0.012, 0.055, -0.1, 0.047, -0.029, charcoal);
+    for (const side of [-1, 1]) {
+      box(g, 0.108, 0.024, 0.03, side * 0.114, 0.004, -0.088, charcoal, 0.01);
+      const ring = mesh(
+        g,
+        new T.TorusGeometry(0.024, 0.004, 6, 24),
+        steel,
+        side * 0.076,
+        0.067,
+        0.047,
+      );
+      ring.rotation.x = -Math.PI / 2;
+    }
+    box(g, 0.056, 0.005, 0.03, 0, 0.042, -0.037, charcoal, 0.005);
+    for (let j = 0; j < 5; j++)
+      box(
+        g,
+        0.0025,
+        0.002,
+        0.018,
+        -0.012 + j * 0.006,
+        0.047,
+        0.003,
+        charcoal,
+        0,
+      );
+    box(g, 0.055, 0.007, 0.005, 0, 0.039, -0.085, gold, 0.002);
     return g;
   }
   box(media, 0.47, 0.055, 0.27, 0.67, 0.95, 0.07, forest);
   controller(media, 0.67, 1.01, 0.07);
   controller(media, 1.28, 0.99, 0.1, 0.8);
+  // Console ventilation and a recessed front drive, all inside the existing cabinet.
+  box(media, 0.37, 0.009, 0.006, -0.13, 0.438, 0.224, charcoal, 0.003);
+  cyl(media, 0.012, 0.012, 0.006, 0.34, 0.438, 0.224, forest).rotation.x =
+    Math.PI / 2;
+  for (let j = 0; j < 16; j++)
+    box(
+      media,
+      0.007,
+      0.003,
+      0.2,
+      -0.36 + j * 0.045,
+      0.477,
+      -0.01,
+      charcoal,
+      0.001,
+    );
+  for (const x of [-1.7, 1.7]) {
+    box(media, 0.18, 0.065, 0.085, x, 1.117, -0.08, charcoal, 0.02);
+    box(media, 0.23, 0.019, 0.2, x, 1.092, -0.04, steel, 0.01);
+  }
   // An open case with an exposed cartridge and illustrated inside cover.
   const openCase = group(media, -1.24, 0.947, 0.06);
   box(openCase, 0.33, 0.024, 0.36, 0, 0, 0, forest);
@@ -835,6 +914,31 @@ export function buildGameRoom(k: Kit) {
     box(sofa, 1.19, 0.23, 0.96, x, 0.595, 0.04, cloth, 0.1);
     const back = box(sofa, 1.16, 0.5, 0.19, x, 0.94, -0.29, cloth, 0.075);
     back.rotation.x = -0.1;
+    tube(
+      sofa,
+      [
+        [x - 0.51, 0.617, -0.32],
+        [x - 0.54, 0.617, 0.37],
+        [x - 0.48, 0.617, 0.49],
+        [x + 0.48, 0.617, 0.49],
+        [x + 0.54, 0.617, 0.37],
+        [x + 0.51, 0.617, -0.32],
+      ],
+      0.006,
+      throwCloth,
+    );
+    for (let j = 0; j < 20; j++)
+      box(
+        sofa,
+        0.013,
+        0.002,
+        0.003,
+        x - 0.46 + j * 0.048,
+        0.642,
+        0.505,
+        throwCloth,
+        0,
+      );
   }
   const pillow = box(
     sofa,
@@ -1397,6 +1501,7 @@ export function buildGameRoom(k: Kit) {
   batch(root);
   batch(corridor);
   const live = new Set<string>();
+  let pinballLive: PinballView | null = null;
   let lastFrame = -1,
     now = 0,
     pinStart = -100,
@@ -1423,7 +1528,10 @@ export function buildGameRoom(k: Kit) {
         seats: [...k.seats.keys()].filter((id) => id.startsWith('gaming-')),
       };
     },
-    setGameScreen(id: 'blocks' | 'snake', source: HTMLCanvasElement | null) {
+    setGameScreen(
+      id: 'blocks' | 'snake' | 'console',
+      source: HTMLCanvasElement | null,
+    ) {
       if (source) {
         live.add(id);
         const d = displays[id];
@@ -1432,6 +1540,35 @@ export function buildGameRoom(k: Kit) {
           .drawImage(source, 0, 0, d.canvas.width, d.canvas.height);
         d.texture.needsUpdate = true;
       } else live.delete(id);
+    },
+    setPinballState(state: PinballView | null) {
+      pinballLive = state;
+      if (!state) return;
+      silverBall.position.set(
+        (state.x - 360) / 280,
+        0.12,
+        (state.y - 245) / 240,
+      );
+      flippers.forEach(
+        (g, i) =>
+          (g.rotation.y = (i === 0 ? state.left : state.right)
+            ? i === 0
+              ? -0.55
+              : 0.55
+            : 0),
+      );
+      const ctx = pinScore.canvas.getContext('2d')!;
+      ctx.fillStyle = '#20392e';
+      ctx.fillRect(0, 0, 640, ctx.canvas.height);
+      ctx.fillStyle = '#dbc68f';
+      ctx.font = '49px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        `ORBIT / ${String(state.score).padStart(5, '0')}`,
+        320,
+        ctx.canvas.height * 0.65,
+      );
+      pinScore.texture.needsUpdate = true;
     },
     setGameBoard: setBoard,
     setGameRecords: setRecords,
@@ -1475,7 +1612,7 @@ export function buildGameRoom(k: Kit) {
       }
       if (Math.floor(t * 6) !== lastFrame) {
         lastFrame = Math.floor(t * 6);
-        if (!reduced) paintRace(t);
+        if (!reduced && !live.has('console')) paintRace(t);
         for (const id of ['blocks', 'snake'] as const) {
           if (live.has(id)) continue;
           const demo = createArcade(id, () => 0.3),
@@ -1501,6 +1638,7 @@ export function buildGameRoom(k: Kit) {
           displays[id].texture.needsUpdate = true;
         }
       }
+      if (pinballLive) return;
       if (!reduced && t - pinStart > 26) pinStart = t;
       const elapsed = t - pinStart;
       const run = elapsed >= 0 && elapsed < 7 && (!reduced || pinStart > 0);
@@ -1524,7 +1662,7 @@ export function buildGameRoom(k: Kit) {
         ctx.font = '49px monospace';
         ctx.textAlign = 'center';
         ctx.fillText(
-          `FOREST / ${String(Math.floor(elapsed * 120)).padStart(4, '0')}`,
+          `ORBIT / ${String(Math.floor(elapsed * 120)).padStart(4, '0')}`,
           320,
           ctx.canvas.height * 0.65,
         );

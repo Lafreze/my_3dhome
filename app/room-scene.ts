@@ -218,8 +218,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     m.roughness = 0.96;
     m.normalScale.set(0.05, 0.05);
   }
+  Object.assign(brass, makeSurface('brushed-metal', textures));
+  brass.roughness = 0.31;
   const textile = (color: string) => {
-    const m = fabric(mat(color));
+    const m = new T.MeshPhysicalMaterial({
+      color,
+      sheen: 0.32,
+      sheenRoughness: 0.92,
+      sheenColor: new T.Color('#d4c8ad'),
+    });
+    materials.push(m);
+    fabric(m);
     Object.assign(m, clothMaps);
     m.normalScale.set(0.13, 0.13);
     m.roughness = 0.96;
@@ -2528,6 +2537,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     setBarRecord: house.setBarRecord,
     setBarDarts: house.setBarDarts,
     setGameScreen: house.setGameScreen,
+    setPinballState: house.setPinballState,
     setGameBoard: house.setGameBoard,
     setGameRecords: house.setGameRecords,
     setCameraMode(mode) {

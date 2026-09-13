@@ -1,5 +1,5 @@
 {
-  "version": "f6db6a6de0fc1367",
+  "version": "a76309a5380b3b67",
   "roomSizes": {
     "study": {
       "bytes": 5606248,
@@ -14,7 +14,7 @@
       "files": 10
     },
     "gallery": {
-      "bytes": 9808620,
+      "bytes": 10765272,
       "files": 18
     },
     "cafe": {
@@ -220,12 +220,12 @@
     },
     {
       "path": "public/models/exhibits/aureole-detail.glb",
-      "bytes": 1659016,
+      "bytes": 2405748,
       "classification": "catalogued-production"
     },
     {
       "path": "public/models/exhibits/aureole-room.glb",
-      "bytes": 621612,
+      "bytes": 913004,
       "classification": "catalogued-production"
     },
     {
@@ -235,12 +235,12 @@
     },
     {
       "path": "public/models/exhibits/reaper-detail.glb",
-      "bytes": 1598316,
+      "bytes": 2398768,
       "classification": "catalogued-production"
     },
     {
       "path": "public/models/exhibits/reaper-room.glb",
-      "bytes": 596380,
+      "bytes": 917076,
       "classification": "catalogued-production"
     },
     {
@@ -250,12 +250,12 @@
     },
     {
       "path": "public/models/exhibits/seraph-detail.glb",
-      "bytes": 1793032,
+      "bytes": 2699348,
       "classification": "catalogued-production"
     },
     {
       "path": "public/models/exhibits/seraph-room.glb",
-      "bytes": 667944,
+      "bytes": 1012508,
       "classification": "catalogued-production"
     },
     {

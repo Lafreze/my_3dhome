@@ -10,18 +10,27 @@ export async function compressModel(bytes) {
         workerData: data,
         execArgv: [],
         transferList: [data.buffer],
-        resourceLimits: { maxOldGenerationSizeMb: 512 },
+        resourceLimits: { maxOldGenerationSizeMb: 768 },
       },
     );
+    let received = false;
     const timer = setTimeout(() => {
       void worker.terminate();
       reject(new Error('Compression timed out'));
-    }, 90000);
+    }, 180000);
     worker.once('message', (result) => {
+      received = true;
       clearTimeout(timer);
       if (result.error)
         reject(new Error('Compression unavailable for this model'));
-      else resolve(Buffer.from(result.bytes));
+      else
+        resolve(
+          Buffer.from(
+            result.bytes.buffer,
+            result.bytes.byteOffset,
+            result.bytes.byteLength,
+          ),
+        );
     });
     worker.once('error', (error) => {
       clearTimeout(timer);
@@ -29,7 +38,8 @@ export async function compressModel(bytes) {
     });
     worker.once('exit', (code) => {
       clearTimeout(timer);
-      if (code !== 0) reject(new Error('Compression worker stopped'));
+      if (code !== 0 || !received)
+        reject(new Error('Compression worker stopped'));
     });
   });
 }

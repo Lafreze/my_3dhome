@@ -4,14 +4,14 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { createModelStorage } from './model-storage.mjs';
 import { compressModel } from './model-compression.mjs';
 
-export const MAX_MODEL_BYTES = 80 * 1024 * 1024;
+export const MAX_MODEL_BYTES = 200 * 1024 * 1024;
 const MAX_LIBRARY_BYTES = 1024 * 1024 * 1024;
 const fail = (status, message) => Object.assign(new Error(message), { status });
 
 /** Accept self-contained GLB 2.0 only; a model cannot fetch arbitrary remote resources. */
 export function validateModelGlb(bytes) {
   if (bytes.length < 32 || bytes.length > MAX_MODEL_BYTES)
-    throw fail(413, '模型需小于 80 MB。');
+    throw fail(413, '模型不能超过 200 MB。');
   if (
     bytes.readUInt32LE(0) !== 0x46546c67 ||
     bytes.readUInt32LE(4) !== 2 ||
@@ -297,7 +297,7 @@ export async function createModelLibrary(
           throw fail(415, '请选择 GLB 模型文件。');
         if (Number(req.headers['content-length']) > MAX_MODEL_BYTES) {
           req.resume();
-          throw fail(413, '模型需小于 80 MB。');
+          throw fail(413, '模型不能超过 200 MB。');
         }
         let metadata;
         try {
@@ -320,14 +320,27 @@ export async function createModelLibrary(
             typeof metadata.compress !== 'boolean')
         )
           throw fail(400, '模型名称、说明或上传选项无效。');
+        // Known-length uploads are filled directly: avoid retaining 200 MB of
+        // chunks alongside another 200 MB concatenation while codecs run.
+        const declared = Number(req.headers['content-length']);
+        const allocated =
+          Number.isSafeInteger(declared) && declared > 0
+            ? Buffer.allocUnsafe(declared)
+            : null;
         const chunks = [];
         let size = 0;
         for await (const chunk of req) {
-          size += chunk.length;
-          if (size > MAX_MODEL_BYTES) throw fail(413, '模型需小于 80 MB。');
-          chunks.push(chunk);
+          const end = size + chunk.length;
+          if (end > MAX_MODEL_BYTES) throw fail(413, '模型不能超过 200 MB。');
+          if (allocated) {
+            if (end > allocated.length) throw fail(400, '文件长度不符。');
+            chunk.copy(allocated, size);
+          } else chunks.push(chunk);
+          size = end;
         }
-        let content = Buffer.concat(chunks);
+        if (allocated && size !== allocated.length)
+          throw fail(400, '上传未完成。');
+        let content = allocated || Buffer.concat(chunks, size);
         chunks.length = 0;
         validateModelGlb(content);
         let compression = 'original';

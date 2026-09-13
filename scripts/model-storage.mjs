@@ -34,13 +34,16 @@ export function createModelStorage(
       const iv = randomBytes(12),
         cipher = createCipheriv('aes-256-gcm', key, iv);
       cipher.setAAD(Buffer.from(object));
-      const encrypted = Buffer.concat([cipher.update(bytes), cipher.final()]);
-      const body = Buffer.concat([
-        Buffer.from('KMR1'),
-        iv,
-        cipher.getAuthTag(),
-        encrypted,
-      ]);
+      const body = Buffer.allocUnsafe(32 + bytes.length);
+      body.write('KMR1', 0, 'ascii');
+      iv.copy(body, 4);
+      // Encrypt in bounded pieces; no additional full-sized ciphertext copy.
+      for (let offset = 0; offset < bytes.length; offset += 1024 * 1024)
+        cipher
+          .update(bytes.subarray(offset, offset + 1024 * 1024))
+          .copy(body, 32 + offset);
+      cipher.final();
+      cipher.getAuthTag().copy(body, 16);
       await client.send(
         new PutObjectCommand({
           Bucket: bucket,

@@ -4,47 +4,47 @@
     "lod": "detail",
     "source": "Hi3D_科幻神圣天使机甲战士3D模型_allparts_20260913_171753.glb",
     "sourceTriangles": 1983371,
-    "triangles": 160000,
-    "bytes": 1793032
+    "triangles": 300000,
+    "bytes": 2699348
   },
   {
     "id": "seraph",
     "lod": "room",
     "source": "Hi3D_科幻神圣天使机甲战士3D模型_allparts_20260913_171753.glb",
     "sourceTriangles": 1983371,
-    "triangles": 45000,
-    "bytes": 667944
+    "triangles": 90000,
+    "bytes": 1012508
   },
   {
     "id": "reaper",
     "lod": "detail",
     "source": "Hi3D_风格化黑暗赛博朋克死神机甲3D模型_allparts_20260913_171724.glb",
     "sourceTriangles": 1984080,
-    "triangles": 159999,
-    "bytes": 1598316
+    "triangles": 300000,
+    "bytes": 2398768
   },
   {
     "id": "reaper",
     "lod": "room",
     "source": "Hi3D_风格化黑暗赛博朋克死神机甲3D模型_allparts_20260913_171724.glb",
     "sourceTriangles": 1984080,
-    "triangles": 45000,
-    "bytes": 596380
+    "triangles": 90000,
+    "bytes": 917076
   },
   {
     "id": "aureole",
     "lod": "detail",
     "source": "Hi3D_精致鎏金带翼神圣机甲天使3D模型_allparts_20260913_171105.glb",
     "sourceTriangles": 1981454,
-    "triangles": 160000,
-    "bytes": 1659016
+    "triangles": 300000,
+    "bytes": 2405748
   },
   {
     "id": "aureole",
     "lod": "room",
     "source": "Hi3D_精致鎏金带翼神圣机甲天使3D模型_allparts_20260913_171105.glb",
     "sourceTriangles": 1981454,
-    "triangles": 45000,
-    "bytes": 621612
+    "triangles": 90000,
+    "bytes": 913004
   }
 ]

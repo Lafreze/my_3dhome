@@ -447,6 +447,73 @@ export function addFurnitureCraft(k: {
         }
   }
 
+  // Welt and top-stitch sit on cushion edges; seating volumes and aisle clearances stay intact.
+  const livingWelt = part(
+    seat('living-sofa-1'),
+    'Living / hand-sewn cushion edges',
+  );
+  for (const x of [-1.05, 0, 1.05]) {
+    tube(
+      livingWelt,
+      [
+        [x - 0.42, 0.68, -0.43],
+        [x - 0.47, 0.68, 0.42],
+        [x - 0.41, 0.68, 0.556],
+        [x + 0.41, 0.68, 0.556],
+        [x + 0.47, 0.68, 0.42],
+        [x + 0.42, 0.68, -0.43],
+      ],
+      0.0055,
+      linen,
+    );
+    for (let j = 0; j < 21; j++)
+      box(
+        livingWelt,
+        0.012,
+        0.002,
+        0.003,
+        x - 0.4 + j * 0.04,
+        0.713,
+        0.578,
+        linen,
+      );
+  }
+  const benchStitch = part(
+    seat('bedroom-bench-1'),
+    'Bedroom / bench saddle stitching',
+  );
+  for (const z of [-0.273, 0.273])
+    for (let j = 0; j < 49; j++)
+      box(benchStitch, 0.016, 0.003, 0.003, -0.96 + j * 0.04, 0.568, z, linen);
+  const libraryInset = part(
+    k.groups.get('libraryDesk'),
+    'Library / stitched leather writing inset',
+  );
+  for (const z of [-0.296, 0.496])
+    for (let j = 0; j < 48; j++)
+      box(
+        libraryInset,
+        0.014,
+        0.001,
+        0.001,
+        -0.67 + j * 0.032,
+        1.268,
+        z,
+        linen,
+      );
+  for (const x of [-0.68, 0.84])
+    for (let j = 0; j < 23; j++)
+      box(
+        libraryInset,
+        0.001,
+        0.001,
+        0.015,
+        x,
+        1.268,
+        -0.267 + j * 0.032,
+        linen,
+      );
+
   // Fixed details share draw calls; animated drawers and seat parents remain independent.
   for (const g of parts) {
     const bins = new Map<T.Material, T.Mesh[]>();

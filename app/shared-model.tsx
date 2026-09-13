@@ -57,19 +57,6 @@ export default function SharedModel() {
           私密分享
         </span>
       </header>
-      <div className="archive-title">
-        <div>
-          <p>A MOMENT WITH ONE OBJECT</p>
-          <h1>
-            独享这一件<span>Objects, up close.</span>
-          </h1>
-        </div>
-        <p className="archive-intro">
-          一条链接，一件藏品。
-          <br />
-          只有持有地址的人可以打开。
-        </p>
-      </div>
       {error ? (
         <section className="archive-share-error" role="alert">
           <LockKeyhole size={30} />
@@ -85,9 +72,7 @@ export default function SharedModel() {
           <p>正在打开私密展台…</p>
         </output>
       )}
-      <footer className="archive-footer">
-        PRIVATE COLLECTION / SATORI<span>本页未加入公开展柜</span>
-      </footer>
+      <footer className="archive-footer">SATORI</footer>
     </main>
   );
 }

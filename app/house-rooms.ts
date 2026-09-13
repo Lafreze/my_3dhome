@@ -2211,8 +2211,12 @@ export function buildHouse(k: Kit) {
     clearCocktail: bar.clear,
     setBarRecord: bar.setRecord,
     setBarDarts: bar.setDarts,
-    setGameScreen: (id: 'blocks' | 'snake', canvas: HTMLCanvasElement | null) =>
-      gameRoom.setGameScreen(id, canvas),
+    setGameScreen: (
+      id: 'blocks' | 'snake' | 'console',
+      canvas: HTMLCanvasElement | null,
+    ) => gameRoom.setGameScreen(id, canvas),
+    setPinballState: (state: import('./cabinet-engine').PinballView | null) =>
+      gameRoom.setPinballState(state),
     setGameBoard: gameRoom.setGameBoard,
     setGameRecords: gameRoom.setGameRecords,
     screen,

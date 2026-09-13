@@ -1,21 +1,42 @@
-export type GameId = 'blocks' | 'snake' | 'gomoku';
+export type GameId =
+  | 'blocks'
+  | 'snake'
+  | 'gomoku'
+  | 'pinball'
+  | 'racing'
+  | 'shooter'
+  | 'platform'
+  | 'sokoban'
+  | 'reversi'
+  | 'rhythm';
 export type GameStatus = 'ready' | 'playing' | 'paused' | 'won' | 'lost';
 export type GameCommand = 'left' | 'right' | 'up' | 'down' | 'drop';
 export const gameNames: Record<GameId, string> = {
   blocks: '俄罗斯方块',
   snake: '贪吃蛇',
   gomoku: '五子棋',
+  pinball: '星轨弹珠',
+  racing: '海岸拉力',
+  shooter: '星际信使',
+  platform: '苔原快递',
+  sokoban: '仓库小猫',
+  reversi: '月下黑白棋',
+  rhythm: '夜行节拍',
 };
 export const gameObjectIds = {
   arcadeBlocks: 'blocks',
   arcadeSnake: 'snake',
   gameTable: 'gomoku',
+  gamePinball: 'pinball',
 } as const;
 export type ArcadeGame = {
   id: 'blocks' | 'snake';
   status: GameStatus;
   score: number;
   progress: number;
+  target: number;
+  bag: number[];
+  nextPiece: number[][];
   board: number[][];
   piece: number[][];
   x: number;
@@ -63,6 +84,9 @@ export function createArcade(
     status: 'ready',
     score: 0,
     progress: 0,
+    target: id === 'blocks' ? 5 : 8,
+    bag: [],
+    nextPiece: [],
     board: blank(10, 18),
     piece: [],
     x: 3,
@@ -80,9 +104,16 @@ export function createArcade(
   return game;
 }
 function spawnPiece(g: ArcadeGame, random: () => number) {
-  g.piece = shapes[Math.min(6, Math.floor(random() * shapes.length))].map(
-    (r) => [...r],
-  );
+  const draw = () => {
+    if (!g.bag.length) g.bag = [0, 1, 2, 3, 4, 5, 6];
+    const choice = g.bag.splice(
+      Math.min(g.bag.length - 1, Math.floor(random() * g.bag.length)),
+      1,
+    )[0];
+    return shapes[choice].map((row) => [...row]);
+  };
+  g.piece = g.nextPiece.length ? g.nextPiece : draw();
+  g.nextPiece = draw();
   g.x = Math.floor((10 - g.piece[0].length) / 2);
   g.y = 0;
   if (collides(g, g.x, g.y, g.piece)) g.status = 'lost';
@@ -151,7 +182,7 @@ export function tickArcade(g: ArcadeGame, random = Math.random) {
     g.board = [...blank(10, cleared), ...rows];
     g.progress += cleared;
     g.score += [0, 100, 300, 500, 800][cleared];
-    if (g.progress >= 5) g.status = 'won';
+    if (g.progress >= g.target) g.status = 'won';
     else spawnPiece(g, random);
   } else {
     g.direction = [...g.queued];
@@ -174,7 +205,7 @@ export function tickArcade(g: ArcadeGame, random = Math.random) {
     else {
       g.progress++;
       g.score += 100;
-      if (g.progress >= 8) {
+      if (g.progress >= g.target) {
         g.status = 'won';
         return;
       }
@@ -246,6 +277,38 @@ export function paintArcade(
         if (v) square(x, y, stoneColors[v]);
       }),
     );
+    let ghostY = g.y;
+    while (!collides(g, g.x, ghostY + 1, g.piece)) ghostY++;
+    ctx.strokeStyle = '#b6c5a477';
+    ctx.lineWidth = 1;
+    g.piece.forEach((row, y) =>
+      row.forEach((v, x) => {
+        if (v)
+          ctx.strokeRect(
+            ox + (x + g.x) * cell + 2,
+            oy + (y + ghostY) * cell + 2,
+            cell - 4,
+            cell - 4,
+          );
+      }),
+    );
+    const mini = w * 0.023;
+    ctx.font = `${w * 0.024}px monospace`;
+    ctx.fillStyle = '#a7b995';
+    ctx.fillText('NEXT', w * 0.73, h * 0.07);
+    g.nextPiece.forEach((row, y) =>
+      row.forEach((v, x) => {
+        if (v) {
+          ctx.fillStyle = stoneColors[v];
+          ctx.fillRect(
+            w * 0.73 + x * mini,
+            h * 0.09 + y * mini,
+            mini - 1,
+            mini - 1,
+          );
+        }
+      }),
+    );
     g.piece.forEach((row, y) =>
       row.forEach((v, x) => {
         if (v) square(x + g.x, y + g.y, stoneColors[v]);
@@ -254,6 +317,23 @@ export function paintArcade(
   } else {
     g.snake.forEach(([x, y], i) => square(x, y, i ? '#8bab6e' : '#d6e7a6'));
     square(...g.food, '#df9b68');
+    const [hx, hy] = g.snake[0];
+    ctx.fillStyle = '#263f28';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(
+        ox +
+          (hx + 0.5 + g.direction[0] * 0.2 - g.direction[1] * side * 0.2) *
+            cell,
+        oy +
+          (hy + 0.5 + g.direction[1] * 0.2 + g.direction[0] * side * 0.2) *
+            cell,
+        cell * 0.075,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
   }
   ctx.textAlign = 'center';
   ctx.fillStyle = '#d6dfb7';
@@ -262,8 +342,8 @@ export function paintArcade(
     demo
       ? 'PRESS START · FREE PLAY'
       : g.id === 'blocks'
-        ? `${g.progress} / 5 LINES`
-        : `${g.progress} / 8 FRUITS`,
+        ? `${g.progress} / ${g.target} LINES`
+        : `${g.progress} / ${g.target} FRUITS`,
     w / 2,
     h * 0.965,
   );
@@ -376,6 +456,13 @@ export const emptyRecords = (): GameRecords => ({
   blocks: { best: 0, wins: 0 },
   snake: { best: 0, wins: 0 },
   gomoku: { best: 0, wins: 0 },
+  pinball: { best: 0, wins: 0 },
+  racing: { best: 0, wins: 0 },
+  shooter: { best: 0, wins: 0 },
+  platform: { best: 0, wins: 0 },
+  sokoban: { best: 0, wins: 0 },
+  reversi: { best: 0, wins: 0 },
+  rhythm: { best: 0, wins: 0 },
 });
 export const gameStorageKey = 'satori-play-room-v1';
 export function readGameRecords(): GameRecords {

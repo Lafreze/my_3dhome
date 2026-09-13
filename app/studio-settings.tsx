@@ -1,4 +1,5 @@
 'use client';
+import { uploadModelFile } from './model-upload-client';
 import {
   createContext,
   useCallback,
@@ -46,6 +47,7 @@ type Studio = Snapshot & {
       visibility: 'public' | 'private';
       compress: boolean;
     },
+    onProgress?: (message: string) => void,
   ) => Promise<Exhibit>;
   resetModelShare: (id: string) => Promise<Exhibit>;
   save: (patch: HousePatch, revision?: number) => Promise<void>;
@@ -183,27 +185,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       visibility: 'public' | 'private';
       compress: boolean;
     },
+    onProgress?: (message: string) => void,
   ) => {
     if (!admin) throw Error('请先进入管理模式。');
-    const response = await fetch('/api/models', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'model/gltf-binary',
-        'X-Studio-CSRF': csrf.current,
-        'X-Model-Metadata': encodeURIComponent(JSON.stringify(metadata)),
-      },
-      body: file,
-    });
-    const value = await response.json();
-    if (!response.ok) {
-      if (response.status === 401) {
-        setAdmin(false);
-        csrf.current = '';
-      }
-      throw Error(value.error || '模型保存失败，请重试。');
-    }
-    return value as Exhibit;
+    if (file.size > 200 * 1024 * 1024) throw Error('模型不能超过 200 MB。');
+    return uploadModelFile(
+      file,
+      metadata,
+      request,
+      () => csrf.current,
+      onProgress,
+    );
   };
+
   const save = async (
     patch: HousePatch,
     revision = current.current.revision,

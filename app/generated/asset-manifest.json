@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "f6db6a6de0fc1367",
+  "version": "a76309a5380b3b67",
   "assets": {
     "art.botanical-study": {
       "type": "image",
@@ -372,10 +372,10 @@
       "type": "model",
       "room": "archive",
       "rooms": [],
-      "path": "models/exhibits/aureole-detail.b1c5251b9702f922.glb",
+      "path": "models/exhibits/aureole-detail.26267613340fc342.glb",
       "logicalPath": "models/exhibits/aureole-detail.glb",
-      "size": 1659016,
-      "sha256": "b1c5251b9702f922d9c5f29ea1d3eab457ad72c7d32828ab5fc965aa64f9e63b",
+      "size": 2405748,
+      "sha256": "26267613340fc3421bb4c10e583f56ac019436f0372ed3abfd2a0eac5840de55",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": true
@@ -386,10 +386,10 @@
       "rooms": [
         "gallery"
       ],
-      "path": "models/exhibits/aureole-room.fc74722faf4e9c78.glb",
+      "path": "models/exhibits/aureole-room.9f527f72f4a8aa46.glb",
       "logicalPath": "models/exhibits/aureole-room.glb",
-      "size": 621612,
-      "sha256": "fc74722faf4e9c78ff0d3617c3abb66ecac1de17b6a094369412df3238f6181c",
+      "size": 913004,
+      "sha256": "9f527f72f4a8aa467aa7994f1a216affd1e2d99bee1d81b91d3b20a2955dfe75",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": true
@@ -398,10 +398,10 @@
       "type": "model",
       "room": "archive",
       "rooms": [],
-      "path": "models/exhibits/reaper-detail.c07b3615a54771c8.glb",
+      "path": "models/exhibits/reaper-detail.dd03a7de4eef1da9.glb",
       "logicalPath": "models/exhibits/reaper-detail.glb",
-      "size": 1598316,
-      "sha256": "c07b3615a54771c839bb1629bf68fcee35bd650161c1f981cc62c61b14fdef42",
+      "size": 2398768,
+      "sha256": "dd03a7de4eef1da9e6544b46307c4a3872f09d29b077d670a502d31949eea46f",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": true
@@ -412,10 +412,10 @@
       "rooms": [
         "gallery"
       ],
-      "path": "models/exhibits/reaper-room.1b3be68a7d791fb0.glb",
+      "path": "models/exhibits/reaper-room.403148e7d7416321.glb",
       "logicalPath": "models/exhibits/reaper-room.glb",
-      "size": 596380,
-      "sha256": "1b3be68a7d791fb049ad3ef39f313a36878e14d2bd036819682089bcc9e1b054",
+      "size": 917076,
+      "sha256": "403148e7d7416321823c444d23eff3d324dce32067ccda156ea7400758fa61d5",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": true
@@ -424,10 +424,10 @@
       "type": "model",
       "room": "archive",
       "rooms": [],
-      "path": "models/exhibits/seraph-detail.e37133bea1612c04.glb",
+      "path": "models/exhibits/seraph-detail.5660cbad0a8ef825.glb",
       "logicalPath": "models/exhibits/seraph-detail.glb",
-      "size": 1793032,
-      "sha256": "e37133bea1612c04a5d974f446df7c8da9d80af491e95f90562db0c78bf1d508",
+      "size": 2699348,
+      "sha256": "5660cbad0a8ef825ce95f68fead93c0de21a6f33030f106e4958a21d08d28372",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": true
@@ -438,10 +438,10 @@
       "rooms": [
         "gallery"
       ],
-      "path": "models/exhibits/seraph-room.1874c2c6db0b9585.glb",
+      "path": "models/exhibits/seraph-room.1080ae96fc7b6788.glb",
       "logicalPath": "models/exhibits/seraph-room.glb",
-      "size": 667944,
-      "sha256": "1874c2c6db0b9585125653204ea6ad2c696285efb4e1fe43d279e12c9e97ddd4",
+      "size": 1012508,
+      "sha256": "1080ae96fc7b6788e6814ff3a2cd58fda331ab4be07beafb447e39ac5d8a1852",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": true

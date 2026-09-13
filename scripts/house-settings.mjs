@@ -4,6 +4,7 @@ import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import { visitorIP } from './seat-presence.mjs';
 import { createRoomNotes } from './room-notes.mjs';
 import { createModelLibrary } from './model-library.mjs';
+import { createModelUploads } from './model-uploads.mjs';
 
 const defaults = JSON.parse(
   await readFile(
@@ -154,6 +155,7 @@ export async function createHouseHandler({
   const file = resolve(dataDir, 'house-settings.json');
   const roomNotes = await createRoomNotes(dataDir, now);
   const modelLibrary = await createModelLibrary(dataDir, now, modelOptions);
+  const modelUploads = await createModelUploads(dataDir, modelLibrary, now);
   const noteAttempts = new Map();
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   let state = {
@@ -253,6 +255,21 @@ export async function createHouseHandler({
         res.setHeader('Cache-Control', 'private, no-store');
         res.setHeader('Referrer-Policy', 'no-referrer');
         res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+      }
+      const uploadRoute =
+        /^\/api\/admin\/model-uploads(?:\/([a-f0-9-]{36})(?:\/(complete|\d+))?)?$/.exec(
+          path,
+        );
+      if (
+        uploadRoute &&
+        req.method === 'GET' &&
+        uploadRoute[1] &&
+        !uploadRoute[2]
+      ) {
+        const owner = session(req);
+        if (!owner) throw fail(401, '请先输入管理暗号。');
+        send(res, 200, modelUploads.status(uploadRoute[1], owner.key));
+        return true;
       }
       if (req.method === 'GET' && path === '/api/admin/models') {
         if (!session(req)) throw fail(401, '请先输入管理暗号。');
@@ -384,6 +401,23 @@ export async function createHouseHandler({
       if (!s) throw fail(401, '请先输入管理暗号。');
       if (req.headers['x-studio-csrf'] !== s.csrf)
         throw fail(403, '验证已失效，请重新进入管理模式。');
+      if (uploadRoute) {
+        const [, id, part] = uploadRoute;
+        if (req.method === 'POST' && !id)
+          send(
+            res,
+            201,
+            await modelUploads.start(await body(req, 4096), s.key),
+          );
+        else if (req.method === 'PUT' && id && /^\d+$/.test(part || ''))
+          send(res, 200, await modelUploads.part(id, Number(part), s.key, req));
+        else if (req.method === 'POST' && id && part === 'complete')
+          send(res, 202, modelUploads.complete(id, s.key));
+        else if (req.method === 'DELETE' && id && !part)
+          send(res, 200, await modelUploads.cancel(id, s.key));
+        else throw fail(405, '请求方式无效。');
+        return true;
+      }
       if (req.method === 'POST' && path === '/api/models') {
         send(res, 201, await modelLibrary.add(req));
         return true;

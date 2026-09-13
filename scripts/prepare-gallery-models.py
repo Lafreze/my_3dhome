@@ -30,12 +30,18 @@ for key, filename in SOURCES:
             factor = 2048 / max(image.size)
             image.scale(round(image.size[0] * factor), round(image.size[1] * factor))
             image.pack()
-    for lod, target in [('detail', 160000), ('room', 45000)]:
+    source_geometry = {o.name: o.data.copy() for o in meshes}
+    for lod, target in [('detail', 300000), ('room', 90000)]:
+        for o in meshes:
+            old = o.data
+            o.data = source_geometry[o.name].copy()
+            if old.users == 0: bpy.data.meshes.remove(old)
+        ratio = min(1, target / sum(len(m.data.polygons) for m in meshes))
         for o in meshes:
             bpy.context.view_layer.objects.active = o
             count = len(o.data.polygons)
             modifier = o.modifiers.new('Web silhouette LOD', 'DECIMATE')
-            modifier.ratio = min(1, target / sum(len(m.data.polygons) for m in meshes))
+            modifier.ratio = ratio
             modifier.use_collapse_triangulate = True
             bpy.ops.object.modifier_apply(modifier=modifier.name)
         if lod == 'room':
@@ -49,8 +55,8 @@ for key, filename in SOURCES:
             use_selection=False, export_animations=False, export_cameras=False,
             export_lights=False, export_image_format='JPEG', export_jpeg_quality=90,
             export_draco_mesh_compression_enable=True, export_draco_mesh_compression_level=6,
-            export_draco_position_quantization=14, export_draco_normal_quantization=10,
-            export_draco_texcoord_quantization=12)
+            export_draco_position_quantization=16, export_draco_normal_quantization=12,
+            export_draco_texcoord_quantization=14)
         report.append({'id': key, 'lod': lod, 'source': filename,
             'sourceTriangles': original_triangles,
             'triangles': sum(len(o.data.polygons) for o in meshes),

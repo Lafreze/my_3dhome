@@ -94,12 +94,16 @@ export default function ModelLibrary() {
     setBusy(true);
     setMessage('');
     try {
-      const item = await studio.uploadModel(file, {
-        title,
-        description,
-        visibility,
-        compress,
-      });
+      const item = await studio.uploadModel(
+        file,
+        {
+          title,
+          description,
+          visibility,
+          compress,
+        },
+        setMessage,
+      );
       setItems((current) => [...current, item]);
       select(item);
       setFile(null);
@@ -142,11 +146,11 @@ export default function ModelLibrary() {
     if (!value) return;
     if (
       !value.name.toLowerCase().endsWith('.glb') ||
-      value.size > 80 * 1024 * 1024
+      value.size > 200 * 1024 * 1024
     ) {
       setFile(null);
       if (fileInput.current) fileInput.current.value = '';
-      setMessage('请选择 80 MB 以内、包含贴图的 GLB 文件。');
+      setMessage('请选择 200 MB 以内、包含贴图的 GLB 文件。');
       return;
     }
     setFile(value);
@@ -208,11 +212,6 @@ export default function ModelLibrary() {
             三维藏品室<span>Objects, up close.</span>
           </h1>
         </div>
-        <p className="archive-intro">
-          把喜欢的造型留在这里。
-          <br />
-          转动视角，慢慢看见每一处细节。
-        </p>
       </div>
       {message && (
         <output className="archive-notice">
@@ -234,7 +233,6 @@ export default function ModelLibrary() {
               <div>
                 <LockKeyhole size={18} />
                 <strong>私密分享</strong>
-                <span>仅管理员列表可见 · 持有链接的人可观看</span>
               </div>
               <label>
                 独立页面地址
@@ -315,17 +313,14 @@ export default function ModelLibrary() {
           <button className="archive-add" onClick={() => setManage(true)}>
             <Plus size={20} />
             <span>
-              给下一件喜欢的模型
-              <br />
-              <strong>留一个位置</strong>
+              <strong>添加模型</strong>
             </span>
             <ArrowUpRight size={17} />
           </button>
         </aside>
       </div>
       <footer className="archive-footer">
-        <span>SATORI / A PLACE FOR THINGS YOU LOVE</span>
-        <span>选一件藏品，换一个角度。</span>
+        <span>SATORI / OBJECT ARCHIVE</span>
       </footer>
       <Dialog
         open={manage}
@@ -347,22 +342,19 @@ export default function ModelLibrary() {
             <X size={19} />
           </button>
           <small>YOUR PERSONAL COLLECTION</small>
-          <DialogTitle>
-            {studio.admin ? '收下一件喜欢的造型' : '管理我的藏品'}
-          </DialogTitle>
+          <DialogTitle>{studio.admin ? '添加模型' : '管理藏品'}</DialogTitle>
           <DialogDescription className="sr-only">
             为小屋展柜添加模型和说明。
           </DialogDescription>
           {studio.admin ? (
             <form onSubmit={upload}>
-              <p>选择展示范围。私密模型只在管理员列表出现。</p>
               <label className="archive-file">
                 <Upload size={27} />
                 <strong>{file ? file.name : '选择一个 3D 模型'}</strong>
                 <span>
                   {file
                     ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
-                    : 'GLB · 包含贴图 · 最大 80 MB'}
+                    : 'GLB · 包含贴图 · 最大 200 MB'}
                 </span>
                 <input
                   ref={fileInput}
@@ -406,7 +398,6 @@ export default function ModelLibrary() {
                   />
                   <span>
                     <strong>私密分享</strong>
-                    <small>独立随机地址 · 持有链接可看</small>
                   </span>
                 </label>
                 <label aria-label="公开展示">
@@ -455,7 +446,6 @@ export default function ModelLibrary() {
             </form>
           ) : (
             <form onSubmit={login}>
-              <p>访客可以自由观看，新增藏品需要小屋的管理暗号。</p>
               <label>
                 管理暗号
                 <input
@@ -474,9 +464,9 @@ export default function ModelLibrary() {
             </form>
           )}
           {message && (
-            <p className="archive-upload-message" role="alert">
+            <output className="archive-upload-message" aria-live="polite">
               {message}
-            </p>
+            </output>
           )}
         </DialogContent>
       </Dialog>

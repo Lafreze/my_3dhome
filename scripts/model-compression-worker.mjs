@@ -9,7 +9,11 @@ import sharp from 'sharp';
 try {
   sharp.cache(false);
   sharp.concurrency(1);
-  const input = Buffer.from(workerData);
+  const input = Buffer.from(
+    workerData.buffer,
+    workerData.byteOffset,
+    workerData.byteLength,
+  );
   const json = JSON.parse(
     input.toString('utf8', 20, 20 + input.readUInt32LE(12)),
   );

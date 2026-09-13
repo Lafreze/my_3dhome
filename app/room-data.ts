@@ -72,8 +72,11 @@ export type RoomApi = {
   setBarRecord: (index: number | null) => void;
   setBarDarts: (hits: import('./bar-state').DartHit[]) => void;
   setGameScreen: (
-    id: 'blocks' | 'snake',
+    id: 'blocks' | 'snake' | 'console',
     canvas: HTMLCanvasElement | null,
+  ) => void;
+  setPinballState: (
+    state: import('./cabinet-engine').PinballView | null,
   ) => void;
   setGameBoard: (cells: import('./game-engine').Stone[]) => void;
   setGameRecords: (records: import('./game-engine').GameRecords) => void;

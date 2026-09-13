@@ -10,7 +10,7 @@ import BarRoomPanel, {
   type BarSelection,
 } from './bar-room-panel';
 import GameRoomPanel, { type PlaySelection } from './game-room-panel';
-import { gameObjectIds, type GameId } from './game-engine';
+import { gameObjectIds } from './game-engine';
 import { portalDestinations } from './game-layout';
 import { houseDoorLayout } from './house-door-layout';
 import HouseMap from './house-map';
@@ -330,8 +330,10 @@ function StudioHome() {
     ready,
   ]);
   useEffect(() => {
-    if (ready && new URLSearchParams(location.search).get('room') === 'gallery')
-      api.current?.setView('gallery');
+    if (!ready) return;
+    const destination = new URLSearchParams(location.search).get('room');
+    if (destination === 'gallery' || destination === 'gaming')
+      api.current?.setView(destination);
   }, [ready]);
   const notify = useCallback((s: string) => {
     setToast(s);
@@ -1332,11 +1334,8 @@ function StudioHome() {
             setHover(null);
             api.current?.setView('gaming');
           }}
-          onChoose={(id: GameId) => {
-            const object = (
-              Object.keys(gameObjectIds) as (keyof typeof gameObjectIds)[]
-            ).find((key) => gameObjectIds[key] === id)!;
-            choose(object);
+          onChoose={(id) => {
+            setPlaying(id);
           }}
         />
       )}

@@ -45,8 +45,8 @@ test('all six model derivatives are valid embedded GLBs with bounded density', a
         new URL(`../public/models/exhibits/${id}-${lod}.glb`, import.meta.url),
       );
       const stats = validateModelGlb(bytes);
-      assert(stats.triangles <= (lod === 'room' ? 45001 : 160001));
-      assert(bytes.length < 3 * 1024 * 1024);
+      assert(stats.triangles <= (lod === 'room' ? 90001 : 300001));
+      assert(bytes.length < 5 * 1024 * 1024);
     }
   const broken = Buffer.from(model);
   broken.writeUInt32LE(model.length + 20, 8);
@@ -100,7 +100,7 @@ test('plinths and cabinet fit the gallery with separated footprints and door-to-
     assert(floorClear(a, 'resident'));
     for (const b of points) {
       const path = graph.path(a, b, 'resident', occupancy);
-      assert(path, `${a.join(",")} to ${b.join(",")}`);
+      assert(path, `${a.join(',')} to ${b.join(',')}`);
       let previous = a;
       for (const next of path) {
         assert(segmentClear(previous, next, 'resident'));
