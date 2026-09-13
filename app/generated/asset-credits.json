@@ -478,6 +478,78 @@
     "attributionRequired": false
   },
   {
+    "id": "exhibit.seraph.room",
+    "name": "exhibit.seraph.room",
+    "author": "User-supplied Hi3D model",
+    "sourceUrl": "",
+    "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
+    "licenseUrl": "",
+    "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
+    "rooms": [
+      "gallery"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "exhibit.seraph.detail",
+    "name": "exhibit.seraph.detail",
+    "author": "User-supplied Hi3D model",
+    "sourceUrl": "",
+    "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
+    "licenseUrl": "",
+    "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
+    "rooms": [],
+    "attributionRequired": false
+  },
+  {
+    "id": "exhibit.reaper.room",
+    "name": "exhibit.reaper.room",
+    "author": "User-supplied Hi3D model",
+    "sourceUrl": "",
+    "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
+    "licenseUrl": "",
+    "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
+    "rooms": [
+      "gallery"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "exhibit.reaper.detail",
+    "name": "exhibit.reaper.detail",
+    "author": "User-supplied Hi3D model",
+    "sourceUrl": "",
+    "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
+    "licenseUrl": "",
+    "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
+    "rooms": [],
+    "attributionRequired": false
+  },
+  {
+    "id": "exhibit.aureole.room",
+    "name": "exhibit.aureole.room",
+    "author": "User-supplied Hi3D model",
+    "sourceUrl": "",
+    "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
+    "licenseUrl": "",
+    "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
+    "rooms": [
+      "gallery"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "exhibit.aureole.detail",
+    "name": "exhibit.aureole.detail",
+    "author": "User-supplied Hi3D model",
+    "sourceUrl": "",
+    "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
+    "licenseUrl": "",
+    "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
+    "rooms": [],
+    "attributionRequired": false
+  },
+  {
     "id": "art.fuji-dusk-panorama",
     "name": "富士暮樱 · 三联画",
     "author": "OpenAI image generation for kuro.cafe",

@@ -970,11 +970,11 @@
       "rooms": [
         "gallery"
       ],
-      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
       "author": "User-supplied Hi3D model",
       "sourceUrl": "",
       "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
-      "approval": "pending"
+      "approval": "approved"
     },
     {
       "id": "exhibit.seraph.detail",
@@ -983,11 +983,11 @@
       "type": "model",
       "room": "archive",
       "rooms": [],
-      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
       "author": "User-supplied Hi3D model",
       "sourceUrl": "",
       "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
-      "approval": "pending"
+      "approval": "approved"
     },
     {
       "id": "exhibit.reaper.room",
@@ -998,11 +998,11 @@
       "rooms": [
         "gallery"
       ],
-      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
       "author": "User-supplied Hi3D model",
       "sourceUrl": "",
       "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
-      "approval": "pending"
+      "approval": "approved"
     },
     {
       "id": "exhibit.reaper.detail",
@@ -1011,11 +1011,11 @@
       "type": "model",
       "room": "archive",
       "rooms": [],
-      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
       "author": "User-supplied Hi3D model",
       "sourceUrl": "",
       "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
-      "approval": "pending"
+      "approval": "approved"
     },
     {
       "id": "exhibit.aureole.room",
@@ -1026,11 +1026,11 @@
       "rooms": [
         "gallery"
       ],
-      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
       "author": "User-supplied Hi3D model",
       "sourceUrl": "",
       "modifications": "Original textures and silhouette preserved; 45k triangles / 1K textures with Draco compression",
-      "approval": "pending"
+      "approval": "approved"
     },
     {
       "id": "exhibit.aureole.detail",
@@ -1039,11 +1039,11 @@
       "type": "model",
       "room": "archive",
       "rooms": [],
-      "license": "User-supplied for this home; separate R2 redistribution pending",
+      "license": "User-supplied; user authorized storage and delivery through existing R2 on 2026-09-14 for this home",
       "author": "User-supplied Hi3D model",
       "sourceUrl": "",
       "modifications": "Original textures and silhouette preserved; 160k triangles / 2K textures with Draco compression",
-      "approval": "pending"
+      "approval": "approved"
     },
     {
       "id": "art.fuji-dusk-panorama",

@@ -2782,3 +2782,27 @@ a {
 @media(max-width:1000px) { .archive-layout { grid-template-columns:minmax(0,1fr) 235px; gap:18px; } .archive-title h1 span { display:block; margin:10px 0 0; font-size:18px; } .archive-stage-caption span:last-child { display:none; } .archive-caption { grid-template-columns:1fr; gap:17px; } .archive-controls .archive-fit { display:none; } }
 @media(max-width:700px) { .model-library { padding:0 18px; } .archive-header { height:80px; } .archive-brand { font-size:18px; letter-spacing:3px; } .archive-brand small { font-size:6px; } .archive-back { font-size:10px!important; gap:5px; } .archive-manage { padding:9px; } .archive-manage span { display:none; } .archive-title { margin:28px 0 22px; } .archive-title h1 { font-size:26px; } .archive-title h1 span { font-size:16px; } .archive-title .archive-intro { display:none; } .archive-layout { grid-template-columns:minmax(0,1fr); gap:6px; } .archive-stage { height:52dvh; min-height:330px; max-height:520px; border-radius:9px; } .archive-stage-top { left:18px; right:18px; top:18px; font-size:8px; } .archive-stage-caption { left:18px; bottom:18px; font-size:9px; } .archive-controls { gap:5px; } .archive-controls label { font-size:10px; gap:4px; } .archive-controls button { width:31px; height:34px; } .archive-controls > div { gap:3px; } .archive-controls > div > span { margin:0 3px; } .archive-caption { padding:20px 2px 25px; gap:15px; } .archive-caption h2 { font-size:23px; } .archive-items { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-height:500px; gap:10px; } .archive-thumbnail { height:130px; } .archive-item-title { padding:11px 9px; } .archive-item-title small { font-size:7px; letter-spacing:.6px; } .archive-item-title h3 { font-size:12px; } .archive-add { padding:14px; } .archive-footer span:last-child { display:none; } .archive-footer { font-size:7px; letter-spacing:.7px; } .archive-upload { padding:28px 22px; } }
 @media(prefers-reduced-motion:reduce) { .archive-spinner { animation:none; } .archive-item { transition:none; } }
+.archive-visibility { border:0; padding:0; margin:22px 0 0; }
+.archive-visibility legend { font-size:12px; color:#596a4e; margin-bottom:10px; }
+.archive-visibility label { display:flex; align-items:center; gap:12px; padding:13px; border:1px solid #d4dac8; border-radius:7px; margin-top:8px; cursor:pointer; }
+.archive-visibility label:has(input:checked) { background:#e6ebdd; border-color:#879d76; }
+.archive-visibility strong, .archive-compress strong { display:block; font-size:12px; font-weight:500; }
+.archive-visibility small, .archive-compress small { display:block; font-size:10px; line-height:1.6; color:#7d876f; margin-top:5px; }
+.archive-upload .archive-visibility input, .archive-upload .archive-compress input { width:16px; height:16px; padding:0; margin:0; flex-shrink:0; accent-color:#617653; }
+.archive-upload form > label.archive-compress { flex-direction:row; align-items:flex-start; gap:12px; margin-top:21px; }
+.archive-compress input { margin-top:2px!important; }
+.archive-share-panel { background:#e9edde; border:1px solid #ced6be; border-radius:9px; padding:20px; margin:0 0 20px; color:#526248; }
+.archive-share-panel > div:first-child { display:flex; align-items:center; gap:9px; flex-wrap:wrap; font-size:12px; }
+.archive-share-panel > div:first-child span { font-size:11px; color:#77826d; }
+.archive-share-panel label { display:block; margin-top:17px; font-size:10px; }
+.archive-share-panel input { display:block; width:100%; box-sizing:border-box; background:#f7f7f0; border:1px solid #cbd4bd; border-radius:5px; padding:11px; margin-top:8px; font-size:11px; color:#526248; }
+.archive-share-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:13px; }
+.archive-share-actions button, .archive-share-actions a { display:flex; align-items:center; gap:5px; border:1px solid #bcc7ac; border-radius:5px; padding:9px 11px; background:#f4f5ec; color:#576b49; font-size:11px; text-decoration:none; }
+.archive-private-page { max-width:1300px; margin:0 auto; }
+.archive-private-page .archive-stage { height:62dvh; min-height:360px; max-height:750px; }
+.archive-private-label { display:flex; gap:7px; align-items:center; font-size:11px; color:#7c876e; }
+.archive-share-error { min-height:360px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:14px; background:#e8ebdf; border-radius:12px; color:#728265; text-align:center; padding:25px; }
+.archive-share-error h2 { font-size:20px; margin:0; }
+.archive-share-error p { font-size:13px; }
+.archive-share-error button { border:1px solid #b5c2a5; padding:10px 24px; border-radius:5px; background:#f5f6ed; color:#526b40; }
+@media(max-width:700px) { .archive-private-page .archive-stage { height:55dvh; min-height:320px; } .archive-private-label { font-size:9px; } .archive-share-panel { padding:15px; } .archive-share-actions button, .archive-share-actions a { font-size:10px; } }

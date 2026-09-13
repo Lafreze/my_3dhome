@@ -13,6 +13,11 @@ export type Exhibit = {
   url?: string;
   bytes?: number;
   createdAt?: string;
+  visibility?: 'public' | 'private';
+  sharePath?: string;
+  originalBytes?: number;
+  compression?: 'original' | 'compressed' | 'already-optimized' | 'fallback';
+  storage?: 'local' | 'r2';
 };
 export const exhibits: Exhibit[] = catalog;
 export const exhibitObjects: Record<string, number> = {

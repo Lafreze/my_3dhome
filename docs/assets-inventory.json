@@ -1,5 +1,5 @@
 {
-  "version": "4be70ee73a0c2be4",
+  "version": "f6db6a6de0fc1367",
   "roomSizes": {
     "study": {
       "bytes": 5606248,
@@ -40,13 +40,7 @@
     "character.noir.sit",
     "character.noir.rest",
     "character.rose.sit",
-    "character.rose.rest",
-    "exhibit.seraph.room",
-    "exhibit.seraph.detail",
-    "exhibit.reaper.room",
-    "exhibit.reaper.detail",
-    "exhibit.aureole.room",
-    "exhibit.aureole.detail"
+    "character.rose.rest"
   ],
   "inventory": [
     {

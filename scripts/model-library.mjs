@@ -1,7 +1,8 @@
-import { mkdir, readFile, open, rename, unlink, stat } from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
+import { mkdir, readFile, open, rename, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
+import { createModelStorage } from './model-storage.mjs';
+import { compressModel } from './model-compression.mjs';
 
 export const MAX_MODEL_BYTES = 80 * 1024 * 1024;
 const MAX_LIBRARY_BYTES = 1024 * 1024 * 1024;
@@ -111,129 +112,293 @@ export function validateModelGlb(bytes) {
   return { triangles: Math.round(triangles) };
 }
 
-export async function createModelLibrary(dataDir, now = Date.now) {
+export const SHARE_CODE = /^[A-Za-z0-9_-]{43}$/;
+export async function createModelLibrary(
+  dataDir,
+  now = Date.now,
+  options = {},
+) {
   const directory = resolve(dataDir, 'model-library'),
     catalog = resolve(directory, 'catalog.json');
+  const storage =
+    options.storage === undefined ? createModelStorage() : options.storage;
+  const compress = options.compress || compressModel;
   await mkdir(directory, { recursive: true, mode: 0o700 });
   let items = [];
   try {
     const saved = JSON.parse(await readFile(catalog, 'utf8'));
-    if (saved.version !== 1 || !Array.isArray(saved.items))
+    if (![1, 2].includes(saved.version) || !Array.isArray(saved.items))
       throw Error('Invalid model library');
     items = saved.items;
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
-  let writes = Promise.resolve();
-  const list = () =>
-    items.map(({ id, title, description, bytes, createdAt }) => ({
-      id,
-      title,
-      description,
-      bytes,
-      createdAt,
-      category: 'PERSONAL / COLLECTION',
-      url: `/api/models/${id}.glb`,
-    }));
-  return {
-    list,
-    async add(req) {
-      if (
-        !/^(model\/gltf-binary|application\/octet-stream)(?:;|$)/i.test(
-          req.headers['content-type'] || '',
-        )
-      )
-        throw fail(415, '请选择 GLB 模型文件。');
-      if (Number(req.headers['content-length']) > MAX_MODEL_BYTES) {
-        req.resume();
-        throw fail(413, '模型需小于 80 MB。');
-      }
-      let metadata;
+  const persist = async (next) => {
+    const temp = `${catalog}.${randomUUID()}.tmp`;
+    try {
+      const handle = await open(temp, 'wx', 0o600);
       try {
-        metadata = JSON.parse(
-          decodeURIComponent(req.headers['x-model-metadata'] || ''),
+        await handle.writeFile(JSON.stringify({ version: 2, items: next }));
+        await handle.sync();
+      } finally {
+        await handle.close();
+      }
+      await rename(temp, catalog);
+      items = next;
+    } finally {
+      await unlink(temp).catch(() => {});
+    }
+  };
+  // Preserve legacy originals locally; update the catalog only after R2 confirms each copy.
+  if (storage)
+    for (const item of items)
+      if (!item.objectKey) {
+        const content = await readFile(resolve(directory, `${item.id}.glb`));
+        const objectKey = await storage.put(content);
+        await persist(
+          items.map((x) =>
+            x.id === item.id ? { ...x, objectKey, storage: 'r2' } : x,
+          ),
         );
-      } catch {
-        throw fail(400, '模型说明无法读取。');
       }
-      if (
-        typeof metadata.title !== 'string' ||
-        !metadata.title.trim() ||
-        metadata.title.length > 80 ||
-        typeof metadata.description !== 'string' ||
-        metadata.description.length > 600
-      )
-        throw fail(400, '请填写名称（80 字以内）和说明（600 字以内）。');
-      const chunks = [];
-      let bytes = 0;
-      for await (const chunk of req) {
-        bytes += chunk.length;
-        if (bytes > MAX_MODEL_BYTES) throw fail(413, '模型需小于 80 MB。');
-        chunks.push(chunk);
-      }
-      const content = Buffer.concat(chunks);
-      validateModelGlb(content);
-      const update = async () => {
-        if (
-          items.length >= 50 ||
-          items.reduce((sum, item) => sum + item.bytes, 0) + bytes >
-            MAX_LIBRARY_BYTES
-        )
-          throw fail(413, '展柜空间已满（最多 50 件或 1 GB）。');
-        const item = {
-          id: randomUUID(),
-          title: metadata.title.trim(),
-          description: metadata.description.trim(),
-          bytes,
-          createdAt: new Date(now()).toISOString(),
-        };
-        const modelFile = resolve(directory, `${item.id}.glb`),
-          temp = `${catalog}.${item.id}.tmp`;
-        try {
-          const model = await open(modelFile, 'wx', 0o600);
-          try {
-            await model.writeFile(content);
-            await model.sync();
-          } finally {
-            await model.close();
-          }
-          const next = [...items, item],
-            handle = await open(temp, 'wx', 0o600);
-          try {
-            await handle.writeFile(JSON.stringify({ version: 1, items: next }));
-            await handle.sync();
-          } finally {
-            await handle.close();
-          }
-          await rename(temp, catalog);
-          items = next;
-          return list().at(-1);
-        } catch (error) {
-          await unlink(temp).catch(() => {});
-          await unlink(modelFile).catch(() => {});
-          throw error;
+  let writes = Promise.resolve(),
+    uploading = false;
+  const mutate = (fn) => {
+    const result = writes.then(fn);
+    writes = result.catch(() => {});
+    return result;
+  };
+  const privateItem = (item) => item.visibility === 'private';
+  const present = (item, admin = false, share = false) => ({
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    bytes: item.bytes,
+    originalBytes: item.originalBytes || item.bytes,
+    createdAt: item.createdAt,
+    visibility: item.visibility || 'public',
+    category: privateItem(item)
+      ? 'PRIVATE / COLLECTION'
+      : 'PERSONAL / COLLECTION',
+    url: share
+      ? `/api/model-share/${item.shareCode}/file.glb`
+      : `/api/models/${item.id}.glb`,
+    ...(admin
+      ? {
+          storage: item.storage || 'local',
+          compression: item.compression || 'original',
+          ...(privateItem(item)
+            ? { sharePath: `/models/private/${item.shareCode}` }
+            : {}),
         }
-      };
-      const result = writes.then(update);
-      writes = result.catch(() => {});
-      return result;
+      : {}),
+  });
+  const shared = (code) =>
+    SHARE_CODE.test(code) &&
+    items.find((x) => privateItem(x) && x.shareCode === code);
+  const reads = new Map();
+  const read = async (item) => {
+    if (reads.has(item.id)) return reads.get(item.id);
+    if (reads.size >= 2) throw fail(503, '模型正在读取，请稍后重试。');
+    const pending = item.objectKey
+      ? storage
+        ? storage.get(item.objectKey)
+        : Promise.reject(Error('R2 unavailable'))
+      : readFile(resolve(directory, `${item.id}.glb`));
+    reads.set(item.id, pending);
+    try {
+      return await pending;
+    } finally {
+      reads.delete(item.id);
+    }
+  };
+  const serveItem = async (req, res, item) => {
+    const headers = {
+      'Content-Type': 'model/gltf-binary',
+      'Content-Length': item.bytes,
+      'Cache-Control': 'private, no-store',
+      'Referrer-Policy': 'no-referrer',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Model-Storage': item.objectKey ? 'r2' : 'local',
+      'Accept-Ranges': 'bytes',
+    };
+    if (req.method === 'HEAD') {
+      res.writeHead(200, headers);
+      res.end();
+      return;
+    }
+    let bytes;
+    try {
+      bytes = await read(item);
+    } catch {
+      throw fail(503, '模型存储暂时不可用，请稍后重试。');
+    }
+    let start = 0,
+      end = bytes.length - 1,
+      status = 200;
+    if (req.headers.range) {
+      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+      if (!range || (!range[1] && !range[2]))
+        throw fail(416, '无效的数据范围。');
+      start = range[1]
+        ? Number(range[1])
+        : Math.max(0, bytes.length - Number(range[2]));
+      end = range[1] && range[2] ? Math.min(Number(range[2]), end) : end;
+      if (
+        !Number.isSafeInteger(start) ||
+        !Number.isSafeInteger(end) ||
+        start > end ||
+        start >= bytes.length
+      )
+        throw fail(416, '无效的数据范围。');
+      status = 206;
+      headers['Content-Range'] = `bytes ${start}-${end}/${bytes.length}`;
+    }
+    headers['Content-Length'] = end - start + 1;
+    res.writeHead(status, headers);
+    res.end(bytes.subarray(start, end + 1));
+  };
+  return {
+    list: (admin = false) =>
+      items
+        .filter((item) => admin || !privateItem(item))
+        .map((item) => present(item, admin)),
+    storage: storage ? 'r2' : 'local',
+    share(code) {
+      const item = shared(code);
+      if (!item) throw fail(404, '链接不存在或已失效。');
+      return present(item, false, true);
     },
-    async serve(req, res, id) {
-      if (!items.some((item) => item.id === id))
-        throw fail(404, '没有找到这件模型。');
-      const file = resolve(directory, `${id}.glb`),
-        info = await stat(file);
-      res.writeHead(200, {
-        'Content-Type': 'model/gltf-binary',
-        'Content-Length': info.size,
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'X-Content-Type-Options': 'nosniff',
+    async resetShare(id) {
+      return mutate(async () => {
+        const item = items.find((x) => x.id === id && privateItem(x));
+        if (!item) throw fail(404, '没有找到这件私密模型。');
+        const next = {
+          ...item,
+          shareCode: randomBytes(32).toString('base64url'),
+        };
+        await persist(items.map((x) => (x.id === id ? next : x)));
+        return present(next, true);
       });
-      if (req.method === 'HEAD') res.end();
-      else
-        createReadStream(file)
-          .on('error', () => res.destroy())
-          .pipe(res);
+    },
+    async add(req) {
+      if (uploading) {
+        req.resume();
+        throw fail(409, '已有模型正在处理，请完成后再上传。');
+      }
+      uploading = true;
+      try {
+        if (
+          !/^(model\/gltf-binary|application\/octet-stream)(?:;|$)/i.test(
+            req.headers['content-type'] || '',
+          )
+        )
+          throw fail(415, '请选择 GLB 模型文件。');
+        if (Number(req.headers['content-length']) > MAX_MODEL_BYTES) {
+          req.resume();
+          throw fail(413, '模型需小于 80 MB。');
+        }
+        let metadata;
+        try {
+          metadata = JSON.parse(
+            decodeURIComponent(req.headers['x-model-metadata'] || ''),
+          );
+        } catch {
+          throw fail(400, '模型说明无法读取。');
+        }
+        if (
+          !metadata ||
+          typeof metadata.title !== 'string' ||
+          !metadata.title.trim() ||
+          metadata.title.length > 80 ||
+          typeof metadata.description !== 'string' ||
+          metadata.description.length > 600 ||
+          (metadata.visibility !== undefined &&
+            !['public', 'private'].includes(metadata.visibility)) ||
+          (metadata.compress !== undefined &&
+            typeof metadata.compress !== 'boolean')
+        )
+          throw fail(400, '模型名称、说明或上传选项无效。');
+        const chunks = [];
+        let size = 0;
+        for await (const chunk of req) {
+          size += chunk.length;
+          if (size > MAX_MODEL_BYTES) throw fail(413, '模型需小于 80 MB。');
+          chunks.push(chunk);
+        }
+        let content = Buffer.concat(chunks);
+        chunks.length = 0;
+        validateModelGlb(content);
+        let compression = 'original';
+        if (metadata.compress) {
+          try {
+            const optimized = await compress(content);
+            validateModelGlb(optimized);
+            if (optimized.length < content.length) {
+              content = optimized;
+              compression = 'compressed';
+            } else compression = 'already-optimized';
+          } catch {
+            compression = 'fallback';
+          }
+        }
+        return await mutate(async () => {
+          if (
+            items.length >= 50 ||
+            items.reduce((sum, item) => sum + item.bytes, 0) + content.length >
+              MAX_LIBRARY_BYTES
+          )
+            throw fail(413, '展柜空间已满（最多 50 件或 1 GB）。');
+          const item = {
+            id: randomUUID(),
+            title: metadata.title.trim(),
+            description: metadata.description.trim(),
+            bytes: content.length,
+            originalBytes: size,
+            compression,
+            createdAt: new Date(now()).toISOString(),
+            visibility: metadata.visibility || 'public',
+            ...(metadata.visibility === 'private'
+              ? { shareCode: randomBytes(32).toString('base64url') }
+              : {}),
+            storage: storage ? 'r2' : 'local',
+          };
+          if (storage) {
+            try {
+              item.objectKey = await storage.put(content);
+            } catch {
+              throw fail(503, 'R2 保存失败，模型尚未发布，请稍后重试。');
+            }
+          } else {
+            const model = await open(
+              resolve(directory, `${item.id}.glb`),
+              'wx',
+              0o600,
+            );
+            try {
+              await model.writeFile(content);
+              await model.sync();
+            } finally {
+              await model.close();
+            }
+          }
+          await persist([...items, item]);
+          return present(item, true);
+        });
+      } finally {
+        uploading = false;
+      }
+    },
+    async serve(req, res, id, admin = false) {
+      const item = items.find((x) => x.id === id && (admin || !privateItem(x)));
+      if (!item) throw fail(404, '没有找到这件模型。');
+      await serveItem(req, res, item);
+    },
+    async serveShare(req, res, code) {
+      const item = shared(code);
+      if (!item) throw fail(404, '链接不存在或已失效。');
+      await serveItem(req, res, item);
     },
   };
 }

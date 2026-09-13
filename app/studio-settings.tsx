@@ -40,8 +40,14 @@ type Studio = Snapshot & {
   deleteNote: (id: string) => Promise<void>;
   uploadModel: (
     file: File,
-    metadata: { title: string; description: string },
+    metadata: {
+      title: string;
+      description: string;
+      visibility: 'public' | 'private';
+      compress: boolean;
+    },
   ) => Promise<Exhibit>;
+  resetModelShare: (id: string) => Promise<Exhibit>;
   save: (patch: HousePatch, revision?: number) => Promise<void>;
 };
 const Context = createContext<Studio | null>(null);
@@ -171,7 +177,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   };
   const uploadModel = async (
     file: File,
-    metadata: { title: string; description: string },
+    metadata: {
+      title: string;
+      description: string;
+      visibility: 'public' | 'private';
+      compress: boolean;
+    },
   ) => {
     if (!admin) throw Error('请先进入管理模式。');
     const response = await fetch('/api/models', {
@@ -212,6 +223,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         save,
         deleteNote,
         uploadModel,
+        resetModelShare: (id) =>
+          request('/api/admin/models/reset-share', { id }),
       }}
     >
       {children}

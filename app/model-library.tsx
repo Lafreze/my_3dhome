@@ -9,21 +9,16 @@ import {
   ArrowUpRight,
   Box,
   Check,
-  ChevronLeft,
-  ChevronRight,
-  Expand,
   LoaderCircle,
   LockKeyhole,
-  Minus,
   Plus,
-  RotateCcw,
   Search,
   Upload,
   X,
 } from 'lucide-react';
 import { exhibits, type Exhibit } from './exhibit-data';
 import { useStudio } from './studio-settings';
-import type { ModelViewer } from './model-viewer-scene';
+import ModelPreview from './model-preview';
 import {
   Dialog,
   DialogContent,
@@ -33,15 +28,9 @@ import {
 
 export default function ModelLibrary() {
   const studio = useStudio(),
-    host = useRef<HTMLDivElement>(null),
-    viewer = useRef<ModelViewer | null>(null),
     fileInput = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Exhibit[]>(exhibits),
     [selected, setSelected] = useState(exhibits[0]),
-    [status, setStatus] = useState({ loading: true, error: '' }),
-    [engineReady, setEngineReady] = useState(false),
-    [engineRetry, setEngineRetry] = useState(0),
-    [auto, setAuto] = useState(false),
     [query, setQuery] = useState(''),
     [message, setMessage] = useState(''),
     [manage, setManage] = useState(false),
@@ -49,16 +38,27 @@ export default function ModelLibrary() {
     [busy, setBusy] = useState(false),
     [file, setFile] = useState<File | null>(null),
     [title, setTitle] = useState(''),
-    [description, setDescription] = useState('');
+    [description, setDescription] = useState(''),
+    [visibility, setVisibility] = useState<'public' | 'private'>('private'),
+    [compress, setCompress] = useState(true);
   useEffect(() => {
     let live = true;
-    fetch('/api/models', { cache: 'no-store' })
+    fetch(studio.admin ? '/api/admin/models' : '/api/models', {
+      cache: 'no-store',
+    })
       .then(async (r) => {
         if (!r.ok) throw Error();
         return r.json();
       })
       .then((data) => {
-        if (live) setItems([...exhibits, ...data.items]);
+        if (live) {
+          setItems([...exhibits, ...data.items]);
+          setSelected((current) =>
+            current.visibility === 'private' && !studio.admin
+              ? exhibits[0]
+              : current,
+          );
+        }
       })
       .catch(() => {
         if (live) setMessage('暂时无法读取新增藏品，默认展品仍可浏览。');
@@ -66,7 +66,7 @@ export default function ModelLibrary() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [studio.admin]);
   useEffect(() => {
     const update = () => {
       const id = location.hash.slice(1);
@@ -77,46 +77,11 @@ export default function ModelLibrary() {
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
   }, [items]);
-  useEffect(() => {
-    let live = true;
-    queueMicrotask(() => {
-      if (live) setEngineReady(false);
-    });
-    import('./model-viewer-scene')
-      .then(({ createModelViewer }) => {
-        if (!live || !host.current) return;
-        try {
-          viewer.current = createModelViewer(host.current, setStatus);
-          setEngineReady(true);
-        } catch {
-          setStatus({
-            loading: false,
-            error: '当前浏览器无法打开三维画面，请开启硬件加速后重试。',
-          });
-        }
-      })
-      .catch(() =>
-        setStatus({ loading: false, error: '查看器暂时无法载入，请重试。' }),
-      );
-    return () => {
-      live = false;
-      viewer.current?.dispose();
-      viewer.current = null;
-    };
-  }, [engineRetry]);
-  useEffect(() => {
-    if (engineReady) void viewer.current?.select(selected);
-  }, [selected, engineReady]);
-  useEffect(
-    () => viewer.current?.auto(auto && !manage),
-    [auto, manage, engineReady],
-  );
   const select = (item: Exhibit) => {
     setSelected(item);
     location.assign('#' + item.id);
-    setAuto(false);
     if (innerWidth <= 700)
-      host.current?.closest('.model-library')?.scrollTo({
+      document.querySelector('.model-library')?.scrollTo({
         top: 120,
         behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
           ? 'instant'
@@ -129,14 +94,30 @@ export default function ModelLibrary() {
     setBusy(true);
     setMessage('');
     try {
-      const item = await studio.uploadModel(file, { title, description });
+      const item = await studio.uploadModel(file, {
+        title,
+        description,
+        visibility,
+        compress,
+      });
       setItems((current) => [...current, item]);
       select(item);
       setFile(null);
       setTitle('');
       setDescription('');
       if (fileInput.current) fileInput.current.value = '';
-      setMessage('已存入展柜，访客现在可以浏览这件模型。');
+      const size = `${((item.originalBytes || item.bytes || 0) / 1048576).toFixed(2)} → ${((item.bytes || 0) / 1048576).toFixed(2)} MB`;
+      const processing =
+        item.compression === 'compressed'
+          ? `已压缩 ${size}。`
+          : item.compression === 'already-optimized'
+            ? '模型已较精简，保留原文件。'
+            : item.compression === 'fallback'
+              ? '此模型未能进一步压缩，已保留原文件。'
+              : '已按原文件保存。';
+      setMessage(
+        `${item.visibility === 'private' ? '已创建私密页面，未加入公开展柜。' : '已加入公开展柜。'}${processing}${item.storage === 'r2' ? '文件已保存到 R2。' : '文件已保存到本机。'}`,
+      );
       setManage(false);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '保存失败，请重试。');
@@ -171,6 +152,30 @@ export default function ModelLibrary() {
     setFile(value);
     if (!title) setTitle(value.name.replace(/\.glb$/i, '').slice(0, 80));
     setMessage('');
+  };
+  const shareAddress = (path: string) =>
+    typeof window === 'undefined' ? path : new URL(path, location.origin).href;
+  const copyShare = async () => {
+    if (!selected.sharePath) return;
+    try {
+      await navigator.clipboard.writeText(shareAddress(selected.sharePath));
+      setMessage('私密链接已复制。');
+    } catch {
+      setMessage('可选中上方地址，手动复制链接。');
+    }
+  };
+  const resetShare = async () => {
+    setBusy(true);
+    try {
+      const item = await studio.resetModelShare(selected.id);
+      setItems((current) => current.map((x) => (x.id === item.id ? item : x)));
+      setSelected(item);
+      setMessage('已生成新链接，旧链接立即失效。');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '更换失败，请重试。');
+    } finally {
+      setBusy(false);
+    }
   };
   const visible = items.filter((item) =>
     `${item.title} ${item.description} ${item.category}`
@@ -218,138 +223,43 @@ export default function ModelLibrary() {
         </output>
       )}
       <div className="archive-layout">
-        <section className="archive-view" aria-label="模型查看器">
-          <div
-            className="archive-stage"
-            role="application"
-            tabIndex={0}
-            aria-label="模型操作区域"
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowLeft') {
-                viewer.current?.rotate(-0.2);
-                e.preventDefault();
-              }
-              if (e.key === 'ArrowRight') {
-                viewer.current?.rotate(0.2);
-                e.preventDefault();
-              }
-              if (e.key === '+' || e.key === '=') {
-                viewer.current?.zoom(0.85);
-                e.preventDefault();
-              }
-              if (e.key === '-') {
-                viewer.current?.zoom(1.18);
-                e.preventDefault();
-              }
-              if (e.key.toLowerCase() === 'r') viewer.current?.reset();
-            }}
-          >
-            <div ref={host} className="archive-canvas" />
-            <div className="archive-stage-top">
-              <span>
-                <i />
-                LIVE 3D VIEW
-              </span>
-              <span>
-                {String(
-                  items.findIndex((i) => i.id === selected.id) + 1,
-                ).padStart(2, '0')}{' '}
-                / {String(items.length).padStart(2, '0')}
-              </span>
-            </div>
-            {(status.loading || status.error) && (
-              <output className="archive-loading">
-                {status.loading ? (
-                  <>
-                    <LoaderCircle className="archive-spinner" size={26} />
-                    <p>正在布置展台…</p>
-                  </>
-                ) : (
-                  <>
-                    <Box size={30} />
-                    <p>{status.error}</p>
-                    <button
-                      onClick={() =>
-                        engineReady
-                          ? void viewer.current?.select(selected)
-                          : setEngineRetry((n) => n + 1)
-                      }
-                    >
-                      重新载入
-                    </button>
-                  </>
-                )}
-              </output>
-            )}
-            <div className="archive-stage-caption">
-              <span>拖动旋转 · 滚轮缩放 · 双指平移</span>
-              <span>← → 旋转 &nbsp; ＋ − 缩放 &nbsp; R 复位</span>
-            </div>
-          </div>
-          <div className="archive-controls">
-            <div>
-              <button
-                aria-label="向左旋转模型"
-                onClick={() => viewer.current?.rotate(-Math.PI / 8)}
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                aria-label="向右旋转模型"
-                onClick={() => viewer.current?.rotate(Math.PI / 8)}
-              >
-                <ChevronRight size={18} />
-              </button>
-              <span />
-              <button
-                aria-label="放大模型"
-                onClick={() => viewer.current?.zoom(0.8)}
-              >
-                <Plus size={18} />
-              </button>
-              <button
-                aria-label="缩小模型"
-                onClick={() => viewer.current?.zoom(1.25)}
-              >
-                <Minus size={18} />
-              </button>
-              <button
-                aria-label="复位模型视角"
-                onClick={() => viewer.current?.reset()}
-              >
-                <RotateCcw size={17} />
-              </button>
-            </div>
-            <label>
-              <input
-                type="checkbox"
-                checked={auto}
-                onChange={(e) => setAuto(e.target.checked)}
-              />
-              缓慢旋转
-            </label>
-            <button
-              className="archive-fit"
-              onClick={() => viewer.current?.reset()}
-            >
-              <Expand size={16} />
-              <span>完整查看</span>
-            </button>
-          </div>
-          <div className="archive-caption">
-            <div>
-              <small>{selected.category}</small>
-              <h2>{selected.title}</h2>
-            </div>
-            <p>
-              {selected.description ||
-                '一件值得慢慢观看的私人藏品。拖动模型，从不同方向发现它的造型。'}
-            </p>
-          </div>
-        </section>
+        <div>
+          <ModelPreview
+            item={selected}
+            paused={manage}
+            position={`${String(items.findIndex((i) => i.id === selected.id) + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}`}
+          />
+          {studio.admin && selected.sharePath && (
+            <section className="archive-share-panel" aria-label="私密分享链接">
+              <div>
+                <LockKeyhole size={18} />
+                <strong>私密分享</strong>
+                <span>仅管理员列表可见 · 持有链接的人可观看</span>
+              </div>
+              <label>
+                独立页面地址
+                <input
+                  readOnly
+                  aria-label="独立页面地址"
+                  value={shareAddress(selected.sharePath)}
+                  onFocus={(e) => e.target.select()}
+                />
+              </label>
+              <div className="archive-share-actions">
+                <a href={selected.sharePath} target="_blank" rel="noreferrer">
+                  打开独立页面 <ArrowUpRight size={14} />
+                </a>
+                <button onClick={() => void copyShare()}>复制链接</button>
+                <button disabled={busy} onClick={() => void resetShare()}>
+                  更换链接（旧链接失效）
+                </button>
+              </div>
+            </section>
+          )}
+        </div>
         <aside className="archive-shelf" aria-label="藏品列表">
           <div className="archive-shelf-heading">
-            <h2>展柜藏品</h2>
+            <h2>{studio.admin ? '全部藏品 · 管理视图' : '展柜藏品'}</h2>
             <span>{items.length} 件</span>
           </div>
           <label className="archive-search">
@@ -445,7 +355,7 @@ export default function ModelLibrary() {
           </DialogDescription>
           {studio.admin ? (
             <form onSubmit={upload}>
-              <p>模型保存到小屋展柜，之后回来仍可查看。</p>
+              <p>选择展示范围。私密模型只在管理员列表出现。</p>
               <label className="archive-file">
                 <Upload size={27} />
                 <strong>{file ? file.name : '选择一个 3D 模型'}</strong>
@@ -484,6 +394,47 @@ export default function ModelLibrary() {
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </label>
+              <fieldset className="archive-visibility" disabled={busy}>
+                <legend>谁可以看到这件模型</legend>
+                <label aria-label="私密分享">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="private"
+                    checked={visibility === 'private'}
+                    onChange={() => setVisibility('private')}
+                  />
+                  <span>
+                    <strong>私密分享</strong>
+                    <small>独立随机地址 · 持有链接可看</small>
+                  </span>
+                </label>
+                <label aria-label="公开展示">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="public"
+                    checked={visibility === 'public'}
+                    onChange={() => setVisibility('public')}
+                  />
+                  <span>
+                    <strong>公开展示</strong>
+                    <small>加入展柜 · 所有访客可见</small>
+                  </span>
+                </label>
+              </fieldset>
+              <label className="archive-compress" aria-label="智能压缩（推荐）">
+                <input
+                  type="checkbox"
+                  checked={compress}
+                  disabled={busy}
+                  onChange={(e) => setCompress(e.target.checked)}
+                />
+                <span>
+                  <strong>智能压缩（推荐）</strong>
+                  <small>不减面，贴图最高 2K；若没有变小则保留原文件。</small>
+                </span>
+              </label>
               <button
                 className="archive-submit"
                 disabled={!file || busy || !title.trim()}
@@ -493,7 +444,13 @@ export default function ModelLibrary() {
                 ) : (
                   <Plus size={17} />
                 )}
-                <span>{busy ? '正在存入展柜…' : '存入展柜'}</span>
+                <span>
+                  {busy
+                    ? '正在上传、处理并保存…'
+                    : visibility === 'private'
+                      ? '创建私密页面'
+                      : '存入公开展柜'}
+                </span>
               </button>
             </form>
           ) : (

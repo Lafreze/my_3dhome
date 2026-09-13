@@ -6,6 +6,7 @@ import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createPresenceHandler } from './seat-presence.mjs';
 import { createHouseHandler } from './house-settings.mjs';
+import { createExhibitAssetHandler } from './model-storage.mjs';
 
 const root = fileURLToPath(new URL('../dist/client/', import.meta.url));
 const port = Number(process.env.PORT || process.env.KOMORI_PORT || 3000);
@@ -55,9 +56,11 @@ const handleHouse = await createHouseHandler({
     process.env.RAILWAY_PROJECT_ID && process.env.RAILWAY_ENVIRONMENT_ID
   ),
 });
+const handleExhibits = await createExhibitAssetHandler(root);
 const server = createServer(async (req, res) => {
   if (await handleHouse(req, res)) return;
   if (await handlePresence(req, res)) return;
+  if (await handleExhibits(req, res)) return;
   if (!['GET', 'HEAD'].includes(req.method)) {
     res.writeHead(405);
     res.end();
@@ -101,9 +104,16 @@ const server = createServer(async (req, res) => {
       return;
     }
     // Static prerender emits models.html; keep the public route extensionless.
+    const privatePage =
+      /^\/models\/private\/[A-Za-z0-9_-]{43}\/?$/.test(path) ||
+      path === '/model-share';
     let file = resolve(
       root,
-      path === '/models' || path === '/models/' ? 'models.html' : '.' + path,
+      privatePage
+        ? 'model-share.html'
+        : path === '/models' || path === '/models/'
+          ? 'models.html'
+          : '.' + path,
     );
     if (file !== resolve(root) && !file.startsWith(resolve(root) + sep)) {
       res.writeHead(403);
@@ -118,6 +128,13 @@ const server = createServer(async (req, res) => {
       'Cache-Control': 'no-cache',
       'X-Content-Type-Options': 'nosniff',
       'Accept-Ranges': 'bytes',
+      ...(privatePage
+        ? {
+            'Cache-Control': 'private, no-store',
+            'Referrer-Policy': 'no-referrer',
+            'X-Robots-Tag': 'noindex, nofollow, noarchive',
+          }
+        : {}),
     };
     const contentHash = /\.([a-f0-9]{16})\.[a-z0-9]+$/.exec(file)?.[1];
     if (path.startsWith('/assets/') && contentHash) {

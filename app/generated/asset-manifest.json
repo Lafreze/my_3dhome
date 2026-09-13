@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4be70ee73a0c2be4",
+  "version": "f6db6a6de0fc1367",
   "assets": {
     "art.botanical-study": {
       "type": "image",
@@ -378,7 +378,7 @@
       "sha256": "b1c5251b9702f922d9c5f29ea1d3eab457ad72c7d32828ab5fc965aa64f9e63b",
       "contentType": "model/gltf-binary",
       "dependencies": [],
-      "publish": false
+      "publish": true
     },
     "exhibit.aureole.room": {
       "type": "model",
@@ -392,7 +392,7 @@
       "sha256": "fc74722faf4e9c78ff0d3617c3abb66ecac1de17b6a094369412df3238f6181c",
       "contentType": "model/gltf-binary",
       "dependencies": [],
-      "publish": false
+      "publish": true
     },
     "exhibit.reaper.detail": {
       "type": "model",
@@ -404,7 +404,7 @@
       "sha256": "c07b3615a54771c839bb1629bf68fcee35bd650161c1f981cc62c61b14fdef42",
       "contentType": "model/gltf-binary",
       "dependencies": [],
-      "publish": false
+      "publish": true
     },
     "exhibit.reaper.room": {
       "type": "model",
@@ -418,7 +418,7 @@
       "sha256": "1b3be68a7d791fb049ad3ef39f313a36878e14d2bd036819682089bcc9e1b054",
       "contentType": "model/gltf-binary",
       "dependencies": [],
-      "publish": false
+      "publish": true
     },
     "exhibit.seraph.detail": {
       "type": "model",
@@ -430,7 +430,7 @@
       "sha256": "e37133bea1612c04a5d974f446df7c8da9d80af491e95f90562db0c78bf1d508",
       "contentType": "model/gltf-binary",
       "dependencies": [],
-      "publish": false
+      "publish": true
     },
     "exhibit.seraph.room": {
       "type": "model",
@@ -444,7 +444,7 @@
       "sha256": "1874c2c6db0b9585125653204ea6ad2c696285efb4e1fe43d279e12c9e97ddd4",
       "contentType": "model/gltf-binary",
       "dependencies": [],
-      "publish": false
+      "publish": true
     },
     "license.basis": {
       "type": "license",

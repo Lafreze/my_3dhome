@@ -80,7 +80,7 @@ test('coffee finishes once, cools monotonically, survives inactivity and keeps t
 });
 
 test('the runtime image includes every server settings dependency', async () => {
-  const { mkdtemp, mkdir, copyFile, rm } = await import('node:fs/promises');
+  const { mkdtemp, mkdir, copyFile, rm, symlink } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join, dirname } = await import('node:path');
   const { pathToFileURL } = await import('node:url');
@@ -95,7 +95,10 @@ test('the runtime image includes every server settings dependency', async () => 
       if (!copy || copy[1] === 'dist/client') continue;
       const to = join(dir, copy[2]);
       await mkdir(dirname(to), { recursive: true });
-      await copyFile(new URL(copy[1], root), to);
+      if (copy[1] === 'node_modules') {
+        const { fileURLToPath } = await import('node:url');
+        await symlink(fileURLToPath(new URL('node_modules', root)), to, 'dir');
+      } else await copyFile(new URL(copy[1], root), to);
     }
     const { createPresenceHandler } = await import(
       pathToFileURL(join(dir, 'scripts/seat-presence.mjs'))

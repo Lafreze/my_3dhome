@@ -166,8 +166,17 @@ export function createModelViewer(
   }
   frame = requestAnimationFrame(animate);
   async function uploaded(item: Exhibit, signal: AbortSignal) {
-    if (!item.url?.startsWith('/api/models/')) throw Error('模型地址无效。');
-    const response = await fetch(item.url, { signal });
+    if (
+      !item.url ||
+      !/^\/api\/(?:models\/[a-f0-9-]{36}\.glb|model-share\/[A-Za-z0-9_-]{43}\/file\.glb)$/.test(
+        item.url,
+      )
+    )
+      throw Error('模型地址无效。');
+    const response = await fetch(item.url, {
+      signal,
+      referrerPolicy: 'no-referrer',
+    });
     if (!response.ok) throw Error('模型文件暂时无法读取。');
     const bytes = await response.arrayBuffer();
     const loader = new GLTFLoader(loadingManager),

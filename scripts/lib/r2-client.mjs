@@ -2,7 +2,12 @@ import { createHmac } from 'node:crypto';
 import { S3Client } from '@aws-sdk/client-s3';
 import { sha256, PREFIX } from './asset-policy.mjs';
 
-export function scopedCredentials(env, endpoint, prune = false) {
+export function scopedCredentials(
+  env,
+  endpoint,
+  prune = false,
+  prefix = PREFIX,
+) {
   if (env.R2_SESSION_TOKEN)
     return {
       accessKeyId: env.R2_ACCESS_KEY_ID,
@@ -27,7 +32,7 @@ export function scopedCredentials(env, endpoint, prune = false) {
       'ListObjectsV2',
       ...(prune ? ['DeleteObject'] : []),
     ],
-    paths: { prefixPaths: [PREFIX], objectPaths: [] },
+    paths: { prefixPaths: [prefix], objectPaths: [] },
   };
   const input = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode(claims)}`;
   const jwt = `${input}.${createHmac('sha256', env.R2_SECRET_ACCESS_KEY).update(input).digest('base64url')}`;
@@ -37,7 +42,12 @@ export function scopedCredentials(env, endpoint, prune = false) {
     sessionToken: Buffer.from(`jwt/${jwt}`).toString('base64'),
   };
 }
-export function createR2Client(env = process.env, { prune = false } = {}) {
+export function createR2Client(
+  env = process.env,
+  { prune = false, prefix = PREFIX } = {},
+) {
+  if (!prefix.startsWith(PREFIX) || !/^[a-z0-9/-]+\/$/.test(prefix))
+    throw new Error('Invalid R2 credential prefix');
   for (const key of [
     'R2_ACCOUNT_ID',
     'R2_ACCESS_KEY_ID',
@@ -73,6 +83,6 @@ export function createR2Client(env = process.env, { prune = false } = {}) {
     maxAttempts: 3,
     requestChecksumCalculation: 'WHEN_REQUIRED',
     responseChecksumValidation: 'WHEN_REQUIRED',
-    credentials: async () => scopedCredentials(env, endpoint, prune),
+    credentials: async () => scopedCredentials(env, endpoint, prune, prefix),
   });
 }

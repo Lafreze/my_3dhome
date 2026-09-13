@@ -148,11 +148,12 @@ export async function createHouseHandler({
   publicOrigin = process.env.STUDIO_PUBLIC_ORIGIN || '',
   secureCookies = process.env.NODE_ENV === 'production',
   trustRailwayProxy = false,
+  modelOptions = {},
   now = Date.now,
 } = {}) {
   const file = resolve(dataDir, 'house-settings.json');
   const roomNotes = await createRoomNotes(dataDir, now);
-  const modelLibrary = await createModelLibrary(dataDir, now);
+  const modelLibrary = await createModelLibrary(dataDir, now, modelOptions);
   const noteAttempts = new Map();
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   let state = {
@@ -239,10 +240,45 @@ export async function createHouseHandler({
       path !== '/api/notes' &&
       path !== '/api/models' &&
       !path.startsWith('/api/models/') &&
+      !path.startsWith('/api/model-share/') &&
       !path.startsWith('/api/admin/')
     )
       return false;
     try {
+      if (
+        path.startsWith('/api/models') ||
+        path.startsWith('/api/model-share/') ||
+        path === '/api/admin/models'
+      ) {
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.setHeader('Referrer-Policy', 'no-referrer');
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+      }
+      if (req.method === 'GET' && path === '/api/admin/models') {
+        if (!session(req)) throw fail(401, '请先输入管理暗号。');
+        send(res, 200, {
+          items: modelLibrary.list(true),
+          storage: modelLibrary.storage,
+        });
+        return true;
+      }
+      if (
+        ['GET', 'HEAD'].includes(req.method) &&
+        path.startsWith('/api/model-share/')
+      ) {
+        const match =
+          /^\/api\/model-share\/([A-Za-z0-9_-]{43})(\/file\.glb)?$/.exec(path);
+        if (!match) throw fail(404, '链接不存在或已失效。');
+        if (match[2]) await modelLibrary.serveShare(req, res, match[1]);
+        else if (req.method === 'GET')
+          send(res, 200, { item: modelLibrary.share(match[1]) });
+        else {
+          modelLibrary.share(match[1]);
+          res.writeHead(200);
+          res.end();
+        }
+        return true;
+      }
       if (req.method === 'GET' && path === '/api/models') {
         send(res, 200, { items: modelLibrary.list() });
         return true;
@@ -253,7 +289,7 @@ export async function createHouseHandler({
       ) {
         const match = /^\/api\/models\/([a-f0-9-]{36})\.glb$/.exec(path);
         if (!match) throw fail(404, '没有找到这件模型。');
-        await modelLibrary.serve(req, res, match[1]);
+        await modelLibrary.serve(req, res, match[1], !!session(req));
         return true;
       }
       if (req.method === 'GET' && path === '/api/notes') {
@@ -350,6 +386,12 @@ export async function createHouseHandler({
         throw fail(403, '验证已失效，请重新进入管理模式。');
       if (req.method === 'POST' && path === '/api/models') {
         send(res, 201, await modelLibrary.add(req));
+        return true;
+      }
+      if (req.method === 'POST' && path === '/api/admin/models/reset-share') {
+        const value = await body(req, 1024);
+        keys(value, ['id']);
+        send(res, 200, await modelLibrary.resetShare(text(value.id, 36, true)));
         return true;
       }
       if (req.method === 'DELETE' && path === '/api/notes') {
