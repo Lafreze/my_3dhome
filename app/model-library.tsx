@@ -14,6 +14,7 @@ import {
   Plus,
   Search,
   Upload,
+  Trash2,
   X,
 } from 'lucide-react';
 import { exhibits, type Exhibit } from './exhibit-data';
@@ -40,7 +41,8 @@ export default function ModelLibrary() {
     [title, setTitle] = useState(''),
     [description, setDescription] = useState(''),
     [visibility, setVisibility] = useState<'public' | 'private'>('private'),
-    [compress, setCompress] = useState(true);
+    [compress, setCompress] = useState(true),
+    [deleting, setDeleting] = useState<Exhibit | null>(null);
   useEffect(() => {
     let live = true;
     fetch(studio.admin ? '/api/admin/models' : '/api/models', {
@@ -52,6 +54,7 @@ export default function ModelLibrary() {
       })
       .then((data) => {
         if (live) {
+          if (!studio.admin) setDeleting(null);
           setItems([...exhibits, ...data.items]);
           setSelected((current) =>
             current.visibility === 'private' && !studio.admin
@@ -186,6 +189,25 @@ export default function ModelLibrary() {
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
+  const remove = async () => {
+    if (!deleting || !studio.admin || busy) return;
+    setBusy(true);
+    try {
+      const result = await studio.deleteModel(deleting.id);
+      setItems((current) => current.filter((item) => item.id !== deleting.id));
+      if (selected.id === deleting.id) select(exhibits[0]);
+      setDeleting(null);
+      setMessage(
+        result.cleanupPending
+          ? '模型已移除，存储文件正在清理。'
+          : '模型已删除。',
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '删除失败，请重试。');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <main className="model-library">
       <header className="archive-header">
@@ -225,9 +247,23 @@ export default function ModelLibrary() {
         <div>
           <ModelPreview
             item={selected}
-            paused={manage}
+            paused={manage || (!!deleting && studio.admin)}
             position={`${String(items.findIndex((i) => i.id === selected.id) + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}`}
           />
+          {studio.admin &&
+            !exhibits.some((item) => item.id === selected.id) && (
+              <div className="archive-delete-row">
+                <button
+                  disabled={busy}
+                  onClick={() => {
+                    setMessage('');
+                    setDeleting(selected);
+                  }}
+                >
+                  <Trash2 size={15} /> 删除模型
+                </button>
+              </div>
+            )}
           {studio.admin && selected.sharePath && (
             <section className="archive-share-panel" aria-label="私密分享链接">
               <div>
@@ -322,6 +358,40 @@ export default function ModelLibrary() {
       <footer className="archive-footer">
         <span>SATORI / OBJECT ARCHIVE</span>
       </footer>
+      <Dialog
+        open={!!deleting && studio.admin}
+        onOpenChange={(open) => {
+          if (!open && !busy) setDeleting(null);
+        }}
+      >
+        <DialogContent
+          className="archive-upload archive-delete-dialog"
+          overlayClassName="archive-overlay"
+          showCloseButton={!busy}
+        >
+          <DialogTitle>删除「{deleting?.title}」？</DialogTitle>
+          <DialogDescription>
+            文件及其分享页面将被删除，无法恢复。
+          </DialogDescription>
+          <div className="archive-delete-actions">
+            <button disabled={busy} onClick={() => setDeleting(null)}>
+              取消
+            </button>
+            <button
+              className="archive-delete-confirm"
+              disabled={busy}
+              onClick={() => void remove()}
+            >
+              {busy ? '正在删除…' : '确认删除'}
+            </button>
+          </div>
+          {message && (
+            <output className="archive-upload-message" aria-live="polite">
+              {message}
+            </output>
+          )}
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={manage}
         onOpenChange={(value) => {

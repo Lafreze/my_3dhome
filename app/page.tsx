@@ -93,7 +93,6 @@ import {
 } from './studio-settings';
 import AdminPanel from './admin-panel';
 import VisitorSeats from './visitor-seats';
-import { usesRemoteAssets } from './asset-url';
 import type { AssetProgress } from './asset-loading';
 import assetCredits from './generated/asset-credits.json';
 import {
@@ -966,11 +965,7 @@ function StudioHome() {
           <output className="asset-loading-status" aria-live="polite">
             {assetProgress.errors.length > 0 ? (
               <>
-                <span>
-                  {usesRemoteAssets()
-                    ? '资源服务暂时不可用，部分模型或纹理未能加载。'
-                    : '部分模型或纹理未能加载，请检查网络连接。'}
-                </span>
+                <span>部分资源暂未载入。</span>
                 <button
                   disabled={assetProgress.busy}
                   onClick={() => api.current?.retryAssets()}

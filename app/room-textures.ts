@@ -140,7 +140,7 @@ export function artwork(index: number) {
   t.anisotropy = 8;
   return t;
 }
-export function screenTexture(images: CanvasImageSource[] = []) {
+export function screenTexture(images: (CanvasImageSource | undefined)[] = []) {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
   canvas.height = 640;
@@ -154,7 +154,8 @@ export function screenTexture(images: CanvasImageSource[] = []) {
   c.font = '16px sans-serif';
   c.fillText('A COLLECTION OF IDEAS & OBSERVATIONS', 54, 103);
   for (let i = 0; i < 3; i++) {
-    if (images[i]) c.drawImage(images[i], 54 + i * 321, 155, 280, 350);
+    const image = images[i];
+    if (image) c.drawImage(image, 54 + i * 321, 155, 280, 350);
     else {
       const t = artwork(i);
       c.drawImage(t.image as HTMLCanvasElement, 54 + i * 321, 155, 280, 350);

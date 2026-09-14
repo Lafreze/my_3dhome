@@ -17,6 +17,9 @@ const memoryStorage = () => {
   const objects = new Map();
   return {
     objects,
+    async remove(key) {
+      objects.delete(key);
+    },
     async put(bytes) {
       const key = randomBytes(32).toString('hex');
       objects.set(key, bytes);
@@ -347,4 +350,172 @@ void test('compression reduces an uncompressed mesh without dropping triangles, 
     [0.2, 0.4, 0.8, 1],
   );
   geometry.dispose();
+});
+
+void test('deletion requires admin, same-origin and CSRF; only uploaded models can be removed', async (t) => {
+  const f = await fixture(t),
+    item = await (await f.upload()).json();
+  const url = f.origin + '/api/admin/models',
+    request = {
+      method: 'DELETE',
+      headers: { ...f.headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id }),
+    };
+  assert.equal(
+    (
+      await fetch(url, {
+        ...request,
+        headers: { Origin: f.origin, 'Content-Type': 'application/json' },
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await fetch(url, {
+        ...request,
+        headers: { ...request.headers, 'X-Studio-CSRF': 'invalid' },
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await fetch(url, {
+        ...request,
+        headers: { ...request.headers, Origin: 'https://other.test' },
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await fetch(url, { ...request, body: JSON.stringify({ id: 'seraph' }) }))
+      .status,
+    404,
+  );
+  assert.equal(f.storage.objects.size, 1);
+  const removed = await fetch(url, request);
+  assert.equal(removed.status, 200);
+  assert.deepEqual(await removed.json(), {
+    id: item.id,
+    deleted: true,
+    cleanupPending: false,
+  });
+  assert.equal(f.storage.objects.size, 0);
+  const code = item.sharePath.split('/').at(-1);
+  for (const path of [
+    item.url,
+    '/api/model-share/' + code,
+    '/api/model-share/' + code + '/file.glb',
+  ])
+    for (const method of ['GET', 'HEAD'])
+      assert.equal(
+        (await fetch(f.origin + path, { method, headers: f.headers })).status,
+        404,
+      );
+  assert.equal(
+    (
+      await (
+        await fetch(f.origin + '/api/admin/models', { headers: f.headers })
+      ).json()
+    ).items.length,
+    0,
+  );
+  await f.restart();
+  assert.equal(
+    (await fetch(f.origin + '/api/model-share/' + code)).status,
+    404,
+  );
+});
+
+void test('local public model deletion removes the file and remains absent after restart', async (t) => {
+  const f = await fixture(t, null),
+    item = await (await f.upload({ visibility: 'public' })).json();
+  const path = join(f.dir, `model-library/${item.id}.glb`);
+  assert.deepEqual(await readFile(path), model);
+  const r = await fetch(f.origin + '/api/admin/models', {
+    method: 'DELETE',
+    headers: { ...f.headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: item.id }),
+  });
+  assert.equal(r.status, 200);
+  await assert.rejects(readFile(path), { code: 'ENOENT' });
+  await f.restart();
+  assert.deepEqual(
+    (await (await fetch(f.origin + '/api/models')).json()).items,
+    [],
+  );
+  assert.equal((await fetch(f.origin + item.url)).status, 404);
+});
+
+void test('failed storage deletion cannot resurrect a private model and cleanup recovers after restart', async (t) => {
+  const storage = memoryStorage();
+  let unavailable = true;
+  storage.remove = async (key) => {
+    if (unavailable) throw Error('storage outage');
+    storage.objects.delete(key);
+  };
+  const f = await fixture(t, storage),
+    item = await (await f.upload()).json(),
+    code = item.sharePath.split('/').at(-1);
+  const result = await (
+    await fetch(f.origin + '/api/admin/models', {
+      method: 'DELETE',
+      headers: { ...f.headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id }),
+    })
+  ).json();
+  assert.equal(result.cleanupPending, true);
+  assert.equal(storage.objects.size, 1);
+  await f.restart();
+  assert.equal(
+    (await fetch(f.origin + '/api/model-share/' + code)).status,
+    404,
+  );
+  assert.equal(
+    (await fetch(f.origin + '/api/model-share/' + code + '/file.glb')).status,
+    404,
+  );
+  const saved = JSON.parse(
+    await readFile(join(f.dir, 'model-library/catalog.json')),
+  );
+  assert(saved.items[0].deletedAt);
+  unavailable = false;
+  await f.restart();
+  assert.equal(storage.objects.size, 0);
+  assert.deepEqual(
+    JSON.parse(await readFile(join(f.dir, 'model-library/catalog.json'))).items,
+    [],
+  );
+});
+
+void test('a model deleted during an in-flight object read is never sent to the reader', async (t) => {
+  const storage = memoryStorage(),
+    f = await fixture(t, storage),
+    item = await (await f.upload()).json();
+  let release, started;
+  const reading = new Promise((resolve) => (started = resolve));
+  storage.get = async (key) => {
+    const bytes = storage.objects.get(key);
+    started();
+    await new Promise((resolve) => (release = resolve));
+    return bytes;
+  };
+  const pending = fetch(
+    f.origin +
+      '/api/model-share/' +
+      item.sharePath.split('/').at(-1) +
+      '/file.glb',
+  );
+  await reading;
+  const deleted = await fetch(f.origin + '/api/admin/models', {
+    method: 'DELETE',
+    headers: { ...f.headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: item.id }),
+  });
+  assert.equal(deleted.status, 200);
+  release();
+  const response = await pending;
+  assert.equal(response.status, 404);
+  assert(!(await response.text()).includes('glTF'));
 });

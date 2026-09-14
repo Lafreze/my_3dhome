@@ -1,5 +1,30 @@
 [
-  { "id": "art.quiet-hills", "name": "远山 · 雾蓝" },
-  { "id": "art.evening-window", "name": "暮窗 · 暖日" },
-  { "id": "art.botanical-study", "name": "枝叶 · 鼠尾草" }
+  {
+    "id": "art.coastal-dawn",
+    "name": "海岸晨光"
+  },
+  {
+    "id": "art.forest-stream",
+    "name": "林间溪流"
+  },
+  {
+    "id": "art.rainy-lanterns",
+    "name": "雨夜灯巷"
+  },
+  {
+    "id": "art.moonlit-water",
+    "name": "月下湖泊"
+  },
+  {
+    "id": "art.quiet-hills",
+    "name": "远山 · 雾蓝"
+  },
+  {
+    "id": "art.evening-window",
+    "name": "暮窗 · 暖日"
+  },
+  {
+    "id": "art.botanical-study",
+    "name": "枝叶 · 鼠尾草"
+  }
 ]

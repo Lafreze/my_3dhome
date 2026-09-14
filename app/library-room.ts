@@ -1,8 +1,9 @@
+import { paintingTexture } from './painting-textures';
 import { createSpineAtlas, bindingColors } from './book-spines';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { addOakFloor, galleryPrint } from './house-finishes';
+import { addOakFloor } from './house-finishes';
 import { drapedLinen, pillowGeometry } from './bed-linen';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { rooms, type HouseView } from './house-data';
@@ -19,6 +20,7 @@ import type { WallCutaways } from './wall-cutaway';
 import type { ObjectId } from './room-data';
 import type { Environment } from './environment-data';
 type Kit = {
+  assets: import('./asset-loading').RoomAssets;
   root: T.Group;
   seats: SeatAnchors;
   cutaways: WallCutaways;
@@ -267,7 +269,15 @@ export function buildLibrary(k: Kit) {
     box(g, w + 0.08, h + 0.08, 0.05, 0, 0, 0, dark);
     box(g, w, h, 0.012, 0, 0, 0.03, ivory);
     const m = new T.MeshStandardMaterial({
-      map: galleryPrint(index, k.textures),
+      map: paintingTexture(
+        k.assets,
+        'library',
+        index % 2 ? 'art.coastal-dawn' : 'art.forest-stream',
+        k.textures,
+        (w - 0.055) / (h - 0.065),
+        index % 3,
+        3,
+      ),
       roughness: 0.9,
     });
     k.materials.push(m);

@@ -1,7 +1,8 @@
+import { paintingTexture } from './painting-textures';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { addOakFloor, galleryPrint } from './house-finishes';
+import { addOakFloor } from './house-finishes';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { barFurniture as f, barStools } from './bar-layout';
 import {
@@ -17,6 +18,7 @@ import type { ObjectId } from './room-data';
 import type { WallCutaways } from './wall-cutaway';
 
 type Kit = {
+  assets: import('./asset-loading').RoomAssets;
   root: T.Group;
   seats: SeatAnchors;
   cutaways: WallCutaways;
@@ -285,7 +287,17 @@ export function buildBar(k: Kit) {
     box(g, w + 0.13, h + 0.13, 0.065, 0, 0, 0, dark);
     box(g, w + 0.06, h + 0.06, 0.015, 0, 0, 0.04, cream);
     const m = new T.MeshStandardMaterial({
-      map: galleryPrint(index, k.textures),
+      map: paintingTexture(
+        k.assets,
+        'bar',
+        index === 1 || index === 2
+          ? 'art.rainy-lanterns'
+          : index === 3
+            ? 'art.coastal-dawn'
+            : 'art.moonlit-water',
+        k.textures,
+        w / h,
+      ),
       roughness: 0.9,
     });
     k.materials.push(m);

@@ -152,7 +152,7 @@ export async function createModelLibrary(
   // Preserve legacy originals locally; update the catalog only after R2 confirms each copy.
   if (storage)
     for (const item of items)
-      if (!item.objectKey) {
+      if (!item.deletedAt && !item.objectKey) {
         const content = await readFile(resolve(directory, `${item.id}.glb`));
         const objectKey = await storage.put(content);
         await persist(
@@ -168,6 +168,34 @@ export async function createModelLibrary(
     writes = result.catch(() => {});
     return result;
   };
+  let cleanupTimer;
+  const scheduleCleanup = () => {
+    if (cleanupTimer) return;
+    cleanupTimer = setTimeout(() => {
+      cleanupTimer = undefined;
+      void mutate(cleanupDeleted).catch(scheduleCleanup);
+    }, 60000);
+    cleanupTimer.unref();
+  };
+  const cleanupDeleted = async () => {
+    for (const item of items.filter((x) => x.deletedAt)) {
+      try {
+        if (item.objectKey) {
+          if (!storage?.remove) throw Error('Model deletion unavailable');
+          await storage.remove(item.objectKey);
+        }
+        // Also remove an original retained by a legacy local-to-R2 migration.
+        await unlink(resolve(directory, `${item.id}.glb`)).catch((error) => {
+          if (error.code !== 'ENOENT') throw error;
+        });
+        await persist(items.filter((x) => x.id !== item.id));
+      } catch {
+        // The durable tombstone revokes every route even during an R2 outage/restart.
+        scheduleCleanup();
+      }
+    }
+  };
+  await cleanupDeleted();
   const privateItem = (item) => item.visibility === 'private';
   const present = (item, admin = false, share = false) => ({
     id: item.id,
@@ -195,7 +223,7 @@ export async function createModelLibrary(
   });
   const shared = (code) =>
     SHARE_CODE.test(code) &&
-    items.find((x) => privateItem(x) && x.shareCode === code);
+    items.find((x) => !x.deletedAt && privateItem(x) && x.shareCode === code);
   const reads = new Map();
   const read = async (item) => {
     if (reads.has(item.id)) return reads.get(item.id);
@@ -234,6 +262,13 @@ export async function createModelLibrary(
     } catch {
       throw fail(503, '模型存储暂时不可用，请稍后重试。');
     }
+    if (
+      !items.some(
+        (x) =>
+          !x.deletedAt && x.id === item.id && x.shareCode === item.shareCode,
+      )
+    )
+      throw fail(404, '没有找到这件模型。');
     let start = 0,
       end = bytes.length - 1,
       status = 200;
@@ -262,9 +297,29 @@ export async function createModelLibrary(
   return {
     list: (admin = false) =>
       items
-        .filter((item) => admin || !privateItem(item))
+        .filter((item) => !item.deletedAt && (admin || !privateItem(item)))
         .map((item) => present(item, admin)),
     storage: storage ? 'r2' : 'local',
+    async remove(id) {
+      return mutate(async () => {
+        const item = items.find((x) => x.id === id);
+        if (!item) throw fail(404, '没有找到这件上传的模型。');
+        if (!item.deletedAt)
+          await persist(
+            items.map((x) =>
+              x.id === id
+                ? { ...x, deletedAt: new Date(now()).toISOString() }
+                : x,
+            ),
+          );
+        await cleanupDeleted();
+        return {
+          id,
+          deleted: true,
+          cleanupPending: items.some((x) => x.id === id),
+        };
+      });
+    },
     share(code) {
       const item = shared(code);
       if (!item) throw fail(404, '链接不存在或已失效。');
@@ -272,7 +327,9 @@ export async function createModelLibrary(
     },
     async resetShare(id) {
       return mutate(async () => {
-        const item = items.find((x) => x.id === id && privateItem(x));
+        const item = items.find(
+          (x) => !x.deletedAt && x.id === id && privateItem(x),
+        );
         if (!item) throw fail(404, '没有找到这件私密模型。');
         const next = {
           ...item,
@@ -404,7 +461,9 @@ export async function createModelLibrary(
       }
     },
     async serve(req, res, id, admin = false) {
-      const item = items.find((x) => x.id === id && (admin || !privateItem(x)));
+      const item = items.find(
+        (x) => !x.deletedAt && x.id === id && (admin || !privateItem(x)),
+      );
       if (!item) throw fail(404, '没有找到这件模型。');
       await serveItem(req, res, item);
     },

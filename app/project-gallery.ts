@@ -158,12 +158,88 @@ export function createProjectGallery(k: Kit) {
   }
   for (const y of [0.79, 1.44, 2.09])
     box(cabinet, 1.58, 0.012, 0.018, 0, y, -0.19, glow, 0.003);
-  const miniatures = [0.435, 0.875, 1.525].map((y) => {
-    const g = new T.Group();
-    g.position.set(0, y, 0);
-    cabinet.add(g);
-    return g;
-  });
+  // Decorative keepsakes have no relationship to the stored or exhibited GLBs.
+  const decor = new T.Group();
+  decor.name = 'Archive / decorative substitutes';
+  cabinet.add(decor);
+  const porcelain = material('#e8e1d0', 0.28),
+    sage = material('#768572', 0.58);
+  const clay = material('#ac795e', 0.76),
+    pages = material('#dcd2b9', 0.92);
+  for (let i = 0; i < 5; i++) {
+    const x = -0.57 + i * 0.115,
+      h = 0.27 + (i % 3) * 0.027;
+    box(
+      decor,
+      0.098,
+      h,
+      0.24,
+      x,
+      0.468 + h / 2,
+      -0.02,
+      i % 2 ? sage : clay,
+      0.005,
+    );
+    box(decor, 0.075, h - 0.035, 0.006, x, 0.468 + h / 2, 0.103, pages, 0.002);
+    for (const y of [0.51, 0.69])
+      box(decor, 0.078, 0.008, 0.01, x, y, 0.11, bronze, 0.002);
+  }
+  const vaseProfile = [
+    [0, 0],
+    [0.07, 0],
+    [0.115, 0.045],
+    [0.13, 0.15],
+    [0.1, 0.25],
+    [0.052, 0.3],
+    [0.05, 0.36],
+    [0.043, 0.36],
+    [0.043, 0.3],
+    [0.09, 0.245],
+    [0.12, 0.15],
+    [0.105, 0.05],
+    [0.065, 0.015],
+    [0, 0.015],
+  ];
+  for (const [x, y, s, m] of [
+    [-0.4, 0.863, 1, porcelain],
+    [0.02, 0.863, 0.78, sage],
+    [0.48, 1.513, 1.12, clay],
+  ] as const) {
+    const vase = mesh(
+      decor,
+      new T.LatheGeometry(
+        vaseProfile.map(([r, h]) => new T.Vector2(r, h)),
+        32,
+      ),
+      m,
+      x,
+      y,
+      -0.015,
+    );
+    vase.scale.setScalar(s);
+  }
+  box(decor, 0.32, 0.035, 0.28, -0.32, 1.53, 0, ink);
+  const ring = mesh(
+    decor,
+    new T.TorusGeometry(0.145, 0.03, 12, 48),
+    bronze,
+    -0.32,
+    1.72,
+    0,
+  );
+  ring.rotation.y = 0.25;
+  for (let i = 0; i < 3; i++)
+    box(
+      decor,
+      0.32 - i * 0.035,
+      0.037,
+      0.24,
+      0.44,
+      0.487 + i * 0.04,
+      0,
+      i % 2 ? pages : sage,
+      0.004,
+    );
   k.cutaways.add([cabinet], { x: 4, z: 6.55, nx: 1, nz: 0 }, ['gallery'], true);
 
   // Soft studio reflections belong only to the metal exhibits, keeping room finishes unchanged.
@@ -289,9 +365,6 @@ export function createProjectGallery(k: Kit) {
       holder.add(model);
       holder.scale.setScalar(fit);
       mount.add(holder);
-      const miniature = holder.clone(true);
-      miniature.scale.multiplyScalar(index === 0 ? 0.26 : 0.38);
-      miniatures[index].add(miniature);
       group.userData.modelStatus = 'ready';
       k.onReady();
     });

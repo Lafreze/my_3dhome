@@ -1,3 +1,4 @@
+import { paintingTexture } from './painting-textures';
 import { corridorArtworks, corridorArtTexture } from './corridor-art';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -19,6 +20,7 @@ import type { ObjectId } from './room-data';
 import type { WallCutaways } from './wall-cutaway';
 
 type Kit = {
+  assets: import('./asset-loading').RoomAssets;
   root: T.Group;
   corridor: T.Group;
   scene: T.Scene;
@@ -350,22 +352,20 @@ export function buildGameRoom(k: Kit) {
   art.rotation.y = Math.PI / 2;
   k.cutaways.add([art], { x: 14.12, z: 5.9, nx: 1, nz: 0 }, ['gaming']);
   box(art, 0.87, 1.12, 0.055, 0, 0, 0, oak);
-  canvasPanel(art, 0.75, 0.98, 0, 0, 0.032, 'Forest print', (ctx) => {
-    ctx.fillStyle = '#e4d7af';
-    ctx.fillRect(0, 0, 640, 840);
-    ctx.fillStyle = '#c6915d';
-    ctx.beginPath();
-    ctx.arc(450, 170, 75, 0, 7);
-    ctx.fill();
-    for (let i = 0; i < 5; i++) {
-      ctx.fillStyle = i % 2 ? '#74805b' : '#405d48';
-      ctx.beginPath();
-      ctx.moveTo(-50, 840);
-      ctx.lineTo(120 + i * 120, 250 + i * 55);
-      ctx.lineTo(710, 840);
-      ctx.fill();
-    }
+  const artMaterial = new T.MeshStandardMaterial({
+    map: paintingTexture(
+      k.assets,
+      'gaming',
+      'art.forest-stream',
+      k.textures,
+      0.75 / 0.98,
+      1,
+      3,
+    ),
+    roughness: 0.92,
   });
+  k.materials.push(artMaterial);
+  mesh(art, new T.PlaneGeometry(0.75, 0.98), artMaterial, 0, 0, 0.032);
   // Two intentionally different cabinets. Screens, stick pivots and every button stay independent.
   const displays: Record<string, ReturnType<typeof canvasPanel>> = {},
     sticks: T.Group[] = [],
@@ -1316,7 +1316,7 @@ export function buildGameRoom(k: Kit) {
     box(frame, w + 0.2, h + 0.22, 0.065, 0, 0, 0, frameMat, 0.008);
     box(frame, w + 0.12, h + 0.14, 0.02, 0, 0, 0.045, ivory, 0.004);
     const material = new T.MeshStandardMaterial({
-      map: corridorArtTexture(index, k.textures),
+      map: corridorArtTexture(index, k.textures, k.assets),
       roughness: 0.93,
     });
     k.materials.push(material);

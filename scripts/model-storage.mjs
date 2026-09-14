@@ -5,7 +5,11 @@ import {
   randomBytes,
 } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { createR2Client } from './lib/r2-client.mjs';
 
 const prefix = 'kuro/model-library/';
@@ -21,7 +25,7 @@ export function createModelStorage(
   const key = Buffer.from(env.MODEL_ENCRYPTION_KEY || '', 'base64');
   if (key.length !== 32)
     throw new Error('MODEL_ENCRYPTION_KEY must contain 32 bytes');
-  const client = injectedClient || createR2Client(env, { prefix });
+  const client = injectedClient || createR2Client(env, { prefix, prune: true });
   const bucket = env.R2_BUCKET_NAME;
   const objectKey = (value) => {
     if (!/^kuro\/model-library\/[a-f0-9]{64}\.bin$/.test(value))
@@ -80,12 +84,21 @@ export function createModelStorage(
         decipher.final(),
       ]);
     },
+    async remove(object) {
+      await client.send(
+        new DeleteObjectCommand({ Bucket: bucket, Key: objectKey(object) }),
+      );
+    },
     close: () => client.destroy(),
   };
 }
 
 // Only the six reviewed built-in exhibit assets may be served through this route.
-export async function createExhibitAssetHandler(root, env = process.env) {
+export async function createExhibitAssetHandler(
+  root,
+  env = process.env,
+  { client: injectedClient } = {},
+) {
   if (env.MODEL_STORAGE !== 'r2') return async () => false;
   const catalog = JSON.parse(
     await readFile(new URL('../config/exhibit-catalog.json', import.meta.url)),
@@ -100,7 +113,7 @@ export async function createExhibitAssetHandler(root, env = process.env) {
       if (!asset) throw new Error(`Missing R2 exhibit manifest entry: ${id}`);
       paths.set('/assets/' + asset.path, asset);
     }
-  const client = createR2Client(env);
+  const client = injectedClient || createR2Client(env);
   return async (req, res) => {
     const asset = paths.get(new URL(req.url, 'http://localhost').pathname);
     if (!asset || !['GET', 'HEAD'].includes(req.method)) return false;
@@ -110,24 +123,46 @@ export async function createExhibitAssetHandler(root, env = process.env) {
         res.end();
         return true;
       }
-      const response = await client.send(
-        new GetObjectCommand({
-          Bucket: env.R2_BUCKET_NAME,
-          Key: 'kuro/' + asset.path,
-        }),
-      );
+      let bytes,
+        source = 'r2';
+      try {
+        const response = await client.send(
+          new GetObjectCommand({
+            Bucket: env.R2_BUCKET_NAME,
+            Key: 'kuro/' + asset.path,
+          }),
+          { abortSignal: AbortSignal.timeout(12000) },
+        );
+        bytes = Buffer.from(await response.Body.transformToByteArray());
+        if (
+          bytes.length !== asset.size ||
+          createHash('sha256').update(bytes).digest('hex') !== asset.sha256
+        )
+          throw new Error('Exhibit integrity mismatch');
+      } catch (error) {
+        console.warn(
+          'Exhibit storage read failed:',
+          asset.logicalPath,
+          error.name,
+        );
+        // The deployment contains identical reviewed exhibit files, never uploaded/private models.
+        bytes = await readFile(`${root}/assets/${asset.path}`);
+        if (
+          bytes.length !== asset.size ||
+          createHash('sha256').update(bytes).digest('hex') !== asset.sha256
+        )
+          throw new Error('Exhibit fallback integrity mismatch');
+        source = 'bundled-fallback';
+      }
       res.writeHead(200, {
         'Content-Type': 'model/gltf-binary',
         'Content-Length': asset.size,
         'Cache-Control': 'public, max-age=31536000, immutable',
         ETag: `"${asset.sha256}"`,
         'X-Content-Type-Options': 'nosniff',
-        'X-Model-Storage': 'r2',
+        'X-Model-Storage': source,
       });
-      if (req.method === 'HEAD') {
-        response.Body.destroy();
-        res.end();
-      } else response.Body.on('error', () => res.destroy()).pipe(res);
+      res.end(req.method === 'HEAD' ? undefined : bytes);
     } catch {
       if (!res.headersSent) {
         res.writeHead(503, { 'Cache-Control': 'no-store' });

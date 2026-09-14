@@ -1,3 +1,4 @@
+import { paintingTexture } from './painting-textures';
 import {
   createCoffeeState,
   coffeeHeat,
@@ -1313,37 +1314,28 @@ export function buildCafe(k: Kit) {
     k.interactables.push(seat);
   }
 
-  // Coffee botanical triptych on the west wall, with slim frames and individual compositions.
+  // Separate oak frames reveal one uninterrupted woodland panorama.
   for (let i = 0; i < 3; i++) {
     const art = child(west, -7.8, 2.35, 0.25 + i * 0.95);
     art.rotation.y = Math.PI / 2;
     box(art, 0.77, 1.1, 0.055, 0, 0, 0, darkWood);
-    const paper = child(art, 0, 0, 0.037);
-    box(paper, 0.68, 1, 0.014, 0, 0, 0, plaster, 0.001);
-    const stalk = child(paper, 0, -0.34, 0.012);
-    tube(
-      stalk,
-      [
-        [-0.12, 0, 0],
-        [0.04, 0.26, 0],
-        [-0.02, 0.63, 0],
-      ],
-      0.006,
-      green,
-    );
-    for (let j = 0; j < 5; j++) {
-      const a = ball(
-        stalk,
-        (j % 2 ? 1 : -1) * 0.1,
-        0.12 + j * 0.095,
-        0.005,
-        0.085,
-        0.037,
-        0.007,
-        i === 1 ? coffee : green,
-      );
-      a.rotation.z = (j % 2 ? 1 : -1) * 0.6;
-    }
+    box(art, 0.71, 1.04, 0.014, 0, 0, 0.037, plaster, 0.001);
+    const m = new T.MeshStandardMaterial({
+      map: paintingTexture(
+        k.assets,
+        'cafe',
+        'art.forest-stream',
+        textures,
+        0.66 / 0.99,
+        2 - i,
+        3,
+      ),
+      roughness: 0.92,
+    });
+    materials.push(m);
+    const print = new T.Mesh(new T.PlaneGeometry(0.66, 0.99), m);
+    print.position.z = 0.05;
+    art.add(print);
   }
   // Pendant bells, real cable lengths, ceiling roses and upland oak ceiling battens.
   const fixtures = object('cafeLight');

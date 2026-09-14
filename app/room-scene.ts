@@ -1,3 +1,4 @@
+import { paintingTexture } from './painting-textures';
 import { boundBooks } from './bound-books';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { makeSurface } from './house-finishes';
@@ -38,7 +39,7 @@ import * as T from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import type { ObjectId, RoomApi } from './room-data';
-import { surface, artwork, screenTexture } from './room-textures';
+import { surface, screenTexture } from './room-textures';
 import {
   layout,
   workChairTravel,
@@ -236,8 +237,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     m.bumpMap = null;
     return m;
   };
-  const artMaps = [artwork(0), artwork(1), artwork(2)];
-  textures.push(...artMaps);
+  const artMaps = [0, 1, 2].map((i) =>
+    paintingTexture(
+      assets,
+      'study',
+      'art.coastal-dawn',
+      textures,
+      0.685 / 0.94,
+      i,
+      3,
+    ),
+  );
   const artMats = artMaps.map((map) => {
     const m = new T.MeshStandardMaterial({ map, roughness: 0.92 });
     materials.push(m);
@@ -2042,6 +2052,30 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         gifts: visitors.gifts,
         objects: quietObjects.snapshot,
         exploration: exploration.snapshot,
+        paintings: () =>
+          textures
+            .filter((t) => t.name.startsWith('Painting /'))
+            .map((t) => ({
+              name: t.name,
+              width: (t.image as { width?: number })?.width || 0,
+              height: (t.image as { height?: number })?.height || 0,
+              crop: [t.offset.x, t.offset.y, t.repeat.x, t.repeat.y],
+            })),
+        gallery: () =>
+          [
+            'gallerySculpture',
+            'galleryGame',
+            'galleryCase',
+            'galleryArchive',
+          ].map((id) => {
+            const g = groups.get(id as ObjectId)!;
+            const bounds = new T.Box3().setFromObject(g);
+            return {
+              id,
+              status: g.userData.modelStatus || 'decoration',
+              size: bounds.getSize(new T.Vector3()).toArray(),
+            };
+          }),
         objectPoint: (id: ObjectId) => {
           const g = groups.get(id);
           if (!g) return null;
@@ -2967,7 +3001,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       const refreshScreen = () => {
         const previous = display;
         display = screenTexture(
-          projectMats.map((m) => m.map!.image as CanvasImageSource),
+          projectMats.map((m, i) =>
+            projectImages[i] ? (m.map!.image as CanvasImageSource) : undefined,
+          ),
         );
         screenMat.map = display;
         screenMat.emissiveMap = display;

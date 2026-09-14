@@ -1,25 +1,25 @@
 {
-  "version": "a76309a5380b3b67",
+  "version": "f13ecf58b123321e",
   "roomSizes": {
     "study": {
-      "bytes": 5606248,
-      "files": 16
+      "bytes": 9690284,
+      "files": 20
     },
     "living": {
-      "bytes": 3872742,
-      "files": 13
+      "bytes": 7956778,
+      "files": 17
     },
     "bedroom": {
-      "bytes": 3850666,
-      "files": 10
+      "bytes": 6203502,
+      "files": 14
     },
     "gallery": {
-      "bytes": 10765272,
-      "files": 18
+      "bytes": 14849308,
+      "files": 22
     },
     "cafe": {
-      "bytes": 7610980,
-      "files": 21
+      "bytes": 9963816,
+      "files": 25
     }
   },
   "commonCharacters": {
@@ -46,11 +46,21 @@
     {
       "path": "public/artwork/botanical-study.webp",
       "bytes": 8848,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/artwork/coastal-dawn.webp",
+      "bytes": 558018,
       "classification": "catalogued-production"
     },
     {
       "path": "public/artwork/evening-window.webp",
       "bytes": 6538,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/artwork/forest-stream.webp",
+      "bytes": 713336,
       "classification": "catalogued-production"
     },
     {
@@ -59,8 +69,18 @@
       "classification": "catalogued-production"
     },
     {
+      "path": "public/artwork/moonlit-water.webp",
+      "bytes": 481922,
+      "classification": "catalogued-production"
+    },
+    {
       "path": "public/artwork/quiet-hills.webp",
       "bytes": 6690,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/artwork/rainy-lanterns.webp",
+      "bytes": 599560,
       "classification": "catalogued-production"
     },
     {

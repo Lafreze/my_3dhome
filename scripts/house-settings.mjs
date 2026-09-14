@@ -428,6 +428,12 @@ export async function createHouseHandler({
         send(res, 200, await modelLibrary.resetShare(text(value.id, 36, true)));
         return true;
       }
+      if (req.method === 'DELETE' && path === '/api/admin/models') {
+        const value = await body(req, 1024);
+        keys(value, ['id']);
+        send(res, 200, await modelLibrary.remove(text(value.id, 36, true)));
+        return true;
+      }
       if (req.method === 'DELETE' && path === '/api/notes') {
         const value = await body(req, 1024);
         keys(value, ['id']);

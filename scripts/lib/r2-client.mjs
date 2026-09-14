@@ -40,6 +40,8 @@ export function scopedCredentials(
     accessKeyId: env.R2_ACCESS_KEY_ID,
     secretAccessKey: sha256(jwt),
     sessionToken: Buffer.from(`jwt/${jwt}`).toString('base64'),
+    // Without expiration, the SDK memoizes these one-hour credentials forever.
+    expiration: new Date(claims.exp * 1000),
   };
 }
 export function createR2Client(

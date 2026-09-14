@@ -181,10 +181,7 @@ export default function ModelPreview({
           <small>{item.category}</small>
           <h2>{item.title}</h2>
         </div>
-        <p>
-          {item.description ||
-            '一件值得慢慢观看的私人藏品。拖动模型，从不同方向发现它的造型。'}
-        </p>
+        {item.description && <p>{item.description}</p>}
       </div>
     </section>
   );

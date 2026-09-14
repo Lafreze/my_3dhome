@@ -369,11 +369,11 @@
   {
     "id": "art.quiet-hills",
     "name": "远山 · 雾蓝",
-    "author": "kuro.cafe procedural artwork",
+    "author": "OpenAI imagegen",
     "sourceUrl": "",
-    "license": "CC0-1.0",
+    "license": "Generated artwork",
     "licenseUrl": "",
-    "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+    "modifications": "Full generated painting replacing the former geometric illustration",
     "rooms": [
       "study",
       "living",
@@ -384,11 +384,11 @@
   {
     "id": "art.evening-window",
     "name": "暮窗 · 暖日",
-    "author": "kuro.cafe procedural artwork",
+    "author": "OpenAI imagegen",
     "sourceUrl": "",
-    "license": "CC0-1.0",
+    "license": "Generated artwork",
     "licenseUrl": "",
-    "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+    "modifications": "Full generated painting replacing the former geometric illustration",
     "rooms": [
       "study",
       "living",
@@ -399,11 +399,11 @@
   {
     "id": "art.botanical-study",
     "name": "枝叶 · 鼠尾草",
-    "author": "kuro.cafe procedural artwork",
+    "author": "OpenAI imagegen",
     "sourceUrl": "",
-    "license": "CC0-1.0",
+    "license": "Generated artwork",
     "licenseUrl": "",
-    "modifications": "Original vector compositions rendered at 720 × 1000 pixels",
+    "modifications": "Full generated painting replacing the former geometric illustration",
     "rooms": [
       "study",
       "living",
@@ -559,6 +559,86 @@
     "modifications": "Continuous Fuji and cherry blossom sunset panorama; shared texture with independent panel UVs",
     "rooms": [
       "gallery"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "art.coastal-dawn",
+    "name": "海岸晨光",
+    "author": "OpenAI imagegen",
+    "license": "Generated artwork",
+    "licenseUrl": "",
+    "modifications": "Original generated painting, WebP quality 90; scene uses continuous UV crops",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe",
+      "corridor",
+      "gaming",
+      "bar",
+      "library"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "art.forest-stream",
+    "name": "林间溪流",
+    "author": "OpenAI imagegen",
+    "license": "Generated artwork",
+    "licenseUrl": "",
+    "modifications": "Original generated painting, WebP quality 90; scene uses continuous UV crops",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe",
+      "corridor",
+      "gaming",
+      "bar",
+      "library"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "art.rainy-lanterns",
+    "name": "雨夜灯巷",
+    "author": "OpenAI imagegen",
+    "license": "Generated artwork",
+    "licenseUrl": "",
+    "modifications": "Original generated painting, WebP quality 90; scene uses continuous UV crops",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe",
+      "corridor",
+      "gaming",
+      "bar",
+      "library"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "art.moonlit-water",
+    "name": "月下湖泊",
+    "author": "OpenAI imagegen",
+    "license": "Generated artwork",
+    "licenseUrl": "",
+    "modifications": "Original generated painting, WebP quality 90; scene uses continuous UV crops",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "gallery",
+      "cafe",
+      "corridor",
+      "gaming",
+      "bar",
+      "library"
     ],
     "attributionRequired": false
   }

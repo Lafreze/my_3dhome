@@ -1,3 +1,4 @@
+import { paintingTexture } from './painting-textures';
 import { RecordMechanism } from './record-mechanism';
 import { createInteriorDoor } from './interior-doors';
 import { houseDoorLayout } from './house-door-layout';
@@ -18,11 +19,11 @@ import { buildBar } from './bar-room';
 import { buildGameRoom } from './game-room';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { wallArt } from './wall-art-data';
-import { houseFinishes, galleryPrint, addOakFloor } from './house-finishes';
+import { houseFinishes, addOakFloor } from './house-finishes';
 import { houseLighting } from './house-lighting';
 import { createProjectGallery } from './project-gallery';
 import { galleryTriptych } from './gallery-layout';
-import { deferredTexture, fetchAssetBytes } from './asset-loading';
+import { fetchAssetBytes } from './asset-loading';
 import type { RoomAssets } from './asset-loading';
 import type { HouseLandscape } from './house-landscape';
 import { addWindowCraft } from './window-craft';
@@ -622,7 +623,15 @@ export function buildHouse(k: Kit) {
     frame.rotation.y = Math.PI / 2;
     b(frame, 1.2, 1.58, 0.07, 0, 2.15, 0, darkWood, 0.012);
     b(frame, 1.12, 1.5, 0.014, 0, 2.15, 0.043, white, 0.004);
-    const texture = galleryPrint(i + 3, textures);
+    const texture = paintingTexture(
+      k.assets,
+      'living',
+      'art.forest-stream',
+      textures,
+      1.02 / 1.4,
+      1 - i,
+      2,
+    );
     const material = new T.MeshStandardMaterial({
       map: texture,
       roughness: 0.94,
@@ -1298,42 +1307,28 @@ export function buildHouse(k: Kit) {
     brass,
   );
   b(recordArm, 0.044, 0.021, 0.063, -0.19, 0.015, 0.35, black, 0.006);
-  // One quiet horizontal drawing above the bed; the study keeps its three-frame composition.
-  const bedroomDrawing = document.createElement('canvas');
-  bedroomDrawing.width = 768;
-  bedroomDrawing.height = 256;
-  const drawing = bedroomDrawing.getContext('2d')!;
-  drawing.fillStyle = '#e8e3d7';
-  drawing.fillRect(0, 0, 768, 256);
-  drawing.fillStyle = '#d4c8aa';
-  drawing.beginPath();
-  drawing.arc(568, 82, 32, 0, Math.PI * 2);
-  drawing.fill();
-  for (const [color, y] of [
-    ['#b7bdb2', 160],
-    ['#8c9d91', 200],
-  ] as const) {
-    drawing.fillStyle = color;
-    drawing.beginPath();
-    drawing.moveTo(0, y);
-    drawing.bezierCurveTo(160, y - 90, 250, y + 45, 420, y - 35);
-    drawing.bezierCurveTo(590, y - 115, 670, y + 15, 768, y - 30);
-    drawing.lineTo(768, 256);
-    drawing.lineTo(0, 256);
-    drawing.fill();
-  }
-  const bedroomMap = new T.CanvasTexture(bedroomDrawing);
-  bedroomMap.colorSpace = T.SRGBColorSpace;
-  textures.push(bedroomMap);
-  const bedroomPrint = new T.MeshStandardMaterial({
-    map: bedroomMap,
-    roughness: 0.97,
-  });
-  materials.push(bedroomPrint);
+  // Two independent frames share one moonlit panorama, clear of the headboard and wardrobe.
   const headboardArt = child(roots.bedroom, -0.5, 2.6, -3.28);
-  b(headboardArt, 2.05, 0.85, 0.07, 0, 0, 0, darkWood, 0.015);
-  b(headboardArt, 1.95, 0.75, 0.018, 0, 0, 0.045, white, 0.002);
-  b(headboardArt, 1.78, 0.59, 0.008, 0, 0, 0.06, bedroomPrint, 0.001);
+  for (let i = 0; i < 2; i++) {
+    const frame = child(headboardArt, (i - 0.5) * 1.1, 0, 0);
+    b(frame, 1.0, 0.98, 0.07, 0, 0, 0, darkWood, 0.015);
+    b(frame, 0.94, 0.92, 0.018, 0, 0, 0.045, white, 0.002);
+    const m = new T.MeshStandardMaterial({
+      map: paintingTexture(
+        k.assets,
+        'bedroom',
+        'art.moonlit-water',
+        textures,
+        0.87 / 0.85,
+        i,
+        2,
+      ),
+      roughness: 0.92,
+    });
+    materials.push(m);
+    mesh(frame, new T.PlaneGeometry(0.87, 0.85), m, 0, 0, 0.06).castShadow =
+      false;
+  }
   // BEDROOM. Bed axis points toward the foot bench; both sides and the wardrobe remain reachable.
   const bf = houseFurniture.bedroom;
   const bed = group('bedroom', 'sleepBed', bf.bed.x, 0, bf.bed.z);
@@ -1832,8 +1827,8 @@ export function buildHouse(k: Kit) {
       z: 3.16,
       y: 2.18,
       yaw: Math.PI,
-      asset: 'art.botanical-study',
-      title: '04 / BOTANICAL',
+      asset: 'art.forest-stream',
+      title: '04 / FOREST',
       w: 1.02,
       h: 1.38,
     },
@@ -1842,8 +1837,8 @@ export function buildHouse(k: Kit) {
       z: 3.16,
       y: 2.18,
       yaw: Math.PI,
-      asset: 'art.quiet-hills',
-      title: '05 / QUIET HILLS',
+      asset: 'art.moonlit-water',
+      title: '05 / MOONLIGHT',
       w: 1.02,
       h: 1.38,
     },
@@ -1852,8 +1847,8 @@ export function buildHouse(k: Kit) {
       z: 3.16,
       y: 2.18,
       yaw: Math.PI,
-      asset: 'art.evening-window',
-      title: '06 / EVENING',
+      asset: 'art.rainy-lanterns',
+      title: '06 / LANTERNS',
       w: 1.02,
       h: 1.38,
     },
@@ -1862,7 +1857,7 @@ export function buildHouse(k: Kit) {
       z: -2.48,
       y: 2.52,
       yaw: Math.PI / 2,
-      asset: 'art.quiet-hills',
+      asset: 'art.moonlit-water',
       title: '07 / STILLNESS',
       w: 0.7,
       h: 0.94,
@@ -1875,10 +1870,13 @@ export function buildHouse(k: Kit) {
     frame.rotation.y = spec.yaw;
     b(frame, spec.w, spec.h, 0.065, 0, 0, 0, oak, 0.012);
     b(frame, spec.w - 0.06, spec.h - 0.06, 0.012, 0, 0, 0.037, white, 0.003);
-    const texture = deferredTexture(k.assets, 'gallery', spec.asset);
-    texture.colorSpace = T.SRGBColorSpace;
-    texture.anisotropy = 8;
-    textures.push(texture);
+    const texture = paintingTexture(
+      k.assets,
+      'gallery',
+      spec.asset,
+      textures,
+      (spec.w - 0.15) / (spec.h - 0.15),
+    );
     const material = mat('#ffffff', 0.9);
     material.map = texture;
     mesh(

@@ -3045,3 +3045,11 @@ a {
     margin: 0 auto;
   }
 }
+
+.archive-delete-row { display:flex; justify-content:flex-end; padding:12px 2px; }
+.archive-delete-row button { display:inline-flex; align-items:center; gap:7px; border:1px solid #d5c8bf; border-radius:8px; padding:9px 13px; color:#915c4d; background:#f8f3ec; cursor:pointer; }
+.archive-delete-dialog { width:430px; max-width:calc(100vw - 36px); }
+.archive-delete-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
+.archive-delete-actions button { padding:10px 20px; border:1px solid #d5ccbf; border-radius:8px; cursor:pointer; }
+.archive-delete-actions .archive-delete-confirm { background:#965944; color:#fffaf3; border-color:#965944; }
+.archive-delete-actions button:disabled { opacity:.6; cursor:wait; }

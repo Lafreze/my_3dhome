@@ -50,6 +50,9 @@ type Studio = Snapshot & {
     onProgress?: (message: string) => void,
   ) => Promise<Exhibit>;
   resetModelShare: (id: string) => Promise<Exhibit>;
+  deleteModel: (
+    id: string,
+  ) => Promise<{ id: string; deleted: boolean; cleanupPending: boolean }>;
   save: (patch: HousePatch, revision?: number) => Promise<void>;
 };
 const Context = createContext<Studio | null>(null);
@@ -219,6 +222,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         uploadModel,
         resetModelShare: (id) =>
           request('/api/admin/models/reset-share', { id }),
+        deleteModel: (id) => request('/api/admin/models', { id }, 'DELETE'),
       }}
     >
       {children}
