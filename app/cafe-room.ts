@@ -28,6 +28,7 @@ import {
   cafeCounterItems,
 } from './cafe-layout';
 import { addCafeBotany } from './cafe-botany';
+import { advanceKettle, cafeCraft, paintCafeMenu } from './cafe-craft';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 
 type Kit = {
@@ -54,6 +55,7 @@ type Kit = {
 };
 export function buildCafe(k: Kit) {
   const suite = furnitureSuite(k.materials, k.textures, k.assets);
+  const craft = cafeCraft(k.materials, k.textures);
   const { root, materials, textures } = k;
   root.name = 'cafe';
   const mat = (color: string, roughness = 0.6, metalness = 0) => {
@@ -75,21 +77,17 @@ export function buildCafe(k: Kit) {
   const green = suite.lacquer,
     plaster = k.cream,
     black = mat('#252c28', 0.48, 0.08),
-    brass = k.brass,
-    steel = finish('brushed-metal', '#c5c6c8'),
-    ceramic = k.ceramic,
+    brass = craft.champagne,
+    steel = craft.steel,
+    ceramic = craft.porcelain,
     coffee = mat('#663621', 0.25),
-    roastedBean = mat('#060606', 0.78),
-    beanCrease = mat('#010101', 0.9),
+    roastedBean = finish('clay', '#37261e'),
+    beanCrease = mat('#201811', 0.9),
     crema = mat('#bd8b54', 0.45),
     milk = mat('#f7e9cb', 0.6),
     crumb = mat('#ce8b44', 0.85),
     cocoa = mat('#4f2c20', 0.8),
     leaf = mat('#456644', 0.88);
-  const steelFinish = makeSurface('brushed-metal', textures);
-  steel.bumpMap = steelFinish.bumpMap;
-  steel.bumpScale = steelFinish.bumpScale;
-  steel.roughnessMap = steelFinish.roughnessMap;
   k.breeze.add(leaf);
   const glass = k.glass;
   const stone = suite.stone;
@@ -252,8 +250,9 @@ export function buildCafe(k: Kit) {
     x: number,
     y: number,
     z: number,
-    bg = '#213c31',
-    color = '#ecdfbc',
+    bg = '#343b39',
+    color = '#ece4d5',
+    style: 'label' | 'menu' = 'label',
   ) {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
@@ -265,8 +264,18 @@ export function buildCafe(k: Kit) {
     textures.push(tex);
     const m = mat('#ffffff', 0.88);
     m.map = tex;
+    if (style === 'menu') {
+      m.bumpMap = makeSurface('mineral', textures).bumpMap;
+      m.bumpScale = 0.0004;
+      m.name = 'Cafe craft / lettered charcoal slate';
+    }
     mesh(p, new T.PlaneGeometry(w, h), m, x, y, z);
     const paint = (rows: string[]) => {
+      if (style === 'menu') {
+        paintCafeMenu(canvas, rows);
+        tex.needsUpdate = true;
+        return;
+      }
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.strokeStyle = color + '80';
@@ -296,8 +305,8 @@ export function buildCafe(k: Kit) {
     paint(lines);
     return paint;
   }
-  const cupGlazes = [ceramic, mat('#879885', 0.28), mat('#8e9eaa', 0.29)];
-  const cork = mat('#ae946e', 0.97);
+  const cupGlazes = [ceramic, craft.pearl, craft.oatmeal];
+  const cork = finish('clay', '#b3a18b');
   const warmCups: { group: T.Group; size: number }[] = [];
   function cup(
     p: T.Object3D,
@@ -312,6 +321,7 @@ export function buildCafe(k: Kit) {
     coaster = false,
   ) {
     const g = child(p, x, y, z);
+    g.name = 'Cafe craft / cup and saucer';
     if (coaster) {
       g.position.y += 0.017;
       cyl(g, size * 1.65, size * 1.65, 0.014, 0, -0.029, 0, cork);
@@ -323,6 +333,8 @@ export function buildCafe(k: Kit) {
         [0, 0],
         [size * 0.65, 0],
         [size * 0.76, 0.018],
+        [size * 0.88, size * 0.53],
+        [size * 0.97, size * 0.96],
         [size, size * 1.3],
         [size * 0.92, size * 1.36],
         [size * 0.84, size * 1.22],
@@ -330,7 +342,21 @@ export function buildCafe(k: Kit) {
         [0, 0.04],
       ],
       glaze,
+      0,
+      0.009,
+      0,
     );
+    cyl(g, size * 0.65, size * 0.62, 0.009, 0, 0.0045, 0, craft.foot);
+    const rim = torus(
+      g,
+      size * 0.93,
+      size * 0.012,
+      0,
+      size * 1.34 + 0.009,
+      0,
+      glaze,
+    );
+    rim.rotation.x = Math.PI / 2;
     // An open C-shaped handle joins the outside wall; a full torus used to protrude into the drink.
     tube(
       g,
@@ -343,15 +369,15 @@ export function buildCafe(k: Kit) {
       ],
       size * 0.115,
       glaze,
-    );
+    ).position.y = 0.009;
     if (filled)
       cyl(
         g,
-        size * 0.85,
-        size * 0.85,
+        size * 0.8,
+        size * 0.8,
         0.006,
         0,
-        size * 1.16,
+        size * 1.16 + 0.009,
         0,
         latte ? crema : coffee,
       );
@@ -369,16 +395,40 @@ export function buildCafe(k: Kit) {
         ],
         glaze,
         0,
-        -0.022,
+        -0.019,
         0,
       );
+    if (saucer && filled) {
+      // A small spoon rests beside the cup, within the saucer's raised edge.
+      const spoon = child(g, -size * 1.12, 0.003, 0);
+      ball(
+        spoon,
+        0,
+        0.004,
+        -size * 0.45,
+        size * 0.13,
+        0.003,
+        size * 0.21,
+        craft.polished,
+      );
+      tube(
+        spoon,
+        [
+          [0, 0.004, -size * 0.28],
+          [0, 0.009, size * 0.2],
+          [0, 0.012, size * 0.67],
+        ],
+        size * 0.025,
+        craft.polished,
+      );
+    }
     if (latte) {
       for (let i = 0; i < 6; i++)
         for (const side of [-1, 1]) {
           const shape = ball(
             g,
             side * size * (0.25 - i * 0.024),
-            size * 1.2,
+            size * 1.2 + 0.009,
             -size * 0.32 + i * size * 0.12,
             size * (0.28 - i * 0.025),
             0.002,
@@ -390,9 +440,9 @@ export function buildCafe(k: Kit) {
       tube(
         g,
         [
-          [0, size * 1.2, -size * 0.4],
-          [0.015, size * 1.2, 0],
-          [0, size * 1.2, size * 0.45],
+          [0, size * 1.2 + 0.009, -size * 0.4],
+          [0.015, size * 1.2 + 0.009, 0],
+          [0, size * 1.2 + 0.009, size * 0.45],
         ],
         0.003,
         milk,
@@ -543,8 +593,8 @@ export function buildCafe(k: Kit) {
     0,
     0,
     0,
-    '#204b3c',
-    '#e8d8ae',
+    '#343b39',
+    '#e9dfcc',
   );
   k.cutaways.add([front], { x: 4, z: 18.11, nx: 0, nz: -1 }, ['cafe']);
   // Service counter: recessed toe kick, oak fluting, eased stone top and champagne foot rail.
@@ -630,7 +680,9 @@ export function buildCafe(k: Kit) {
   const menu = object('cafeMenu');
   const menuPaint: ((rows: string[]) => void)[] = [];
   for (let i = 0; i < 2; i++) {
-    box(menu, 1.53, 1.21, 0.065, -4.6 + i * 1.68, 2.7, -3.8, darkWood, 0.012);
+    const x = -4.6 + i * 1.68;
+    box(menu, 1.53, 1.21, 0.065, x, 2.7, -3.8, craft.walnut, 0.015);
+    box(menu, 1.465, 1.135, 0.012, x, 2.7, -3.761, brass, 0.004);
     menuPaint.push(
       textPanel(
         menu,
@@ -651,9 +703,18 @@ export function buildCafe(k: Kit) {
         1.1,
         -4.6 + i * 1.68,
         2.7,
-        -3.755,
+        -3.753,
+        '#2b312f',
+        '#f0eadd',
+        'menu',
       ),
     );
+    box(menu, 1.39, 0.025, 0.065, x, 2.119, -3.731, craft.walnut, 0.007);
+    // A restrained picture light gives the board its own grazing highlight.
+    for (const dx of [-0.42, 0.42])
+      rod(menu, [x + dx, 3.27, -3.79], [x + dx, 3.35, -3.65], 0.009, brass);
+    box(menu, 1.12, 0.035, 0.078, x, 3.35, -3.65, brass, 0.012);
+    box(menu, 1.04, 0.006, 0.042, x, 3.329, -3.65, glow, 0.002);
   }
   k.cutaways.add([menu], { x: 4, z: 10.2, nx: 0, nz: 1 }, ['cafe'], true);
   // Two-group espresso machine. The public side reveals polished casing and copper brew groups.
@@ -669,18 +730,18 @@ export function buildCafe(k: Kit) {
     0,
     0,
     0,
-    '#274638',
-    '#dfcda9',
+    '#343b39',
+    '#e6dcc9',
   );
   for (const x of [-0.59, 0.59])
     for (const z of [-0.23, 0.23])
       cyl(espresso, 0.04, 0.05, 0.09, x, 0.045, z, black);
   box(espresso, 1.52, 0.09, 0.76, 0, 0.12, 0, steel, 0.03);
-  box(espresso, 1.44, 0.64, 0.45, 0, 0.52, -0.11, steel, 0.045);
+  box(espresso, 1.44, 0.64, 0.45, 0, 0.52, -0.11, craft.pearl, 0.045);
   box(espresso, 1.35, 0.49, 0.027, 0, 0.53, 0.136, green, 0.025);
   box(espresso, 1.48, 0.06, 0.72, 0, 0.875, -0.01, steel, 0.025);
   for (const x of [-0.77, 0.77]) {
-    box(espresso, 0.035, 0.64, 0.6, x, 0.52, 0, steel);
+    box(espresso, 0.035, 0.64, 0.6, x, 0.52, 0, craft.walnut, 0.016);
     for (let i = 0; i < 8; i++)
       box(
         espresso,
@@ -710,7 +771,7 @@ export function buildCafe(k: Kit) {
   for (const x of [-0.37, 0.37]) {
     cyl(espresso, 0.105, 0.082, 0.13, x, 0.53, 0.24, brass);
     cyl(espresso, 0.077, 0.09, 0.04, x, 0.449, 0.25, steel);
-    rod(espresso, [x, 0.465, 0.27], [x, 0.465, 0.49], 0.031, black);
+    rod(espresso, [x, 0.465, 0.27], [x, 0.465, 0.49], 0.031, craft.walnut);
     for (const dx of [-0.029, 0.029])
       cyl(espresso, 0.01, 0.01, 0.08, x + dx, 0.394, 0.25, steel);
     for (let i = 0; i < 4; i++) {
@@ -763,7 +824,7 @@ export function buildCafe(k: Kit) {
   const grinder = child(counter, -1.74, 1.545, -0.02);
   grinder.rotation.y = Math.PI;
   cyl(grinder, 0.22, 0.25, 0.045, 0, 0.024, 0, steel);
-  box(grinder, 0.31, 0.47, 0.35, 0, 0.285, 0, black, 0.04);
+  box(grinder, 0.31, 0.47, 0.35, 0, 0.285, 0, craft.enamel, 0.04);
   cyl(grinder, 0.15, 0.15, 0.07, 0, 0.55, -0.03, steel);
   lathe(
     grinder,
@@ -775,7 +836,7 @@ export function buildCafe(k: Kit) {
     ],
     glass,
   );
-  cyl(grinder, 0.215, 0.215, 0.026, 0, 0.96, 0, black);
+  cyl(grinder, 0.215, 0.215, 0.026, 0, 0.96, 0, craft.walnut);
   cyl(grinder, 0.173, 0.105, 0.19, 0, 0.66, 0, roastedBean);
   const beans = new T.InstancedMesh(
     new T.SphereGeometry(1, 20, 12).scale(0.027, 0.016, 0.018),
@@ -843,8 +904,8 @@ export function buildCafe(k: Kit) {
     0,
     0,
     0.027,
-    '#233a30',
-    '#e9dbc0',
+    '#343b39',
+    '#e9dfcc',
   );
   const reader = child(
     counter,
@@ -881,9 +942,19 @@ export function buildCafe(k: Kit) {
     1.55,
     cafeCounterItems.napkins.z - cafeLayout.counter.z,
   );
-  box(napkins, 0.38, 0.11, 0.27, 0, 0.05, 0, darkWood);
+  box(napkins, 0.38, 0.11, 0.27, 0, 0.05, 0, craft.walnut);
   for (let i = 0; i < 8; i++)
-    box(napkins, 0.31, 0.006, 0.23, 0, 0.115 + i * 0.008, 0, ceramic, 0.002);
+    box(
+      napkins,
+      0.31,
+      0.006,
+      0.23,
+      0,
+      0.115 + i * 0.008,
+      0,
+      craft.paper,
+      0.002,
+    );
   for (let i = 0; i < 6; i++)
     lathe(
       counter,
@@ -894,7 +965,7 @@ export function buildCafe(k: Kit) {
         [0.105, 0.23],
         [0.08, 0.02],
       ],
-      ceramic,
+      craft.paper,
       cafeCounterItems.cups.x - cafeLayout.counter.x,
       1.55 + i * 0.045,
       cafeCounterItems.cups.z - cafeLayout.counter.z,
@@ -906,7 +977,7 @@ export function buildCafe(k: Kit) {
     1.545,
     cafeCounterItems.pastry.z,
   );
-  box(pastry, 1.04, 0.13, 0.91, 0, 0.065, 0, darkWood, 0.025);
+  box(pastry, 1.04, 0.13, 0.91, 0, 0.065, 0, craft.walnut, 0.025);
   for (const y of [0.16, 0.43]) {
     box(pastry, 0.94, 0.027, 0.72, 0, y, 0, stone, 0.01);
     box(pastry, 0.92, 0.012, 0.015, 0, y + 0.035, -0.36, glow, 0.002);
@@ -929,7 +1000,23 @@ export function buildCafe(k: Kit) {
       const x = -0.29 + i * 0.29,
         y = 0.185 + row * 0.27,
         z = 0.02;
-      box(pastry, 0.25, 0.012, 0.34, x, y, z, ceramic, 0.025);
+      const plate = lathe(
+        pastry,
+        [
+          [0, 0],
+          [0.1, 0],
+          [0.123, 0.004],
+          [0.13, 0.012],
+          [0.128, 0.018],
+          [0.095, 0.008],
+          [0, 0.008],
+        ],
+        ceramic,
+        x,
+        y - 0.004,
+        z,
+      );
+      plate.scale.z = 1.3;
       if (row === 0) {
         for (let j = -3; j <= 3; j++) {
           const croissant = ball(
@@ -968,15 +1055,29 @@ export function buildCafe(k: Kit) {
     0,
     0.067,
     0.47,
-    '#58402b',
-    '#f7e4ba',
+    '#343b39',
+    '#e9dfcc',
   );
   // Pour-over station on the back worktop, articulated kettle and real ribbed dripper.
   const brew = object('cafePourOver', -4.6, 1.45, -3.38);
-  box(brew, 0.7, 0.035, 0.5, 0, 0.02, 0, black, 0.025);
+  box(brew, 0.7, 0.035, 0.5, 0, 0.02, 0, craft.enamel, 0.025);
+  box(brew, 0.18, 0.002, 0.05, 0.19, 0.039, 0.17, black, 0.006);
+  for (let i = 0; i < 3; i++)
+    box(
+      brew,
+      0.022,
+      0.001,
+      0.003,
+      0.145 + i * 0.045,
+      0.0405,
+      0.17,
+      glow,
+      0.001,
+    );
   lathe(
     brew,
     [
+      [0, 0],
       [0.12, 0],
       [0.14, 0.04],
       [0.18, 0.22],
@@ -985,12 +1086,41 @@ export function buildCafe(k: Kit) {
       [0.09, 0.33],
       [0.15, 0.2],
       [0.1, 0.04],
+      [0, 0.018],
     ],
     glass,
     0,
     0.045,
     0,
   );
+  // An open glass handle and measured coffee level keep the server readable.
+  tube(
+    brew,
+    [
+      [0.125, 0.34, 0],
+      [0.245, 0.35, 0],
+      [0.26, 0.2, 0],
+      [0.17, 0.15, 0],
+    ],
+    0.012,
+    glass,
+  );
+  cyl(brew, 0.129, 0.097, 0.106, 0, 0.143, 0, coffee);
+  for (let i = 0; i < 3; i++) {
+    const y = 0.16 + i * 0.043,
+      r = 0.14 + (0.04 * (y - 0.085)) / 0.18,
+      width = i === 1 ? 0.055 : 0.038;
+    tube(
+      brew,
+      Array.from({ length: 5 }, (_, n) => {
+        const x = -0.035 + width * (n / 4 - 0.5);
+        return [x, y, Math.sqrt(r * r - x * x) + 0.001];
+      }),
+      0.001,
+      craft.paper,
+    );
+  }
+  cyl(brew, 0.111, 0.104, 0.012, 0, 0.399, 0, ceramic);
   lathe(
     brew,
     [
@@ -1012,11 +1142,28 @@ export function buildCafe(k: Kit) {
       [Math.sin(a) * 0.034, 0.432, Math.cos(a) * 0.034],
       [Math.sin(a) * 0.171, 0.63, Math.cos(a) * 0.171],
       0.004,
-      brass,
+      craft.pearl,
     );
   }
-  const kettlePivot = child(brew, 0.48, 0.17, 0.02),
+  const filterPaper = craft.paper.clone();
+  filterPaper.side = T.DoubleSide;
+  materials.push(filterPaper);
+  lathe(
+    brew,
+    [
+      [0.017, 0.435],
+      [0.151, 0.634],
+      [0.159, 0.647],
+    ],
+    filterPaper,
+  );
+  cyl(brew, 0.077, 0.02, 0.075, 0, 0.503, 0, roastedBean);
+  // The kettle rests on its own trivet, outside the dripper's full swept volume.
+  cyl(brew, 0.235, 0.23, 0.05, 0.65, 0.028, 0.02, craft.walnut, 64);
+  cyl(brew, 0.225, 0.225, 0.003, 0.65, 0.0545, 0.02, steel, 64);
+  const kettlePivot = child(brew, 0.65, 0.056, 0.02),
     kettle = child(kettlePivot);
+  kettle.name = 'Cafe craft / enamel gooseneck kettle';
   lathe(
     kettle,
     [
@@ -1027,10 +1174,13 @@ export function buildCafe(k: Kit) {
       [0.11, 0.34],
       [0.09, 0.35],
     ],
-    black,
+    craft.enamel,
   );
-  cyl(kettle, 0.12, 0.12, 0.022, 0, 0.36, 0, wood);
-  ball(kettle, 0, 0.395, 0, 0.034, 0.03, 0.034, wood);
+  cyl(kettle, 0.164, 0.157, 0.012, 0, 0.006, 0, steel, 64);
+  cyl(kettle, 0.113, 0.113, 0.012, 0, 0.351, 0, brass, 64);
+  cyl(kettle, 0.12, 0.12, 0.022, 0, 0.363, 0, craft.enamel, 64);
+  cyl(kettle, 0.022, 0.026, 0.019, 0, 0.382, 0, brass);
+  ball(kettle, 0, 0.408, 0, 0.035, 0.026, 0.035, craft.walnut);
   tube(
     kettle,
     [
@@ -1040,7 +1190,19 @@ export function buildCafe(k: Kit) {
       [-0.41, 0.4, 0],
     ],
     0.016,
-    steel,
+    craft.polished,
+  );
+  const spoutEnd = mesh(
+    kettle,
+    new T.CircleGeometry(0.012, 24),
+    black,
+    -0.411,
+    0.401,
+    0,
+  );
+  spoutEnd.quaternion.setFromUnitVectors(
+    new T.Vector3(0, 0, 1),
+    new T.Vector3(-0.08, 0.1, 0).normalize(),
   );
   tube(
     kettle,
@@ -1051,10 +1213,10 @@ export function buildCafe(k: Kit) {
       [0.19, 0.06, 0],
     ],
     0.024,
-    wood,
+    craft.walnut,
   );
   const pour = child(brew);
-  const pourStream = cyl(pour, 0.006, 0.006, 1, 0, 0, 0, steel, 8);
+  const pourStream = cyl(pour, 0.006, 0.006, 1, 0, 0, 0, craft.water, 12);
   pour.visible = false;
   // A supported group on the free left side of the back counter, clear of the sink.
   const coffeeStorage = child(back, -1.5, 1.44, 0.04);
@@ -1070,7 +1232,7 @@ export function buildCafe(k: Kit) {
       x,
       0.163,
       0,
-      i % 2 ? green : tan,
+      i % 2 ? craft.enamel : craft.oatmeal,
       0.012,
     );
     box(coffeeStorage, 0.18, 0.03, 0.13, x, 0.323, 0, brass, 0.004);
@@ -1082,8 +1244,8 @@ export function buildCafe(k: Kit) {
       x,
       0.163,
       0.058,
-      '#ece0bd',
-      '#294936',
+      '#ece4d5',
+      '#414842',
     );
   }
   // East banquette: segmented leather pads, welt piping, routed oak plinth, bag hooks.
@@ -1209,7 +1371,19 @@ export function buildCafe(k: Kit) {
         true,
       ).rotation.y = 1.2;
     if (index !== 0) continue;
-    box(g, 0.21, 0.01, 0.3, -0.22, 1.231, 0.16, plaster, 0.002);
+    box(g, 0.21, 0.01, 0.3, -0.22, 1.231, 0.16, craft.linen, 0.003);
+    for (const side of [-1, 1])
+      box(
+        g,
+        0.0015,
+        0.001,
+        0.272,
+        -0.22 + side * 0.088,
+        1.2365,
+        0.16,
+        craft.paper,
+        0.0004,
+      );
     cyl(g, 0.055, 0.05, 0.14, -0.25, 1.304, -0.2, ceramic);
     rod(g, [-0.25, 1.37, -0.2], [-0.23, 1.57, -0.18], 0.004, green);
     ball(g, -0.23, 1.57, -0.18, 0.065, 0.045, 0.05, milk);
@@ -1556,18 +1730,16 @@ export function buildCafe(k: Kit) {
         caseOpen ? -0.46 : 0,
         a,
       );
-      kettlePivot.rotation.z = T.MathUtils.lerp(
-        kettlePivot.rotation.z,
-        pouring ? 0.58 : 0,
-        a,
-      );
-      kettlePivot.position.y = T.MathUtils.lerp(
+      const kettlePose = advanceKettle(
         kettlePivot.position.y,
-        pouring ? 0.6 : 0.17,
+        kettlePivot.rotation.z,
+        pouring,
         a,
       );
-      pour.visible = pouring;
-      if (pouring) {
+      kettlePivot.rotation.z = kettlePose.angle;
+      kettlePivot.position.y = kettlePose.y;
+      pour.visible = kettlePose.stream;
+      if (kettlePose.stream) {
         kettlePivot.updateMatrix();
         const start = new T.Vector3(-0.41, 0.4, 0).applyMatrix4(
             kettlePivot.matrix,

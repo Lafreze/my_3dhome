@@ -2353,9 +2353,7 @@ export function buildHouse(k: Kit) {
       const all = view === 'overview' || view === 'plan';
       for (const id of Object.keys(rooms) as RoomId[])
         roots[id].visible =
-          all ||
-          view === id ||
-          (id === 'corridor' && (view === 'gallery' || view === 'living'));
+          all || view === id || (id === 'corridor' && view === 'living');
       for (const p of partitions) {
         p.base.visible = all || p.neighbours.includes(view as RoomId);
         p.upper.visible =

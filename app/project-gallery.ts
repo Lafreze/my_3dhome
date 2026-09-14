@@ -3,6 +3,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import type { ObjectId, Project } from './room-data';
 import { exhibits, exhibitObjects } from './exhibit-data';
 import { galleryPlinths, galleryCabinet } from './gallery-layout';
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import {
   loadAssetGltf,
   releaseAssetTexture,
@@ -38,9 +39,25 @@ export function createProjectGallery(k: Kit) {
     k.materials.push(m);
     return m;
   };
-  const plaster = material('#e1dacc', 0.93),
-    ink = material('#323a3a', 0.5, 0.25),
-    bronze = material('#b99a65', 0.38, 0.6);
+  const limestone = interiorMaterial(
+      'travertine',
+      '#bcb5a7',
+      k.materials,
+      k.textures,
+    ),
+    walnut = interiorMaterial('walnut', '#57473e', k.materials, k.textures),
+    ink = material('#303330', 0.48, 0.12),
+    bronze = interiorMaterial(
+      'brushed-metal',
+      '#b4a28b',
+      k.materials,
+      k.textures,
+    );
+  limestone.name = 'Gallery / honed warm-grey limestone';
+  limestone.bumpScale = 0.0012;
+  limestone.roughness = 0.62;
+  walnut.name = 'Gallery / smoked walnut veneer';
+  bronze.roughness = 0.44;
   const glass = material('#d7e5e2', 0.14, 0.05);
   glass.transparent = true;
   glass.opacity = 0.11;
@@ -56,6 +73,7 @@ export function createProjectGallery(k: Kit) {
     y = 0,
     z = 0,
   ) => {
+    fitTimberGrain(geo, m);
     const o = new T.Mesh(geo, m);
     o.position.set(x, y, z);
     o.castShadow = o.receiveShadow = true;
@@ -90,22 +108,23 @@ export function createProjectGallery(k: Kit) {
     x: number,
     y: number,
     z: number,
+    dark = false,
   ) => {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
     canvas.height = 256;
     const c = canvas.getContext('2d')!;
-    c.fillStyle = '#eee8da';
+    c.fillStyle = dark ? '#343633' : '#eee8da';
     c.fillRect(0, 0, 1024, 256);
-    c.fillStyle = '#786a51';
-    c.font = '24px sans-serif';
+    c.fillStyle = dark ? '#baa98c' : '#786a51';
+    c.font = '27px sans-serif';
     c.fillText(subtitle, 38, 65, 948);
-    c.fillStyle = '#35423b';
+    c.fillStyle = dark ? '#f0eadf' : '#35423b';
     c.font = '48px sans-serif';
     c.fillText(title, 38, 142, 948);
-    c.fillStyle = '#7c7e6f';
+    c.fillStyle = dark ? '#b8bbb0' : '#7c7e6f';
     c.font = '23px sans-serif';
-    c.fillText('SATORI  /  SELECT TO EXPLORE', 38, 204, 948);
+    c.fillText('S A T O R I   /   OBJECT COLLECTION', 38, 204, 948);
     const texture = new T.CanvasTexture(canvas);
     texture.colorSpace = T.SRGBColorSpace;
     texture.anisotropy = 8;
@@ -283,46 +302,92 @@ export function createProjectGallery(k: Kit) {
     k.interactables.push(group);
     box(
       group,
-      spec.width,
-      spec.height - 0.14,
-      spec.depth,
+      spec.width - 0.09,
+      spec.height - 0.25,
+      spec.depth - 0.09,
       0,
-      (spec.height + 0.14) / 2,
+      (spec.height + 0.07) / 2,
       0,
-      plaster,
-      0.023,
+      walnut,
+      0.045,
     );
     box(
       group,
-      spec.width - 0.08,
-      0.06,
-      spec.depth - 0.08,
+      spec.width - 0.18,
+      0.085,
+      spec.depth - 0.18,
       0,
-      0.16,
+      0.1225,
       0,
       ink,
       0.008,
     );
+    // A stone cap floats visually above a fine metal reveal; the sculpture datum stays fixed.
+    box(
+      group,
+      spec.width - 0.06,
+      0.012,
+      spec.depth - 0.06,
+      0,
+      spec.height - 0.098,
+      0,
+      bronze,
+      0.006,
+    );
+    box(
+      group,
+      spec.width,
+      0.092,
+      spec.depth,
+      0,
+      spec.height - 0.046,
+      0,
+      limestone,
+      0.024,
+    );
+    for (const x of [-1, 1]) {
+      // Recessed shadow lines flank the front panel, never projecting into the aisle.
+      box(
+        group,
+        0.008,
+        spec.height - 0.31,
+        0.004,
+        x * (spec.width / 2 - 0.115),
+        (spec.height + 0.07) / 2,
+        spec.depth / 2 - 0.043,
+        ink,
+        0.001,
+      );
+    }
     const turntable = new T.Group();
     turntable.position.y = spec.height;
     group.add(turntable);
     mesh(
       turntable,
-      new T.CylinderGeometry(0.51, 0.51, 0.045, 64),
-      k.oak,
+      new T.CylinderGeometry(0.51, 0.51, 0.008, 80),
+      bronze,
       0,
-      0.024,
+      0.005,
+      0,
+    );
+    mesh(
+      turntable,
+      new T.CylinderGeometry(0.503, 0.503, 0.037, 80),
+      ink,
+      0,
+      0.0275,
       0,
     );
     plaque(
       group,
       item.title,
       `0${index + 1} / ${item.category}`,
-      0.91,
-      0.23,
+      0.73,
+      0.183,
       0,
-      0.64,
-      spec.depth / 2 + 0.011,
+      0.605,
+      spec.depth / 2 - 0.036,
+      true,
     );
     const mount = new T.Group();
     mount.position.y = 0.048;
