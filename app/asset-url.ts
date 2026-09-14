@@ -41,7 +41,7 @@ export function assetUrl(pathOrId: string, base = configuredBase): string {
     /[\\?#%]/.test(key)
   )
     throw new Error('Invalid asset path');
-  // Pending user-supplied models stay on the existing local origin, never in R2.
+  // Locally delivered models stay on the app origin, including approved bundled furniture.
   const prefix = (
     entry && !entry.publish ? '/assets' : base.trim() || '/assets'
   ).replace(/\/+$/, '');

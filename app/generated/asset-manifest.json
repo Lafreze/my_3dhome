@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "f13ecf58b123321e",
+  "version": "75929257e127e89c",
   "assets": {
     "art.botanical-study": {
       "type": "image",
@@ -533,6 +533,52 @@
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": true
+    },
+    "furniture.chair.mid-century-lounge": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "cafe",
+        "library"
+      ],
+      "path": "models/furniture/mid-century-lounge.dee809b9e775618c.glb",
+      "logicalPath": "models/furniture/mid-century-lounge.glb",
+      "size": 890544,
+      "sha256": "dee809b9e775618c02f00a27a770247c873a1b3276882e0e442f59a9b632b60a",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.chair.oak-armchair": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "bedroom"
+      ],
+      "path": "models/furniture/oak-armchair.171496b6094b6d59.glb",
+      "logicalPath": "models/furniture/oak-armchair.glb",
+      "size": 1214000,
+      "sha256": "171496b6094b6d59574a9d36e5eb5ac09834c86ebfa9fe7094dcb0bbd10d773c",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.chair.tufted-dining": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "cafe",
+        "library"
+      ],
+      "path": "models/furniture/tufted-dining.fbd5d6b442f0f72f.glb",
+      "logicalPath": "models/furniture/tufted-dining.glb",
+      "size": 1050476,
+      "sha256": "fbd5d6b442f0f72f805b53ca17c08d3a3c0fc89389696c728fa1471f2cd1a9ab",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
     },
     "license.basis": {
       "type": "license",

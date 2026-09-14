@@ -1,3 +1,4 @@
+import { installDesignerChairs } from './designer-chairs';
 import { paintingTexture } from './painting-textures';
 import { boundBooks } from './bound-books';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
@@ -1889,6 +1890,14 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     charcoal,
     textile,
   });
+  const designerChairs = installDesignerChairs({
+    seats: seatAnchors,
+    assets,
+    materials,
+    textures,
+    readingMaterial: chairMat,
+    onReady: () => refreshShadows(),
+  });
   const atmosphere = interiorAtmosphere(
     house.roots,
     groups,
@@ -1955,6 +1964,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   if (['localhost', '127.0.0.1'].includes(location.hostname))
     Object.assign(window, {
       __kuroVisitors: {
+        chairs: () => designerChairs.snapshot(),
         games: () => house.gameSnapshot(),
         bar: () => house.barSnapshot(),
         library: () => house.librarySnapshot(),
@@ -2999,6 +3009,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       disposed = true;
       life?.dispose();
       assets.dispose();
+      designerChairs.dispose();
       setAssetRenderer(undefined);
       cancelAnimationFrame(frameId);
       observer.disconnect();

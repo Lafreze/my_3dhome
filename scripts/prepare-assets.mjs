@@ -70,6 +70,8 @@ export async function prepareAssets({
       (!entry.license || !entry.author || !entry.modifications)
     )
       throw new Error(`Missing license record: ${entry.id}`);
+    if (entry.delivery !== undefined && entry.delivery !== 'origin')
+      throw new Error(`Unsupported asset delivery: ${entry.id}`);
     // Never permit source formats just by giving them an allowed output extension.
     const inputExt = path.extname(entry.source).toLowerCase();
     contentType(
@@ -189,7 +191,8 @@ export async function prepareAssets({
       sha256: sha256(data),
       contentType: contentType(outputPath),
       dependencies,
-      publish: entry.approval === 'approved',
+      // Approved local delivery travels with the existing app deployment.
+      publish: entry.approval === 'approved' && entry.delivery !== 'origin',
     };
     if (entry.approval !== 'denied')
       await writeChanged(path.join(destination, result.path), data);

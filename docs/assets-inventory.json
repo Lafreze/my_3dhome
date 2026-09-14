@@ -1,5 +1,5 @@
 {
-  "version": "f13ecf58b123321e",
+  "version": "75929257e127e89c",
   "roomSizes": {
     "study": {
       "bytes": 9690284,
@@ -23,8 +23,8 @@
     }
   },
   "commonCharacters": {
-    "files": 13,
-    "bytes": 31310628
+    "files": 16,
+    "bytes": 34465648
   },
   "pending": [
     "character.bear.sit",
@@ -237,6 +237,21 @@
       "path": "public/models/cat-hi3d.json",
       "bytes": 638,
       "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/chairs/mid-century-lounge.glb",
+      "bytes": 890544,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/chairs/oak-armchair.glb",
+      "bytes": 1214000,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/chairs/tufted-dining.glb",
+      "bytes": 1050476,
+      "classification": "catalogued-production"
     },
     {
       "path": "public/models/exhibits/aureole-detail.glb",

@@ -1156,6 +1156,64 @@
       "approval": "approved",
       "sourceSha256": "3eebaf73f9e0717dedd2ad1d02d3276e8c03c6e356473438a905cf03b11c308c",
       "name": "月下湖泊"
+    },
+    {
+      "id": "furniture.chair.oak-armchair",
+      "source": "public/models/chairs/oak-armchair.glb",
+      "path": "models/furniture/oak-armchair.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "bedroom"
+      ],
+      "license": "CC0-1.0",
+      "author": "Vibrant Nordic",
+      "sourceUrl": "https://polyhaven.com/a/modern_arm_chair_01",
+      "licenseUrl": "https://polyhaven.com/license",
+      "modifications": "Original silhouette and UVs; deduplicated resources, 1K JPEG textures, embedded GLB. Runtime seat fit and material tuning.",
+      "sourceSha256": "171496b6094b6d59574a9d36e5eb5ac09834c86ebfa9fe7094dcb0bbd10d773c",
+      "approval": "approved",
+      "delivery": "origin"
+    },
+    {
+      "id": "furniture.chair.tufted-dining",
+      "source": "public/models/chairs/tufted-dining.glb",
+      "path": "models/furniture/tufted-dining.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "cafe",
+        "library"
+      ],
+      "license": "CC0-1.0",
+      "author": "James Ray Cock",
+      "sourceUrl": "https://polyhaven.com/a/dining_chair_02",
+      "licenseUrl": "https://polyhaven.com/license",
+      "modifications": "Original silhouette and UVs; deduplicated resources, 1K JPEG textures, embedded GLB. Runtime seat fit and material tuning.",
+      "sourceSha256": "fbd5d6b442f0f72f805b53ca17c08d3a3c0fc89389696c728fa1471f2cd1a9ab",
+      "approval": "approved",
+      "delivery": "origin"
+    },
+    {
+      "id": "furniture.chair.mid-century-lounge",
+      "source": "public/models/chairs/mid-century-lounge.glb",
+      "path": "models/furniture/mid-century-lounge.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "cafe",
+        "library"
+      ],
+      "license": "CC0-1.0",
+      "author": "Kuutti Siitonen",
+      "sourceUrl": "https://polyhaven.com/a/mid_century_lounge_chair",
+      "licenseUrl": "https://polyhaven.com/license",
+      "modifications": "Original silhouette and UVs; deduplicated resources, 1K JPEG textures, embedded GLB. Runtime seat fit and material tuning.",
+      "sourceSha256": "dee809b9e775618c02f00a27a770247c873a1b3276882e0e442f59a9b632b60a",
+      "approval": "approved",
+      "delivery": "origin"
     }
   ]
 }

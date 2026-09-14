@@ -369,3 +369,31 @@ void test('upload credentials are restricted to one bucket, kuro/, and no delete
     hashedPath('models/a.bin', Buffer.from('a')),
   );
 });
+
+void test('approved origin-delivered models are bundled without entering the R2 manifest', async (t) => {
+  const f = await fixture(t);
+  await f.add(
+    'chair',
+    'public/chair.gltf',
+    'models/chair.gltf',
+    JSON.stringify({ asset: { version: '2.0' } }),
+    { delivery: 'origin' },
+  );
+  await f.save();
+  const { manifest } = await prepareAssets({ root: f.root });
+  assert.equal(manifest.assets.chair.publish, false);
+  assert(
+    (
+      await readFile(
+        path.join(f.root, 'public/assets', manifest.assets.chair.path),
+      )
+    ).length > 0,
+  );
+  const remote = JSON.parse(
+    await readFile(
+      path.join(f.root, 'public/assets/manifests/assets.json'),
+      'utf8',
+    ),
+  );
+  assert.equal(remote.assets.chair, undefined);
+});
