@@ -1,3 +1,5 @@
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
+import { interiorPalette as palette } from './interior-palette';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -23,9 +25,14 @@ export function addFurnitureCraft(k: {
     return m;
   };
   const dark = mat('#544334'),
-    ink = mat('#393e36'),
-    linen = mat('#c8bda5'),
-    leather = mat('#64715a', 0.78),
+    ink = mat('#3e3c3c'),
+    linen = interiorMaterial('linen', '#c6bba9', k.materials, k.textures),
+    leather = interiorMaterial(
+      'leather',
+      palette.libraryLeather,
+      k.materials,
+      k.textures,
+    ),
     wood = k.oak,
     pale = k.paleWood,
     brass = k.brass;
@@ -54,6 +61,7 @@ export function addFurnitureCraft(k: {
     y = 0,
     z = 0,
   ) => {
+    fitTimberGrain(geo, m);
     const o = new T.Mesh(geo, m);
     o.position.set(x, y, z);
     o.castShadow = o.receiveShadow = true;

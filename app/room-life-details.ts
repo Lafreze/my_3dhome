@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { interiorMaterial } from './house-finishes';
 import { localPbr } from './room-materials';
 import type { RoomAssets } from './asset-loading';
 import type { RoomId } from './house-data';
@@ -23,13 +24,17 @@ export function addRoomLifeDetails(k: {
     k.materials.push(m);
     return m;
   };
-  const ivory = mat('#e5d9bf'),
+  const finish = (
+    kind: Parameters<typeof interiorMaterial>[0],
+    color: string,
+  ) => interiorMaterial(kind, color, k.materials, k.textures);
+  const ivory = finish('glaze', '#e5dbca'),
     paper = mat('#e9dec5', 0.92),
     ink = mat('#344640'),
-    rust = mat('#bd7353'),
+    rust = finish('clay', '#b57b63'),
     amber = mat('#ae7539', 0.24),
-    sage = mat('#889780', 0.31),
-    blue = mat('#748b93'),
+    sage = finish('glaze', '#8b9690'),
+    blue = finish('glaze', '#7b909b'),
     gold = k.brass,
     wood = k.oak;
   const cloth = mat('#fff8e6', 0.92);

@@ -1,3 +1,5 @@
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
+import { interiorPalette as palette } from './interior-palette';
 import { paintingTexture } from './painting-textures';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -44,16 +46,26 @@ export function buildBar(k: Kit) {
     return m;
   };
   const wood = k.oak.clone();
-  wood.color.set('#83603e');
+  wood.color.set('#80624f');
   k.materials.push(wood);
   const dark = k.darkWood.clone();
-  dark.color.set('#5e4230');
+  dark.color.set('#514039');
   k.materials.push(dark);
   const wall = k.cream.clone();
-  wall.color.set('#e8d8b8');
+  wall.color.set('#ded5c9');
   k.materials.push(wall);
-  const green = k.textile('#596548'),
-    burgundy = k.textile('#83493c');
+  const velvet = interiorMaterial(
+      'velvet',
+      palette.barVelvet,
+      k.materials,
+      k.textures,
+    ),
+    saddle = interiorMaterial(
+      'leather',
+      palette.barLeather,
+      k.materials,
+      k.textures,
+    );
   const cream = mat('#e8d9b8'),
     copper = mat('#ae7852', 0.35, 0.6),
     steel = mat('#b4bdba', 0.22, 0.85),
@@ -87,6 +99,7 @@ export function buildBar(k: Kit) {
     z = 0,
     name?: string,
   ) {
+    fitTimberGrain(g, m);
     const o = new T.Mesh(g, m);
     o.position.set(x, y, z);
     o.castShadow = true;
@@ -559,7 +572,7 @@ export function buildBar(k: Kit) {
     );
     ring.rotation.x = Math.PI / 2;
     cyl(g, 0.295, 0.285, 0.1, 0, 1.075, 0, wood);
-    cyl(g, 0.294, 0.294, 0.19, 0, 1.178, 0, burgundy);
+    cyl(g, 0.294, 0.294, 0.19, 0, 1.178, 0, saddle);
     const piping = mesh(
       g,
       new T.TorusGeometry(0.284, 0.009, 6, 36),
@@ -573,19 +586,19 @@ export function buildBar(k: Kit) {
     k.interactables.push(g);
   }
   const rug = panel(root, 3.2, 3.55, 2.65, 0.09, -1.86, (c, cv) => {
-    c.fillStyle = '#74684b';
+    c.fillStyle = '#746762';
     c.fillRect(0, 0, cv.width, cv.height);
     for (const [inset, color] of [
-      [14, '#ad8d5b'],
-      [26, '#5a6547'],
-      [39, '#b49765'],
-      [51, '#796446'],
+      [14, '#a28b79'],
+      [26, '#615b59'],
+      [39, '#b29c86'],
+      [51, '#847166'],
     ] as const) {
       c.strokeStyle = color;
       c.lineWidth = 7;
       c.strokeRect(inset, inset, cv.width - inset * 2, cv.height - inset * 2);
     }
-    c.strokeStyle = '#ba9b69';
+    c.strokeStyle = '#a99581';
     c.lineWidth = 4;
     for (let y = 90; y < cv.height - 60; y += 80)
       for (let x = 92; x < cv.width - 60; x += 80) {
@@ -598,6 +611,9 @@ export function buildBar(k: Kit) {
         c.stroke();
       }
   });
+  const rugWool = interiorMaterial('wool', '#ffffff', k.materials, k.textures);
+  rugWool.map = (rug.mesh.material as T.MeshStandardMaterial).map;
+  rug.mesh.material = rugWool;
   rug.mesh.rotation.x = -Math.PI / 2;
   function booth(
     x: number,
@@ -609,8 +625,8 @@ export function buildBar(k: Kit) {
     const g = group(root, x, 0, z, ids[0]);
     g.rotation.y = yaw;
     box(g, width, 0.39, 0.8, 0, 0.385, 0, dark);
-    box(g, width - 0.08, 0.27, 0.72, 0, 0.675, 0.035, green, 0.085);
-    box(g, width, 0.99, 0.2, 0, 1.08, -0.315, green, 0.08);
+    box(g, width - 0.08, 0.27, 0.72, 0, 0.675, 0.035, velvet, 0.085);
+    box(g, width, 0.99, 0.2, 0, 1.08, -0.315, velvet, 0.08);
     box(g, width + 0.035, 0.065, 0.22, 0, 1.61, -0.315, wood);
     for (let v = -width / 2 + 0.17; v < width / 2; v += 0.3) {
       box(g, 0.015, 0.77, 0.025, v, 1.13, -0.2, dark, 0.004);
@@ -626,7 +642,7 @@ export function buildBar(k: Kit) {
         side * (width / 2 - 0.02),
         1.17,
         0,
-        green,
+        velvet,
         0.035,
       );
     }
@@ -651,17 +667,7 @@ export function buildBar(k: Kit) {
     if (i) plant(g, 0.13, 1.055, 0.19);
   }
   for (const x of [1.27, 3.8]) {
-    const cushion = box(
-      root,
-      0.33,
-      0.43,
-      0.17,
-      x,
-      1.03,
-      -3.45,
-      burgundy,
-      0.075,
-    );
+    const cushion = box(root, 0.33, 0.43, 0.17, x, 1.03, -3.45, saddle, 0.075);
     cushion.rotation.z = x < 2 ? -0.18 : 0.18;
   }
   picture(north, 1.8, 2.46, 1, 0.82, 1.0);
@@ -677,7 +683,7 @@ export function buildBar(k: Kit) {
     for (const z of [-0.25, 0.25])
       box(record, 0.055, 0.17, 0.055, x, 0.17, z, dark);
   for (let i = 0; i < 20; i++) {
-    const m = i % 3 === 0 ? green : i % 3 === 1 ? burgundy : cream;
+    const m = i % 3 === 0 ? velvet : i % 3 === 1 ? saddle : cream;
     const sleeve = box(
       record,
       0.048,
@@ -715,7 +721,7 @@ export function buildBar(k: Kit) {
   rod(arm, [0, 0.016, 0], [-0.12, 0.035, 0.23], 0.012, steel);
   box(arm, 0.035, 0.035, 0.075, -0.13, 0.03, 0.25, charcoal);
   const sleeve = group(record, -0.64, 1.1, -0.14);
-  box(sleeve, 0.34, 0.38, 0.032, 0, 0.19, 0, green);
+  box(sleeve, 0.34, 0.38, 0.032, 0, 0.19, 0, velvet);
   label(sleeve, 'AMBER', 0.28, 0, 0.26, 0.018, 0.1);
   plant(record, 0.72, 1.1, -0.05);
   // Entry details live beside the door, outside its swing and walking width.
@@ -733,9 +739,9 @@ export function buildBar(k: Kit) {
       brass,
     );
   const coat = group(hooks, -0.17, -0.17, 0.13);
-  box(coat, 0.26, 0.54, 0.075, 0, -0.25, 0, green, 0.06);
+  box(coat, 0.26, 0.54, 0.075, 0, -0.25, 0, velvet, 0.06);
   for (const side of [-1, 1]) {
-    const o = box(coat, 0.105, 0.37, 0.06, side * 0.2, -0.16, 0, green, 0.04);
+    const o = box(coat, 0.105, 0.37, 0.06, side * 0.2, -0.16, 0, velvet, 0.04);
     o.rotation.z = side * 0.32;
   }
   for (let i = 0; i < 3; i++)
@@ -745,7 +751,7 @@ export function buildBar(k: Kit) {
   for (const x of [-0.045, 0.055]) {
     const u = group(umbrella, x, 0.16, 0);
     u.rotation.z = x * 1.5;
-    cyl(u, 0.05, 0.025, 0.65, 0, 0.35, 0, green);
+    cyl(u, 0.05, 0.025, 0.65, 0, 0.35, 0, velvet);
     tube(
       u,
       [
@@ -910,7 +916,7 @@ export function buildBar(k: Kit) {
         rod(g, [0, 0, 0], [0, 0, 0.24], 0.009, steel);
         rod(g, [0, 0, 0.12], [0, 0, 0.26], 0.015, brass);
         for (const a of [0, Math.PI / 2]) {
-          const fin = box(g, 0.08, 0.012, 0.085, 0, 0, 0.23, burgundy, 0.003);
+          const fin = box(g, 0.08, 0.012, 0.085, 0, 0, 0.23, saddle, 0.003);
           fin.rotation.z = a;
         }
         dartMeshes.push(g);

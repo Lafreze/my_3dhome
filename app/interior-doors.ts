@@ -1,3 +1,4 @@
+import { fitTimberGrain } from './house-finishes';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import type { DoorStyle } from './house-door-layout';
@@ -47,6 +48,7 @@ export function createInteriorDoor(
       new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 3, h / 3, d / 3)),
       m,
     );
+    fitTimberGrain(mesh.geometry, mesh.material);
     mesh.position.set(x, y, z);
     mesh.castShadow = m !== glass;
     mesh.receiveShadow = true;

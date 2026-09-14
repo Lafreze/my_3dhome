@@ -1,7 +1,15 @@
 import { paintingTexture } from './painting-textures';
 import { boundBooks } from './bound-books';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
-import { makeSurface } from './house-finishes';
+import {
+  fitTimberGrain,
+  interiorMaterial,
+  makeSurface,
+} from './house-finishes';
+import {
+  furnitureColors,
+  interiorPalette as palette,
+} from './interior-palette';
 import { houseDoorLayout, destinationThroughDoor } from './house-door-layout';
 import { appearanceColor } from './studio-settings';
 import { wallArtUrl, loadFramedArt } from './wall-art-images';
@@ -36,17 +44,17 @@ import {
 import type { Environment } from './environment-data';
 import { createWindowEnvironment, environmentLight } from './room-environment';
 import * as T from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import type { ObjectId, RoomApi } from './room-data';
-import { surface, screenTexture } from './room-textures';
+import { screenTexture } from './room-textures';
 import {
   layout,
   workChairTravel,
   drawerTravel,
   type PlacedId,
 } from './room-layout';
-import { localPbr } from './room-materials';
 import {
   createRoomAssets,
   setAssetRenderer,
@@ -145,98 +153,37 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     materials.push(m);
     return m;
   };
-  const oak = mat('#785337'),
-    edge = mat('#b48a5e'),
-    paleWood = mat('#bb956c'),
-    darkWood = mat('#503626');
-  const cream = mat('#eee5d4'),
-    white = mat('#fffae9'),
-    ceramic = mat('#f1e8d7', 0.26),
-    darkGreen = mat('#254f43');
-  const terra = mat('#ae5d3f'),
-    brass = mat('#b59a57', 0.28),
-    charcoal = mat('#292c29');
-  brass.metalness = 0.72;
   const textures: T.Texture[] = [];
-  const woodTex = surface('wood'),
-    linenTex = surface('linen'),
-    plasterTex = surface('plaster'),
-    leatherTex = surface('leather');
-  textures.push(woodTex, linenTex, plasterTex, leatherTex);
-  for (const m of [oak, edge, paleWood, darkWood]) {
-    m.map = woodTex;
-    m.bumpMap = woodTex;
-    m.bumpScale = 0.025;
-  }
-  cream.map = plasterTex;
-  cream.bumpMap = plasterTex;
-  cream.bumpScale = 0.018;
-  darkGreen.color.set('#e4dbca');
-  darkGreen.map = plasterTex;
-  darkGreen.bumpMap = plasterTex;
-  darkGreen.bumpScale = 0.035;
+  const finish = (
+    kind: Parameters<typeof interiorMaterial>[0],
+    color: string,
+  ) => interiorMaterial(kind, color, materials, textures);
+  const oak = finish('smoked-oak', palette.oak),
+    edge = finish('smoked-oak', '#ad957c'),
+    paleWood = finish('ash', palette.ash),
+    darkWood = finish('walnut', palette.walnut);
+  const cream = finish('lime', palette.wall),
+    white = mat('#f3eee5'),
+    ceramic = finish('glaze', palette.ceramic),
+    darkGreen = finish('lime', palette.plasterAccent);
+  const terra = finish('clay', '#b07560'),
+    brass = finish('brushed-metal', palette.brass),
+    charcoal = mat('#303135', 0.52);
   const fabric = (m: T.MeshStandardMaterial) => {
-    m.map = linenTex;
-    m.bumpMap = linenTex;
-    m.bumpScale = 0.025;
+    Object.assign(m, makeSurface('linen', textures));
+    m.userData.surface = 'linen';
     return m;
   };
-  const quietOak = makeSurface('ash', textures);
-  for (const [m, color] of [
-    [oak, '#b59876'],
-    [paleWood, '#c5ab89'],
-    [darkWood, '#69513e'],
-    [edge, '#b79b79'],
-  ] as const) {
-    Object.assign(m, quietOak);
-    m.color.set(color);
-    m.metalness = 0;
-    m.roughness = 0.68;
-  }
-  const clothMaps = localPbr(
-    assets,
-    textures,
-    'fabric_pattern_07',
-    new T.Vector2(2.4, 2.4),
-    false,
-  );
-  const leatherMaps = localPbr(
-    assets,
-    textures,
-    'brown_leather',
-    new T.Vector2(1.7, 1.7),
-  );
-  const wallMaps = localPbr(
-    assets,
-    textures,
-    'white_plaster_02',
-    new T.Vector2(3, 2),
-    false,
-  );
-  for (const m of [cream, darkGreen]) {
-    Object.assign(m, wallMaps);
-    Object.assign(m, makeSurface('lime', textures));
-    m.roughness = 0.96;
-    m.normalScale.set(0.05, 0.05);
-  }
-  Object.assign(brass, makeSurface('brushed-metal', textures));
-  brass.roughness = 0.31;
-  const textile = (color: string) => {
-    const m = new T.MeshPhysicalMaterial({
-      color,
-      sheen: 0.32,
-      sheenRoughness: 0.92,
-      sheenColor: new T.Color('#d4c8ad'),
-    });
-    materials.push(m);
-    fabric(m);
-    Object.assign(m, clothMaps);
-    m.normalScale.set(0.13, 0.13);
-    m.roughness = 0.96;
-    m.roughnessMap = null;
-    m.bumpMap = null;
-    return m;
-  };
+  const textile = (color: string) => finish('linen', color);
+  // A small, local reflection environment gives polished surfaces broad window highlights.
+  // Generated once, shared by the house, and dimmed with the existing light controls.
+  const reflectionRoom = new RoomEnvironment();
+  const pmrem = new T.PMREMGenerator(renderer);
+  const reflectionTarget = pmrem.fromScene(reflectionRoom, 0.03);
+  scene.environment = reflectionTarget.texture;
+  scene.environmentIntensity = 0.22;
+  reflectionRoom.dispose();
+  pmrem.dispose();
   const artMaps = [0, 1, 2].map((i) =>
     paintingTexture(
       assets,
@@ -302,6 +249,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     y: number,
     z: number,
   ) {
+    fitTimberGrain(geometry, material);
     const m = new T.Mesh(geometry, material);
     m.position.set(x, y, z);
     m.castShadow = true;
@@ -327,22 +275,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       5,
       Math.min(r, w / 3, h / 3, d / 3),
     );
-    if (material === oak || material === paleWood || material === darkWood) {
-      const uv = geometry.attributes.uv,
-        pos = geometry.attributes.position,
-        n = geometry.attributes.normal;
-      for (let i = 0; i < uv.count; i++) {
-        const px = pos.getX(i),
-          py = pos.getY(i),
-          pz = pos.getZ(i),
-          nx = Math.abs(n.getX(i)),
-          ny = Math.abs(n.getY(i)),
-          nz = Math.abs(n.getZ(i));
-        if (h > w && h > d) uv.setXY(i, (nx > nz ? pz : px) * 0.9, py * 0.9);
-        else if (w > d) uv.setXY(i, (ny > nz ? pz : py) * 0.9, px * 0.9);
-        else uv.setXY(i, (ny > nx ? px : py) * 0.9, pz * 0.9);
-      }
-    }
     return mesh(geometry, material, parent, x, y, z);
   }
   function cylinder(
@@ -470,16 +402,29 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   ) {
     const geo = new RoundedBoxGeometry(w, h, d, 5, Math.min(r, h * 0.45));
     const positions = geo.attributes.position;
+    const normals = geo.attributes.normal;
+    const smoothNormal = new T.Vector3();
     for (let i = 0; i < positions.count; i++) {
       const xx = positions.getX(i),
         yy = positions.getY(i),
         zz = positions.getZ(i);
       const upper = Math.max(0, yy / (h / 2));
-      const dent =
-        Math.exp(-((xx / w) ** 2 + (zz / d) ** 2) * 16) * 0.023 * upper;
-      positions.setY(i, yy - dent);
+      const depression =
+        Math.exp(-((xx / w) ** 2 + (zz / d) ** 2) * 16) * 0.023;
+      positions.setY(i, yy - depression * upper);
+      // Transform the original smooth normal through the cushion depression.
+      // Recomputing normals on RoundedBox's split vertices made the leather look faceted.
+      const dy = yy > 0 ? 1 - (depression * 2) / h : 1;
+      const ny = normals.getY(i) / dy;
+      smoothNormal
+        .set(
+          normals.getX(i) - ((depression * upper * 32 * xx) / (w * w)) * ny,
+          ny,
+          normals.getZ(i) - ((depression * upper * 32 * zz) / (d * d)) * ny,
+        )
+        .normalize();
+      normals.setXYZ(i, smoothNormal.x, smoothNormal.y, smoothNormal.z);
     }
-    geo.computeVertexNormals();
     const m = mesh(geo, material, parent, x, y, z);
     return m;
   }
@@ -565,15 +510,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   box(floor, 8, 0.4, 6.8, 0, -0.23, 0, edge, 0.1);
   box(floor, 7.95, 0.09, 6.75, 0, -0.015, 0, paleWood, 0.03);
   const floorMaterials = oakFloorMaterials(materials, textures);
-  for (const [m, color] of [
-    [oak, '#ac8052'],
-    [paleWood, '#c29b6a'],
-    [darkWood, '#654b35'],
-  ] as const) {
-    m.map = floorMaterials[0].map;
-    m.color.set(color);
-    m.roughness = 0.66;
-  }
   addOakFloor(floor, 7.92, 6.67, floorMaterials);
   const wall = group('wall');
   box(wall, 0.17, 3.65, 6.8, -3.91, 1.83, 0, cream, 0.035);
@@ -614,8 +550,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   // Sofa: feet, load-bearing rails, individually upholstered cushions, piping and soft throw.
   const bed = placed('bed');
   attachSeats(seatAnchors, bed, ['study-sofa-1', 'study-sofa-2']);
-  const bedding = textile('#929e7f'),
-    seam = mat('#657454');
+  const bedding = textile(furnitureColors.bed[0]),
+    seam = textile('#a49785');
   for (const x of [-1.28, 1.28])
     for (const z of [-0.46, 0.46]) {
       rod(
@@ -661,7 +597,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     const piping = seamLoop(p, 0.38, 0.39, 0.1, cream, 0.06);
     piping.rotation.x = Math.PI / 2;
   }
-  const throwMat = textile('#d4c39c');
+  const throwMat = finish('wool', '#c6b49f');
   throwMat.side = T.DoubleSide;
   const throwGeo = new T.PlaneGeometry(0.58, 1.18, 18, 34);
   const tp = throwGeo.attributes.position;
@@ -901,7 +837,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   sphere(pc, 0.09, 0.56, 0.065, 0.46, cream, 0.7, 0.32, 1.2);
   const stool = placed('stool');
   attachSeats(seatAnchors, stool, ['study-work']);
-  const workSeat = textile('#79856c');
+  const workSeat = finish('leather', '#82715f');
   for (const x of [-0.29, 0.29])
     for (const z of [-0.28, 0.28]) {
       rod(
@@ -972,7 +908,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     screw(stool, x, 1.27, 0.337);
   }
   const rug = group('rug', -0.7, 0.085, 1.16);
-  const rugMat = textile('#d8cead');
+  const rugMat = finish('wool', furnitureColors.rug[0]);
   box(rug, 4.9, 0.027, 3.15, 0, 0, 0, rugMat, 0.025);
   const border = mat('#777d67');
   for (const x of [-2.32, 2.32])
@@ -1083,10 +1019,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   coffee.add(coffeeSteam.root);
   const chair = placed('chair');
   attachSeats(seatAnchors, chair, ['study-reading']);
-  const chairMat = mat('#dcaf86', 0.88);
-  Object.assign(chairMat, leatherMaps);
-  chairMat.normalScale.set(0.4, 0.4);
-  const leatherSeam = mat('#5d3b27');
+  const chairMat = finish('leather', furnitureColors.chair[0]);
+  const leatherSeam = mat('#82583f');
   for (const x of [-0.46, 0.46]) {
     tube(
       chair,
@@ -1231,7 +1165,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           bookMats[i + 1],
         );
     } else {
-      const linenBox = textile(level === 0 ? '#a0a18a' : '#b8ab8c');
+      const linenBox = textile(level === 0 ? '#b1a899' : '#c3b6a2');
       if (level === 0)
         box(shelf, 0.66, 0.4, 0.47, 0.67, base + 0.2, 0.02, linenBox, 0.025);
       else {
@@ -1416,7 +1350,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     box(record, 0.07, 0.65, 0.68, x, 0.65, 0, oak, 0.015);
   box(record, 1.6, 0.62, 0.035, 0, 0.65, -0.327, oak, 0.004);
   box(record, 0.045, 0.62, 0.64, 0.13, 0.65, 0, oak, 0.005);
-  const speakerFabric = textile('#484938');
+  const speakerFabric = finish('wool', '#48484b');
   box(record, 0.6, 0.55, 0.035, 0.48, 0.65, 0.327, speakerFabric, 0.01);
   for (let i = 0; i < 14; i++)
     box(
@@ -1635,7 +1569,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   torus.rotation.z = -0.5;
   sphere(sculptSpin, 0.12, 0.12, 0.53, 0, brass);
   // Pen cup, desk mat and bound notebook.
-  box(desk, 1.28, 0.009, 0.59, -0.2, 1.295, 0.07, fabric(mat('#6d7664')), 0.03);
+  box(
+    desk,
+    1.28,
+    0.009,
+    0.59,
+    -0.2,
+    1.295,
+    0.07,
+    finish('leather', '#6e6156'),
+    0.03,
+  );
   cylinder(desk, 0.07, 0.057, 0.18, -1.12, 1.39, -0.13, cream);
   for (let i = 0; i < 5; i++)
     rod(
@@ -2386,6 +2330,11 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       masterLight ? (night ? 0.22 : 0.12) : 0,
       a,
     );
+    scene.environmentIntensity = T.MathUtils.lerp(
+      scene.environmentIntensity,
+      Math.min(0.23, lightTarget.ambient * 0.09) + (masterLight ? 0.08 : 0),
+      a,
+    );
     hemi.color.lerp(lightTarget.hemi, a);
     hemi.groundColor.lerp(lightTarget.ground, a);
     sun.intensity = T.MathUtils.lerp(sun.intensity, lightTarget.power, a);
@@ -2965,12 +2914,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       }
       if (['cafeEspresso', 'cafePourOver'].includes(id)) life?.claimCoffee();
       house.interact(id, detail);
-      if (id === 'bed')
-        bedding.color.set(['#74856b', '#b8816b', '#7b91a2'][++bedColor % 3]);
+      if (id === 'bed') bedding.color.set(furnitureColors.bed[++bedColor % 3]);
       if (id === 'chair')
-        chairMat.color.set(['#cf966a', '#7f9479', '#9d8287'][++chairColor % 3]);
-      if (id === 'rug')
-        rugMat.color.set(['#e5d8b8', '#b1bdac', '#d7bda4'][++rugColor % 3]);
+        chairMat.color.set(furnitureColors.chair[++chairColor % 3]);
+      if (id === 'rug') rugMat.color.set(furnitureColors.rug[++rugColor % 3]);
       if (plants.has(id)) wateringUntil.set(id, performance.now() + 3200);
       if (id === 'studyCurtains') {
         studyCurtainsOpen = !studyCurtainsOpen;
@@ -3079,6 +3026,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       materials.forEach((m) => m.dispose());
       contactTexture.dispose();
       textures.forEach((t) => t.dispose());
+      reflectionTarget.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },

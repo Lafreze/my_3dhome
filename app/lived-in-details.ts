@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { makeSurface } from './house-finishes';
+import { interiorMaterial } from './house-finishes';
 import type { ObjectId } from './room-data';
 import type { HouseView } from './house-data';
 
@@ -18,17 +18,19 @@ export function createLivedInDetails(k: {
     k.materials.push(m);
     return m;
   };
-  const sage = mat('#798b75', 0.43),
+  const finish = (
+    kind: Parameters<typeof interiorMaterial>[0],
+    color: string,
+  ) => interiorMaterial(kind, color, k.materials, k.textures);
+  const sage = finish('glaze', '#899086'),
     cream = mat('#e3ddcc'),
     dark = mat('#393d35', 0.52),
-    brass = mat('#b99b63', 0.38, 0.65),
-    wood = mat('#8f7255'),
+    brass = finish('brushed-metal', '#ad9270'),
+    wood = finish('walnut', '#89715e'),
     paper = mat('#e9dfca'),
-    cotton = mat('#b7b5a2'),
+    cotton = finish('cotton', '#c4b9a9'),
     rust = mat('#a56f55'),
-    steel = mat('#b8bcb1', 0.32, 0.83);
-  Object.assign(wood, makeSurface('ash', k.textures));
-  Object.assign(cotton, makeSurface('cotton', k.textures));
+    steel = finish('brushed-metal', '#bfc1c2');
   cotton.side = T.DoubleSide;
   const mesh = (
     p: T.Object3D,

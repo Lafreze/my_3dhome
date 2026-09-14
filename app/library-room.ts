@@ -1,3 +1,5 @@
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
+import { interiorPalette as palette } from './interior-palette';
 import { paintingTexture } from './painting-textures';
 import { createSpineAtlas, bindingColors } from './book-spines';
 import * as T from 'three';
@@ -47,19 +49,30 @@ export function buildLibrary(k: Kit) {
     return m;
   };
   const oak = k.oak.clone();
-  oak.color.set('#866440');
+  oak.color.set('#8d715a');
   k.materials.push(oak);
   const dark = k.darkWood.clone();
-  dark.color.set('#60452f');
+  dark.color.set('#58453c');
   k.materials.push(dark);
   const plaster = k.cream.clone();
-  plaster.color.set('#e4dbc6');
+  plaster.color.set('#e8e0d5');
   k.materials.push(plaster);
   const ivory = mat('#e7d9b4'),
     paper = mat('#eee4c9'),
-    green = k.textile('#687052'),
-    linen = k.textile('#d2bea0'),
-    rust = k.textile('#89724f'),
+    leather = interiorMaterial(
+      'leather',
+      palette.libraryLeather,
+      k.materials,
+      k.textures,
+    ),
+    benchCloth = interiorMaterial(
+      'wool',
+      palette.libraryBench,
+      k.materials,
+      k.textures,
+    ),
+    linen = k.textile('#d8ccba'),
+    rust = k.textile('#b09a80'),
     leaf = mat('#647b46');
   linen.side = T.DoubleSide;
   const bindings = bindingColors.map((c) => mat(c));
@@ -83,6 +96,7 @@ export function buildLibrary(k: Kit) {
     z = 0,
     name?: string,
   ) {
+    fitTimberGrain(g, m);
     const o = new T.Mesh(g, m);
     o.position.set(x, y, z);
     o.castShadow = true;
@@ -606,7 +620,7 @@ export function buildLibrary(k: Kit) {
   );
   box(bench, 2.86, 0.57, 0.86, 0, 0.435, 0, oak);
   box(bench, 2.9, 0.07, 0.92, 0, 0.735, 0, dark);
-  cushion(bench, 2.76, 0.23, 0.79, 0, 0.825, 0.03, green);
+  cushion(bench, 2.76, 0.23, 0.79, 0, 0.825, 0.03, benchCloth);
   for (const x of [-1.2, 1.2])
     cushion(
       bench,
@@ -636,13 +650,13 @@ export function buildLibrary(k: Kit) {
   k.interactables.push(bench);
   // Soft patterned rug, separated from the ladder's wooden rolling track.
   const rug = panel(root, 4.9, 4.9, -0.55, 0.084, 0.98, (c, cv) => {
-    c.fillStyle = '#596148';
+    c.fillStyle = '#626368';
     c.fillRect(0, 0, cv.width, cv.height);
     for (const [n, color] of [
-      [13, '#b59965'],
-      [27, '#7a6546'],
-      [44, '#d3bb88'],
-      [61, '#93764a'],
+      [13, '#b0a392'],
+      [27, '#827b73'],
+      [44, '#c1b6a6'],
+      [61, '#8d8173'],
     ] as const) {
       c.strokeStyle = color;
       c.lineWidth = 8;
@@ -651,7 +665,7 @@ export function buildLibrary(k: Kit) {
     c.lineWidth = 3;
     for (let y = 96; y < 690; y += 50)
       for (let x = 96; x < 690; x += 50) {
-        c.strokeStyle = (x + y) % 3 ? '#9e895b' : '#cab37d';
+        c.strokeStyle = (x + y) % 3 ? '#969188' : '#b7ad9b';
         c.beginPath();
         c.moveTo(x, y - 14);
         c.lineTo(x + 10, y);
@@ -661,6 +675,9 @@ export function buildLibrary(k: Kit) {
         c.stroke();
       }
   });
+  const rugWool = interiorMaterial('wool', '#ffffff', k.materials, k.textures);
+  rugWool.map = (rug.mesh.material as T.MeshStandardMaterial).map;
+  rug.mesh.material = rugWool;
   rug.mesh.rotation.x = -Math.PI / 2;
   const desk = object('libraryDesk', root, f.desk.x, 0, f.desk.z);
   box(desk, 2.73, 0.12, 1.47, 0, 1.2, 0, oak, 0.045);
@@ -698,7 +715,7 @@ export function buildLibrary(k: Kit) {
     for (const z of [-0.29, 0.29])
       rod(chair, [x, 0.11, z], [x * 0.8, 0.67, z * 0.8], 0.034, oak);
   box(chair, 0.78, 0.09, 0.77, 0, 0.7, 0, oak);
-  cushion(chair, 0.7, 0.16, 0.68, 0, 0.79, 0.035, green);
+  cushion(chair, 0.7, 0.16, 0.68, 0, 0.79, 0.035, leather);
   for (const x of [-0.31, 0.31])
     box(chair, 0.05, 0.86, 0.06, x, 1.04, -0.315, oak);
   box(chair, 0.73, 0.15, 0.11, 0, 1.49, -0.315, oak, 0.04);
@@ -828,11 +845,11 @@ export function buildLibrary(k: Kit) {
   for (const x of [-0.46, 0.46])
     for (const z of [-0.46, 0.46]) cyl(arm, 0.028, 0.04, 0.26, x, 0.23, z, oak);
   box(arm, 1.18, 0.28, 1.14, 0, 0.5, 0, oak, 0.055);
-  cushion(arm, 0.97, 0.23, 0.97, 0, 0.725, 0.09, green);
-  cushion(arm, 1.09, 0.83, 0.28, 0, 1.11, -0.46, green);
+  cushion(arm, 0.97, 0.23, 0.97, 0, 0.725, 0.09, leather);
+  cushion(arm, 1.09, 0.83, 0.28, 0, 1.11, -0.46, leather);
   for (const x of [-0.55, 0.55]) {
-    box(arm, 0.2, 0.54, 1.1, x, 0.72, 0, green, 0.085);
-    cushion(arm, 0.23, 0.17, 1.07, x, 0.995, 0.01, green);
+    box(arm, 0.2, 0.54, 1.1, x, 0.72, 0, leather, 0.085);
+    cushion(arm, 0.23, 0.17, 1.07, x, 0.995, 0.01, leather);
   }
   cushion(arm, 0.46, 0.43, 0.15, 0.2, 1.04, -0.25, rust, 0.14);
   const throwOnArm = mesh(
@@ -851,7 +868,7 @@ export function buildLibrary(k: Kit) {
     for (const z of [-0.23, 0.23])
       cyl(ottoman, 0.025, 0.035, 0.25, x, 0.225, z, oak);
   box(ottoman, 0.92, 0.15, 0.74, 0, 0.4, 0, oak);
-  cushion(ottoman, 0.96, 0.23, 0.79, 0, 0.585, 0, green);
+  cushion(ottoman, 0.96, 0.23, 0.79, 0, 0.585, 0, leather);
   const side = group(root, f.sideTable.x, 0, f.sideTable.z);
   cyl(side, 0.21, 0.21, 0.05, 0, 0.72, 0, oak);
   cyl(side, 0.045, 0.07, 0.6, 0, 0.4, 0, oak);

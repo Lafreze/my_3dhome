@@ -1,3 +1,5 @@
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
+import { interiorPalette as palette } from './interior-palette';
 import { paintingTexture } from './painting-textures';
 import { corridorArtworks, corridorArtTexture } from './corridor-art';
 import * as T from 'three';
@@ -48,8 +50,8 @@ export function buildGameRoom(k: Kit) {
     k.materials.push(m);
     return m;
   };
-  const forest = mat('#416650'),
-    sage = mat('#97a486'),
+  const forest = mat('#4b5b68', 0.48),
+    sage = mat('#b4a497', 0.55),
     rust = mat('#c37e56'),
     gold = mat('#dfb666', 0.35, 0.5),
     ivory = mat('#efe4c8'),
@@ -58,9 +60,19 @@ export function buildGameRoom(k: Kit) {
     leaf = mat('#6a8658');
   Object.assign(steel, makeSurface('brushed-metal', k.textures));
   steel.roughness = 0.24;
-  const cloth = k.textile('#839172'),
-    throwCloth = k.textile('#e3d6b9'),
-    cushionCloth = k.textile('#c49e61');
+  const cloth = interiorMaterial(
+      'wool',
+      palette.gamingWool,
+      k.materials,
+      k.textures,
+    ),
+    throwCloth = k.textile('#d7cbbd'),
+    cushionCloth = interiorMaterial(
+      'velvet',
+      '#a97160',
+      k.materials,
+      k.textures,
+    );
   throwCloth.side = T.DoubleSide;
   const mesh = (
     p: T.Object3D,
@@ -71,6 +83,7 @@ export function buildGameRoom(k: Kit) {
     z = 0,
     name?: string,
   ) => {
+    fitTimberGrain(geo, m);
     const o = new T.Mesh(geo, m);
     o.position.set(x, y, z);
     o.castShadow = true;

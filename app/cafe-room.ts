@@ -1,3 +1,5 @@
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
+import { interiorPalette as palette } from './interior-palette';
 import { paintingTexture } from './painting-textures';
 import {
   createCoffeeState,
@@ -17,7 +19,6 @@ import type { WallCutaways } from './wall-cutaway';
 import type { HouseLandscape } from './house-landscape';
 import type { Environment } from './environment-data';
 import { createWindowEnvironment } from './room-environment';
-import { localPbr } from './room-materials';
 import type { RoomAssets } from './asset-loading';
 import {
   cafeLayout,
@@ -59,22 +60,21 @@ export function buildCafe(k: Kit) {
     materials.push(m);
     return m;
   };
+  const finish = (
+    kind: Parameters<typeof interiorMaterial>[0],
+    color: string,
+  ) => interiorMaterial(kind, color, materials, textures);
   const wood = k.oak,
     darkWood = k.darkWood,
-    leather = mat('#71816c', 0.73),
-    tan = mat('#ac7350', 0.64);
-  for (const m of [leather, tan]) {
-    Object.assign(
-      m,
-      localPbr(k.assets, textures, 'leather_white', new T.Vector2(2, 2), false),
-    );
-    m.normalScale.set(0.16, 0.16);
-  }
-  const green = mat('#829077', 0.78),
+    leather = finish('leather', palette.cafeBanquette),
+    tan = finish('leather', palette.cafeLounge),
+    diningLinen = finish('linen', palette.cafeChair),
+    saddleStitch = finish('linen', '#d0ae88');
+  const green = finish('clay', '#a49787'),
     plaster = k.cream,
     black = mat('#252c28', 0.48, 0.08),
     brass = k.brass,
-    steel = mat('#afb5ac', 0.36, 0.9),
+    steel = finish('brushed-metal', '#c5c6c8'),
     ceramic = k.ceramic,
     coffee = mat('#663621', 0.25),
     roastedBean = mat('#060606', 0.78),
@@ -90,42 +90,11 @@ export function buildCafe(k: Kit) {
   steel.roughnessMap = steelFinish.roughnessMap;
   k.breeze.add(leaf);
   const glass = k.glass;
-  const stone = mat('#ddd2bc', 0.45);
-  // Separate fine aggregate for the honed countertop, free of floor grout lines.
-  const mineralCanvas = document.createElement('canvas');
-  mineralCanvas.width = mineralCanvas.height = 512;
-  const mc = mineralCanvas.getContext('2d')!;
-  mc.fillStyle = '#ded6c4';
-  mc.fillRect(0, 0, 512, 512);
+  const stone = finish('travertine', '#d8cbbc');
   const noise = (i: number) => {
     const n = Math.sin(i * 127.1 + 31.7) * 43758.5453;
     return n - Math.floor(n);
   };
-  for (let i = 0; i < 6500; i++) {
-    mc.fillStyle = ['#908d7930', '#ffffff50', '#61584018'][i % 3];
-    mc.beginPath();
-    mc.ellipse(
-      noise(i) * 512,
-      noise(i + 44) * 512,
-      0.4 + noise(i + 89) * 1.7,
-      0.3 + noise(i + 124) * 1.2,
-      noise(i + 1) * 6.28,
-      0,
-      6.28,
-    );
-    mc.fill();
-  }
-  const mineral = new T.CanvasTexture(mineralCanvas);
-  mineral.colorSpace = T.SRGBColorSpace;
-  mineral.wrapS = mineral.wrapT = T.RepeatWrapping;
-  mineral.anisotropy = 8;
-  textures.push(mineral);
-  stone.map = mineral;
-  const mineralRelief = mineral.clone();
-  mineralRelief.colorSpace = T.NoColorSpace;
-  textures.push(mineralRelief);
-  stone.bumpMap = mineralRelief;
-  stone.bumpScale = 0.0015;
   const glow = mat('#fff2d7', 0.4);
   glow.emissive.set('#ffcb82');
   glow.emissiveIntensity = 0.65;
@@ -154,6 +123,7 @@ export function buildCafe(k: Kit) {
     y = 0,
     z = 0,
   ) {
+    fitTimberGrain(geo, m);
     const o = new T.Mesh(geo, m);
     o.position.set(x, y, z);
     o.castShadow = o.receiveShadow = true;
@@ -1149,7 +1119,7 @@ export function buildCafe(k: Kit) {
         [-0.4, 0.912, -2.55 + i * 0.637 + zz],
         [0.24, 0.912, -2.55 + i * 0.637 + zz],
         0.004,
-        green,
+        saddleStitch,
       );
     ball(bench, 0.227, 1.35, -2.55 + i * 0.637, 0.013, 0.019, 0.019, darkWood);
   }
@@ -1288,7 +1258,7 @@ export function buildCafe(k: Kit) {
           cyl(g, 0.027, 0.027, 0.07, xx * 1.2, 0.12, zz * 1.2, brass, 16);
         }
       box(g, 0.66, 0.07, 0.63, 0, 0.705, 0, wood, 0.08);
-      box(g, 0.6, 0.09, 0.57, 0, 0.78, 0, leather, 0.09);
+      box(g, 0.6, 0.09, 0.57, 0, 0.78, 0, diningLinen, 0.09);
       for (const xx of [-0.28, 0.28])
         rod(g, [xx, 0.61, 0.25], [xx, 1.42, 0.31], 0.025, wood);
       const backPoints = Array.from({ length: 13 }, (_, i) => {
@@ -1508,7 +1478,9 @@ export function buildCafe(k: Kit) {
       if (id === 'cafePourOver') service.start('filter');
       if (id === 'cafePastry') caseOpen = !caseOpen;
       if (id === 'cafeSeat')
-        leather.color.set(['#174d3c', '#8b6046', '#536269'][++seatIndex % 3]);
+        leather.color.set(
+          [palette.cafeBanquette, '#87564a', '#667985'][++seatIndex % 3],
+        );
       if (id === 'cafeLight') localLight = !localLight;
       if (id === 'cafeMenu') {
         const specials = [

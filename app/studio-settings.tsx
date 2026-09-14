@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import defaults from '../config/house-defaults.json';
+import { furnitureColors } from './interior-palette';
 import type { Profile } from './room-data';
 import type { Exhibit } from './exhibit-data';
 export type Appearance = Record<
@@ -64,14 +65,8 @@ export const appearanceLabels: Record<keyof Appearance, string> = {
   sleepBed: '卧室床品',
   controller: '游戏手柄',
 };
-export const appearanceColors: Record<keyof Appearance, string[]> = {
-  bed: ['#74856b', '#b8816b', '#7b91a2'],
-  chair: ['#cf966a', '#7f9479', '#9d8287'],
-  rug: ['#e5d8b8', '#b1bdac', '#d7bda4'],
-  livingSofa: ['#d4c9b7', '#b7836e', '#7b929a'],
-  sleepBed: ['#8495a6', '#e1c7b3', '#c7d2d3'],
-  controller: ['#d0c8b2', '#899d93', '#bf8d7e'],
-};
+export const appearanceColors: Record<keyof Appearance, string[]> =
+  furnitureColors;
 export function appearanceColor(
   id: keyof Appearance,
   value: Appearance[keyof Appearance],

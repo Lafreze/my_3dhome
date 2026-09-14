@@ -6,6 +6,8 @@ import { addRoomLifeDetails } from './room-life-details';
 import { addFurnitureCraft } from './furniture-craft';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { appearanceColor } from './studio-settings';
+import { furnitureColors } from './interior-palette';
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { wallArtUrl } from './wall-art-images';
 import { createSteamEffect } from './steam-effect';
 import { seatById } from './seat-data';
@@ -134,14 +136,21 @@ export function buildHouse(k: Kit) {
   k.breeze.add(curtainCloth, true);
   const finishes = houseFinishes(materials, textures, k);
   const fabric = k.textile;
-  const terracotta = mat('#b76e53'),
+  const finish = (
+    kind: Parameters<typeof interiorMaterial>[0],
+    color: string,
+  ) => interiorMaterial(kind, color, materials, textures);
+  const terracotta = finish('clay', '#b47762'),
     green = mat('#466455'),
     sage = mat('#8d9a81'),
     black = mat('#171c1c', 0.48);
-  const ivoryCloth = fabric('#d5cbb5'),
-    sofaCloth = fabric('#d4c9b7'),
-    bedCloth = fabric('#8495a6'),
-    blanketCloth = fabric('#566773');
+  const ivoryCloth = finish('linen', '#dfd5c6'),
+    sofaCloth = finish('boucle', furnitureColors.livingSofa[0]),
+    bedCloth = finish('cotton', furnitureColors.sleepBed[0]),
+    blanketCloth = finish('wool', '#796d69'),
+    bedroomLounge = finish('boucle', '#d5c4ae'),
+    benchLeather = finish('leather', '#986e52'),
+    honedStone = finish('travertine', '#d2c2ae');
   const terracottaWall = cream.clone();
   terracottaWall.color.set('#eee5d4');
   materials.push(terracottaWall);
@@ -170,6 +179,7 @@ export function buildHouse(k: Kit) {
     y = 0,
     z = 0,
   ) {
+    fitTimberGrain(geo, m);
     const obj = new T.Mesh(geo, m);
     obj.position.set(x, y, z);
     obj.castShadow = true;
@@ -686,7 +696,7 @@ export function buildHouse(k: Kit) {
     1.06,
     0.98,
     -0.22,
-    fabric('#b9816c'),
+    finish('velvet', '#916451'),
   );
   pillow2.rotation.z = -0.18;
   const rug = group('living');
@@ -695,7 +705,7 @@ export function buildHouse(k: Kit) {
     b(rug, 0.017, 0.004, 3.05, x, 0.112, 0.15, sage, 0);
   const table = group('living', undefined, lf.table.x, 0, lf.table.z);
   feet(table, 1.35, 0.52, 0.52);
-  b(table, 1.75, 0.1, 0.83, 0, 0.63, 0, oak, 0.13);
+  b(table, 1.75, 0.1, 0.83, 0, 0.63, 0, honedStone, 0.13);
   b(table, 1.45, 0.055, 0.58, 0, 0.29, 0, darkWood, 0.025);
   book(table, 0.42, 0.32, -0.43, 0.736, 0.05, green);
   book(table, 0.38, 0.3, -0.41, 0.83, 0.04, terracotta);
@@ -1622,7 +1632,7 @@ export function buildHouse(k: Kit) {
   k.interactables.push(bench);
   feet(bench, 1.98, 0.39, 0.37);
   b(bench, 2.28, 0.08, 0.56, 0, 0.47, 0, oak, 0.04);
-  cushion(bench, 2.24, 0.12, 0.55, 0, 0.57, 0, blanketCloth);
+  cushion(bench, 2.24, 0.12, 0.55, 0, 0.57, 0, benchLeather);
   const lounge = group(
     'bedroom',
     undefined,
@@ -1635,7 +1645,7 @@ export function buildHouse(k: Kit) {
   k.interactables.push(lounge);
   feet(lounge, 0.75, 0.77, 0.48);
   b(lounge, 1.04, 0.075, 0.98, 0, 0.51, 0, oak, 0.045);
-  cushion(lounge, 0.91, 0.24, 0.85, 0, 0.64, 0.03, ivoryCloth);
+  cushion(lounge, 0.91, 0.24, 0.85, 0, 0.64, 0.03, bedroomLounge);
   const chairBack = cushion(
     lounge,
     0.93,
@@ -1644,7 +1654,7 @@ export function buildHouse(k: Kit) {
     0,
     1.0,
     -0.39,
-    ivoryCloth,
+    bedroomLounge,
   );
   chairBack.rotation.x = -0.14;
   for (const side of [-1, 1]) {
@@ -2102,7 +2112,11 @@ export function buildHouse(k: Kit) {
   for (const room of ['living', 'bedroom', 'gallery'] as const) {
     const finish = finishes[room],
       cache = new Map<T.Material, T.Material>();
-    const liveCloth = new Set([sofaCloth, bedCloth, blanketCloth]);
+    const liveCloth = new Set<T.MeshStandardMaterial>([
+      sofaCloth,
+      bedCloth,
+      blanketCloth,
+    ]);
     const remap = (m: T.Material): T.Material => {
       if (cache.has(m)) return cache.get(m)!;
       if (
@@ -2114,7 +2128,8 @@ export function buildHouse(k: Kit) {
         m === bedsideShade ||
         m === spotLens ||
         m === padMat ||
-        m.userData.live
+        m.userData.live ||
+        m.userData.surface
       )
         return m;
       let next: T.MeshStandardMaterial;
@@ -2369,7 +2384,11 @@ export function buildHouse(k: Kit) {
       sofaCloth.color.set(appearanceColor('livingSofa', value.livingSofa));
       padMat.color.set(appearanceColor('controller', value.controller));
       bedCloth.color.set(appearanceColor('sleepBed', value.sleepBed));
-      blanketCloth.color.copy(bedCloth.color).multiplyScalar(0.7);
+      if (typeof value.sleepBed === 'number')
+        blanketCloth.color.set(
+          ['#796d69', '#996e60', '#74858f'][value.sleepBed] || '#796d69',
+        );
+      else blanketCloth.color.copy(bedCloth.color).multiplyScalar(0.7);
     },
     interact(id: ObjectId, detail?: 'appearance') {
       for (const d of passageDoors)
@@ -2387,21 +2406,21 @@ export function buildHouse(k: Kit) {
       if (id === 'livingCup') cupUntil = now + 180;
       if (id === 'bedroomClock') clockUntil = now + 1.6;
       if (id === 'livingSofa')
-        sofaCloth.color.set(['#d4c9b7', '#b7836e', '#7b929a'][++sofaIndex % 3]);
+        sofaCloth.color.set(furnitureColors.livingSofa[++sofaIndex % 3]);
       if (id === 'switch') joyOut = !joyOut;
       if (id === 'console') consoleOn = !consoleOn;
       if (id === 'controller') {
         if (detail === 'appearance')
-          padMat.color.set(['#d0c8b2', '#899d93', '#bf8d7e'][++padIndex % 3]);
+          padMat.color.set(furnitureColors.controller[++padIndex % 3]);
         else padUntil = now + 2.4;
       }
       if (id === 'livingLamp') lampOn = !lampOn;
       if (id === 'mediaDrawer') pulled = !pulled;
       if (id === 'sleepBed') {
         const schemes = [
-          ['#8495a6', '#566773'],
-          ['#e1c7b3', '#a57d6d'],
-          ['#c7d2d3', '#788b9d'],
+          [furnitureColors.sleepBed[0], '#796d69'],
+          [furnitureColors.sleepBed[1], '#996e60'],
+          [furnitureColors.sleepBed[2], '#74858f'],
         ];
         const c = schemes[++bedIndex % 3];
         bedCloth.color.set(c[0]);

@@ -1,3 +1,5 @@
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
+import { interiorPalette as palette } from './interior-palette';
 import { createSpineAtlas, bindingColors } from './book-spines';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -44,19 +46,19 @@ export function buildGarden(k: Kit) {
     return m;
   };
   const wood = k.oak.clone();
-  wood.color.set('#b39266');
+  wood.color.set('#b49b7d');
   k.materials.push(wood);
   const dark = k.darkWood.clone();
-  dark.color.set('#795d3c');
+  dark.color.set('#796451');
   k.materials.push(dark);
   const cream = k.cream.clone();
-  cream.color.set('#e8dfc9');
+  cream.color.set('#e9e3d8');
   k.materials.push(cream);
-  const green = k.textile('#7c8563'),
-    linen = k.textile('#e1d3b6'),
-    ochre = k.textile('#b79a62');
+  const green = k.textile(palette.gardenAccent),
+    linen = k.textile(palette.gardenLinen),
+    ochre = interiorMaterial('wool', '#8d9a9f', k.materials, k.textures);
   linen.side = T.DoubleSide;
-  const cane = mat('#b69a62'),
+  const cane = interiorMaterial('ash', '#b9a17d', k.materials, k.textures),
     paper = mat('#ede4cc'),
     white = mat('#e9e0c6'),
     lemon = mat('#ddb345'),
@@ -83,6 +85,7 @@ export function buildGarden(k: Kit) {
     z = 0,
     name = '',
   ) {
+    fitTimberGrain(g, m);
     const o = new T.Mesh(g, m);
     o.position.set(x, y, z);
     o.castShadow = o.receiveShadow = true;
