@@ -72,7 +72,7 @@ export function buildCafe(k: Kit) {
     tan = finish('leather', palette.cafeLounge),
     diningLinen = finish('linen', palette.cafeChair),
     saddleStitch = finish('linen', '#d0ae88');
-  const green = finish('clay', '#a49787'),
+  const green = suite.lacquer,
     plaster = k.cream,
     black = mat('#252c28', 0.48, 0.08),
     brass = k.brass,
@@ -92,7 +92,7 @@ export function buildCafe(k: Kit) {
   steel.roughnessMap = steelFinish.roughnessMap;
   k.breeze.add(leaf);
   const glass = k.glass;
-  const stone = finish('travertine', '#d8cbbc');
+  const stone = suite.stone;
   const noise = (i: number) => {
     const n = Math.sin(i * 127.1 + 31.7) * 43758.5453;
     return n - Math.floor(n);
@@ -547,11 +547,11 @@ export function buildCafe(k: Kit) {
     '#e8d8ae',
   );
   k.cutaways.add([front], { x: 4, z: 18.11, nx: 0, nz: -1 }, ['cafe']);
-  // Service counter: recessed toe kick, sage fluting, eased oak lip and brass foot rail.
+  // Service counter: recessed toe kick, oak fluting, eased stone top and champagne foot rail.
   const counter = child(root, cafeLayout.counter.x, 0, cafeLayout.counter.z);
   box(counter, 5.7, 1.25, 1.12, 0, 0.79, 0, green, 0.065);
   box(counter, 5.48, 0.18, 0.86, 0, 0.18, 0, black);
-  box(counter, 5.87, 0.13, 1.3, 0, 1.47, 0, wood, 0.06);
+  box(counter, 5.87, 0.13, 1.3, 0, 1.47, 0, stone, 0.06);
   box(counter, 5.65, 0.045, 0.055, 0, 1.33, 0.58, brass, 0.008);
   for (let i = 0; i < 91; i++)
     box(
@@ -562,7 +562,7 @@ export function buildCafe(k: Kit) {
       -2.75 + i * 0.061,
       0.79,
       0.58,
-      green,
+      wood,
       0.013,
     );
   rod(counter, [-2.65, 0.36, 0.81], [2.65, 0.36, 0.81], 0.023, brass);

@@ -52,7 +52,7 @@ export function buildGameRoom(k: Kit) {
     k.materials.push(m);
     return m;
   };
-  const forest = mat('#4b5b68', 0.48),
+  const forest = suite.lacquer,
     sage = mat('#b4a497', 0.55),
     rust = mat('#c37e56'),
     gold = mat('#dfb666', 0.35, 0.5),
@@ -71,7 +71,7 @@ export function buildGameRoom(k: Kit) {
     throwCloth = k.textile('#d7cbbd'),
     cushionCloth = interiorMaterial(
       'velvet',
-      '#a97160',
+      '#bca995',
       k.materials,
       k.textures,
     );
@@ -1323,9 +1323,7 @@ export function buildGameRoom(k: Kit) {
       w = art.width,
       h = art.height;
     const frame = group(wallGroup, x, 2.05, 0.13);
-    const frameMat = oak.clone();
-    frameMat.color.set(art.frame);
-    k.materials.push(frameMat);
+    const frameMat = suite.edge;
     frame.name = `Corridor print / ${title}`;
     corridorArt.push(frame);
     box(frame, w + 0.2, h + 0.22, 0.065, 0, 0, 0, frameMat, 0.008);

@@ -48,18 +48,14 @@ export function buildGarden(k: Kit) {
     k.materials.push(m);
     return m;
   };
-  const wood = k.oak.clone();
-  wood.color.set('#b49b7d');
-  k.materials.push(wood);
-  const dark = k.darkWood.clone();
-  dark.color.set('#796451');
-  k.materials.push(dark);
+  const wood = suite.timber,
+    dark = suite.recess;
   const cream = k.cream.clone();
   cream.color.set('#e9e3d8');
   k.materials.push(cream);
   const green = k.textile(palette.gardenAccent),
     linen = k.textile(palette.gardenLinen),
-    ochre = interiorMaterial('wool', '#8d9a9f', k.materials, k.textures);
+    ochre = interiorMaterial('wool', '#b6b3a5', k.materials, k.textures);
   linen.side = T.DoubleSide;
   const cane = interiorMaterial('ash', '#b9a17d', k.materials, k.textures),
     paper = mat('#ede4cc'),

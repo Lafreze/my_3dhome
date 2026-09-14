@@ -1,10 +1,10 @@
 /** The initial finish and every built-in colour control share the same palette. */
 export const furnitureColors = {
-  bed: ['#beb09b', '#a87563', '#7d909e'],
+  bed: ['#e2d8c8', '#ccc1b1', '#d5d3ca'],
   chair: ['#efeae1', '#dedbd3', '#f4efe6'],
   rug: ['#d8cebe', '#b4aea3', '#c6b3a5'],
-  livingSofa: ['#e4dacf', '#c19987', '#899ba6'],
-  sleepBed: ['#a5b2bc', '#d8c2b2', '#d4d1c9'],
+  livingSofa: ['#eee7db', '#d8cbbb', '#cbc9c1'],
+  sleepBed: ['#e9e3d8', '#dbcebf', '#d5d5cd'],
   controller: ['#d4cec3', '#81929c', '#b78270'],
 };
 
@@ -23,10 +23,13 @@ export const interiorPalette = {
   cafeLounge: '#eee8dd',
   cafeChair: '#eee8dd',
   libraryLeather: '#e3dccc',
-  libraryBench: '#b7a68b',
-  barVelvet: '#526b7b',
+  libraryBench: '#d4c8b6',
+  barVelvet: '#c3b7a6',
   barLeather: '#e5ddd0',
-  gamingWool: '#7d8e9e',
+  gamingWool: '#ded7cb',
   gardenLinen: '#d8cbb9',
   gardenAccent: '#e7e0d4',
 };
+
+/** Coordinated throws for each of the three bedding presets. */
+export const beddingThrows = ['#b7aa99', '#b4a28e', '#a6aca6'];

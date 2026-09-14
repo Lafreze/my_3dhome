@@ -80,7 +80,25 @@ function buildSuite(
   edge.color.set(palette.furnitureEdge);
   edge.name = 'Furniture / oak edge';
   neutralFurnitureFinish(edge, 'timber');
-  materials.push(timber, edge);
+  // Cabinet interiors and limed fronts keep the same photographed grain and light response.
+  const pale = timber.clone();
+  pale.color.set('#dfd3bf');
+  pale.name = 'Furniture / limed oak';
+  neutralFurnitureFinish(pale, 'timber');
+  const recess = timber.clone();
+  recess.color.set('#958776');
+  recess.name = 'Furniture / shaded oak';
+  neutralFurnitureFinish(recess, 'timber');
+  const lacquer = new T.MeshPhysicalMaterial({
+    color: palette.furnitureIvory,
+    roughness: 0.56,
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.48,
+    envMapIntensity: 0.65,
+  });
+  lacquer.name = 'Furniture / satin ivory lacquer';
+  lacquer.userData.surface = 'lacquer';
+  materials.push(timber, edge, pale, recess, lacquer);
   const stone = interiorMaterial('travertine', '#e7e0d3', materials, textures);
   stone.roughness = 0.74;
   stone.bumpScale *= 0.55;
@@ -91,7 +109,7 @@ function buildSuite(
     textures,
   );
   metal.roughness = 0.48;
-  return { timber, edge, stone, metal };
+  return { timber, edge, pale, recess, lacquer, stone, metal };
 }
 export function furnitureSuite(
   materials: T.Material[],

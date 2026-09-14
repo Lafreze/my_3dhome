@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { interiorMaterial } from './house-finishes';
+import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { localPbr } from './room-materials';
 import type { RoomAssets } from './asset-loading';
 import type { RoomId } from './house-data';
@@ -52,6 +52,7 @@ export function addRoomLifeDetails(k: {
     y = 0,
     z = 0,
   ) => {
+    fitTimberGrain(g, m);
     const o = new T.Mesh(g, m);
     o.position.set(x, y, z);
     o.castShadow = o.receiveShadow = true;

@@ -289,9 +289,9 @@ export function houseFinishes(
     wall: base.cream,
   };
   return {
-    living: { ...joinery, cloth: cloth('#e4dacf', 'boucle') },
-    bedroom: { ...joinery, cloth: cloth('#a5b2bc', 'cotton') },
-    gallery: { ...joinery, cloth: cloth('#aa7e63', 'suede') },
+    living: { ...joinery, cloth: cloth('#eee7db', 'boucle') },
+    bedroom: { ...joinery, cloth: cloth('#e9e3d8', 'cotton') },
+    gallery: { ...joinery, cloth: cloth('#c8baa7', 'suede') },
   };
 }
 

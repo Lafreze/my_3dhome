@@ -47,12 +47,8 @@ export function buildBar(k: Kit) {
     k.materials.push(m);
     return m;
   };
-  const wood = k.oak.clone();
-  wood.color.set('#80624f');
-  k.materials.push(wood);
-  const dark = k.darkWood.clone();
-  dark.color.set('#514039');
-  k.materials.push(dark);
+  const wood = suite.timber,
+    dark = suite.recess;
   const wall = k.cream.clone();
   wall.color.set('#ded5c9');
   k.materials.push(wall);
@@ -398,9 +394,9 @@ export function buildBar(k: Kit) {
     [-1.6, 1.05],
     [0.9, 2.45],
   ])
-    box(back, w, 0.1, 0.86, x, 1.13, 0, wood);
+    box(back, w, 0.1, 0.86, x, 1.13, 0, suite.stone);
   for (const z of [-0.355, 0.355])
-    box(back, 0.75, 0.1, 0.15, -0.7, 1.13, z, wood);
+    box(back, 0.75, 0.1, 0.15, -0.7, 1.13, z, suite.stone);
   for (const x of [-1.63, -0.88, 0.02]) {
     box(back, 0.68, 0.72, 0.04, x, 0.64, 0.4, wood);
     rod(back, [x - 0.1, 0.87, 0.442], [x + 0.1, 0.87, 0.442], 0.018, brass);
@@ -482,11 +478,11 @@ export function buildBar(k: Kit) {
   // Counter leaves a continuous staff aisle and an open end to the right.
   const counter = object('barMix', f.counter.x, f.counter.z);
   box(counter, 4.2, 1.31, 0.72, 0, 0.785, 0, dark);
-  box(counter, 4.38, 0.14, 0.96, 0, 1.515, 0, wood, 0.065);
+  box(counter, 4.38, 0.14, 0.96, 0, 1.515, 0, suite.stone, 0.065);
   for (let i = 0; i < 5; i++) {
     const x = -1.65 + i * 0.825;
     box(counter, 0.75, 1.02, 0.032, x, 0.81, 0.378, wood);
-    box(counter, 0.63, 0.88, 0.024, x, 0.81, 0.403, dark);
+    box(counter, 0.63, 0.88, 0.024, x, 0.81, 0.403, suite.lacquer);
   }
   for (const x of [-1.92, -0.65, 0.65, 1.92])
     rod(counter, [x, 0.29, 0.39], [x, 0.29, 0.67], 0.023, brass);

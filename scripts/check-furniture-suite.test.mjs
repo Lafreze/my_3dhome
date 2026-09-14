@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as T from 'three';
+import { createInteriorDoor } from '../app/interior-doors.ts';
 import {
   refinedTabletop,
   neutralFurnitureFinish,
@@ -58,4 +59,32 @@ void test('white refinishing retains authored texture sampling and distinct shad
     materials[1].customProgramCacheKey(),
   );
   materials.forEach((m) => m.dispose());
+});
+
+void test('pocket door clipping preserves refinished timber shaders without mutating shared joinery', () => {
+  const timber = new T.MeshPhysicalMaterial();
+  neutralFurnitureFinish(timber, 'timber');
+  const metal = new T.MeshStandardMaterial();
+  const owned = [timber, metal];
+  const root = new T.Group();
+  createInteriorDoor(root, 0, timber, metal, owned);
+  const leaves = owned.filter(
+    (m) =>
+      m !== timber &&
+      m.clippingPlanes &&
+      m.customProgramCacheKey() === timber.customProgramCacheKey(),
+  );
+  assert(leaves.length > 0);
+  for (const leaf of leaves) {
+    assert.equal(leaf.customProgramCacheKey(), timber.customProgramCacheKey());
+    const shader = { fragmentShader: '#include <map_fragment>' };
+    leaf.onBeforeCompile(shader, {});
+    assert(shader.fragmentShader.includes('furnitureLuma'));
+    assert.equal(leaf.clippingPlanes.length, 2);
+  }
+  assert.equal(timber.clippingPlanes, null);
+  root.traverse((o) => {
+    if (o.isMesh) o.geometry.dispose();
+  });
+  owned.forEach((m) => m.dispose());
 });

@@ -161,16 +161,16 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     kind: Parameters<typeof interiorMaterial>[0],
     color: string,
   ) => interiorMaterial(kind, color, materials, textures);
-  const oak = finish('smoked-oak', palette.oak),
-    edge = finish('smoked-oak', '#ad957c'),
-    paleWood = finish('ash', palette.ash),
-    darkWood = finish('walnut', palette.walnut);
+  const oak = suite.timber,
+    edge = suite.edge,
+    paleWood = suite.pale,
+    darkWood = suite.recess;
   const cream = finish('lime', palette.wall),
-    white = mat('#f3eee5'),
+    white = suite.lacquer,
     ceramic = finish('glaze', palette.ceramic),
     darkGreen = finish('lime', palette.plasterAccent);
   const terra = finish('clay', '#b07560'),
-    brass = finish('brushed-metal', palette.brass),
+    brass = suite.metal,
     charcoal = mat('#303135', 0.52);
   const fabric = (m: T.MeshStandardMaterial) => {
     Object.assign(m, makeSurface('linen', textures));

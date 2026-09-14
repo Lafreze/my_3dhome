@@ -27,9 +27,9 @@ export function addFurnitureCraft(k: {
     k.materials.push(m);
     return m;
   };
-  const dark = mat('#544334'),
+  const dark = suite.recess,
     ink = mat('#3e3c3c'),
-    linen = interiorMaterial('linen', '#c6bba9', k.materials, k.textures),
+    linen = interiorMaterial('linen', '#e0d5c4', k.materials, k.textures),
     leather = interiorMaterial(
       'leather',
       palette.libraryLeather,

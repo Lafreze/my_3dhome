@@ -50,12 +50,8 @@ export function buildLibrary(k: Kit) {
     k.materials.push(m);
     return m;
   };
-  const oak = k.oak.clone();
-  oak.color.set('#8d715a');
-  k.materials.push(oak);
-  const dark = k.darkWood.clone();
-  dark.color.set('#58453c');
-  k.materials.push(dark);
+  const oak = suite.timber,
+    dark = suite.recess;
   const plaster = k.cream.clone();
   plaster.color.set('#e8e0d5');
   k.materials.push(plaster);

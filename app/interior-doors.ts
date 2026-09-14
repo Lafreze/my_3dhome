@@ -120,6 +120,12 @@ export function createInteriorDoor(
       let m = clipped.get(original);
       if (!m) {
         m = original.clone();
+        // Three.js does not clone shader callbacks; the pocket leaf must match its frame.
+        const cloned = m;
+        m.onBeforeCompile = (shader, renderer) =>
+          original.onBeforeCompile.call(cloned, shader, renderer);
+        m.customProgramCacheKey = () =>
+          original.customProgramCacheKey.call(cloned);
         m.clippingPlanes = planes;
         m.clipShadows = true;
         clipped.set(original, m);

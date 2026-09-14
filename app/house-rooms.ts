@@ -7,7 +7,7 @@ import { addRoomLifeDetails } from './room-life-details';
 import { addFurnitureCraft } from './furniture-craft';
 import { coffeeHeat, type CoffeeSnapshot } from './coffee-state';
 import { appearanceColor } from './studio-settings';
-import { furnitureColors } from './interior-palette';
+import { beddingThrows, furnitureColors } from './interior-palette';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { wallArtUrl } from './wall-art-images';
 import { createSteamEffect } from './steam-effect';
@@ -149,8 +149,8 @@ export function buildHouse(k: Kit) {
   const ivoryCloth = finish('linen', '#dfd5c6'),
     sofaCloth = finish('boucle', furnitureColors.livingSofa[0]),
     bedCloth = finish('cotton', furnitureColors.sleepBed[0]),
-    blanketCloth = finish('wool', '#796d69'),
-    bedroomLounge = finish('boucle', '#d5c4ae'),
+    blanketCloth = finish('wool', beddingThrows[0]),
+    bedroomLounge = finish('boucle', '#eee8dd'),
     benchLeather = finish('leather', '#d9cebc');
   const terracottaWall = cream.clone();
   terracottaWall.color.set('#eee5d4');
@@ -1613,7 +1613,7 @@ export function buildHouse(k: Kit) {
   for (const sign of [-1, 1]) {
     const door = child(wardrobe, sign * 1.18, 0, 0.43);
     doors.push(door);
-    b(door, 1.16, 2.47, 0.065, -sign * 0.58, 1.42, 0, paleWood, 0.025);
+    b(door, 1.16, 2.47, 0.065, -sign * 0.58, 1.42, 0, suite.lacquer, 0.025);
     for (let i = 0; i < 8; i++)
       b(
         door,
@@ -2045,17 +2045,7 @@ export function buildHouse(k: Kit) {
     mount.position.set(spec.x, 0, spec.z);
     mount.rotation.y = spec.yaw;
     k.scene.add(mount);
-    const timber = oak.clone();
-    timber.color.set(
-      (spec.rooms as RoomId[]).includes('bar')
-        ? '#6f5036'
-        : (spec.rooms as RoomId[]).includes('gaming')
-          ? '#728066'
-          : spec.style === 'solid'
-            ? '#a88762'
-            : '#a08c6d',
-    );
-    materials.push(timber);
+    const timber = spec.style === 'solid' ? suite.timber : suite.pale;
     const door = createInteriorDoor(mount, 0, timber, brass, materials, {
       style: spec.style,
       side: spec.side,
@@ -2393,7 +2383,7 @@ export function buildHouse(k: Kit) {
       bedCloth.color.set(appearanceColor('sleepBed', value.sleepBed));
       if (typeof value.sleepBed === 'number')
         blanketCloth.color.set(
-          ['#796d69', '#996e60', '#74858f'][value.sleepBed] || '#796d69',
+          beddingThrows[value.sleepBed] || beddingThrows[0],
         );
       else blanketCloth.color.copy(bedCloth.color).multiplyScalar(0.7);
     },
@@ -2425,9 +2415,9 @@ export function buildHouse(k: Kit) {
       if (id === 'mediaDrawer') pulled = !pulled;
       if (id === 'sleepBed') {
         const schemes = [
-          [furnitureColors.sleepBed[0], '#796d69'],
-          [furnitureColors.sleepBed[1], '#996e60'],
-          [furnitureColors.sleepBed[2], '#74858f'],
+          [furnitureColors.sleepBed[0], beddingThrows[0]],
+          [furnitureColors.sleepBed[1], beddingThrows[1]],
+          [furnitureColors.sleepBed[2], beddingThrows[2]],
         ];
         const c = schemes[++bedIndex % 3];
         bedCloth.color.set(c[0]);
