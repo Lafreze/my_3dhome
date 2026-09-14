@@ -1991,6 +1991,20 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
             y: r.top + ((1 - p.y) * r.height) / 2,
           };
         },
+        gardenDetails: () => {
+          const items: { name: string; min: number[]; max: number[] }[] = [];
+          scene.updateMatrixWorld(true);
+          scene.traverse((o) => {
+            if (!o.name.startsWith('Garden detail /')) return;
+            const bounds = new T.Box3().setFromObject(o, true);
+            items.push({
+              name: o.name,
+              min: bounds.min.toArray(),
+              max: bounds.max.toArray(),
+            });
+          });
+          return items;
+        },
         flowers: () => {
           const plants: { species: string; position: number[] }[] = [];
           scene.traverse((o) => {

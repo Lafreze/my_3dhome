@@ -149,7 +149,7 @@ export function gardenBotany(
       [r * 0.86, h * 0.84],
       [r * 0.63, 0.05],
     ].map(([x, y]) => new T.Vector2(x, y));
-    mesh(p, new T.LatheGeometry(profile, 40), m, 0, 0, 0);
+    mesh(p, new T.LatheGeometry(profile, 40), m, 0, 0.012, 0);
     const saucer = new T.LatheGeometry(
       [
         [0, 0],
@@ -162,14 +162,14 @@ export function gardenBotany(
       ].map(([x, y]) => new T.Vector2(x, y)),
       40,
     );
-    mesh(p, saucer, m, 0, -0.012, 0);
+    mesh(p, saucer, m, 0, 0, 0);
     if (filled)
       mesh(
         p,
         new T.CylinderGeometry(r * 0.87, r * 0.87, 0.025, 24),
         soil,
         0,
-        h * 0.86,
+        h * 0.86 + 0.012,
         0,
       );
   }

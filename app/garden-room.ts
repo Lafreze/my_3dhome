@@ -1,3 +1,5 @@
+import { gardenDetails as detail } from './garden-detail-layout';
+import { edgeDrapeGeometry, gardenBasinGeometry } from './garden-joinery';
 import { gardenCraftFinishes, trowelGeometry } from './garden-surfaces';
 import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
@@ -7,7 +9,7 @@ import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { addOakFloor } from './house-finishes';
-import { pillowGeometry, drapedLinen } from './bed-linen';
+import { pillowGeometry } from './bed-linen';
 import { attachSeats, type SeatAnchors } from './seat-scene';
 import { rooms, type HouseView } from './house-data';
 import type { ObjectId } from './room-data';
@@ -373,7 +375,7 @@ export function buildGarden(k: Kit) {
     if (loc.depth > loc.width) g.rotation.y = Math.PI / 2;
     box(g, width, 0.59, depth, 0, 0.4, 0, wood);
     box(g, width + 0.07, 0.065, depth + 0.07, 0, 0.72, 0, dark);
-    box(g, width - 0.1, 0.025, depth - 0.1, 0, 0.738, 0, bot.soil);
+
     for (let x = -width / 2 + 0.18; x < width / 2; x += 0.35) {
       box(g, 0.03, 0.46, 0.035, x, 0.4, depth / 2 + 0.02, dark);
     }
@@ -381,7 +383,7 @@ export function buildGarden(k: Kit) {
       bot.plant(
         g,
         -width / 2 + 0.28 + i * 0.53 + Math.sin(seed + i * 2.3) * 0.025,
-        0.64,
+        0.754,
         Math.cos(seed + i * 1.7) * 0.065,
         0.6 + (i % 4) * 0.045,
         i === 0 ? 'vine' : 'flowers',
@@ -559,11 +561,11 @@ export function buildGarden(k: Kit) {
 
   // READING CORNER: upholstery, pressed-flower album and the objects used beside it.
   function sofa(p: T.Group, width: number, depth: number) {
-    box(p, width, 0.35, depth, 0, 0.39, 0, wood, 0.035);
+    box(p, width, 0.42, depth, 0, 0.425, 0, wood, 0.035);
     box(p, width, 0.64, 0.15, 0, 0.93, -depth / 2 + 0.05, wood, 0.035);
     for (const x of [-width / 2 + 0.09, width / 2 - 0.09])
       box(p, 0.16, 0.38, depth, x, 0.76, 0, wood);
-    pillow(p, width - 0.25, 0.23, depth - 0.12, 0, 0.75, 0.04, linen);
+    pillow(p, width - 0.38, 0.23, depth - 0.12, 0, 0.75, 0.04, linen);
     for (const x of [-width * 0.29, width * 0.28])
       pillow(
         p,
@@ -589,19 +591,24 @@ export function buildGarden(k: Kit) {
   sofa(readingReturn, f.readingReturn.depth, f.readingReturn.width);
   attachSeats(k.seats, readingReturn, ['garden-reading-3']);
   k.interactables.push(readingReturn);
-  mesh(
+  const readingThrow = mesh(
     readingSofa,
-    drapedLinen(0.36, 0.66, 0.66, true),
+    edgeDrapeGeometry(0.38, 0.13, 0.28),
     linen,
-    1.53,
-    1.03,
+    1.654,
+    0.957,
     0.02,
-    'Folded reading throw',
+    'Garden detail / supported arm throw',
   );
+  readingThrow.rotation.y = Math.PI / 2;
   const bookcase = group(root, f.bookcase.x, 0, f.bookcase.z);
   bookcase.rotation.y = Math.PI / 2;
-  box(bookcase, 2.3, 1.17, 0.52, 0, 0.7, 0, wood);
-  for (const [row, y] of [0.2, 0.67, 1.19].entries()) {
+  bookcase.name = 'Garden detail / open bookcase';
+  for (const x of [-1.11, 1.11])
+    box(bookcase, 0.08, 1.18, 0.52, x, 0.715, 0, wood);
+  box(bookcase, 2.14, 1.1, 0.035, 0, 0.72, -0.245, dark);
+  box(bookcase, 2.3, 0.055, 0.56, 0, 1.3, 0.03, wood);
+  for (const [row, y] of [0.2, 0.73].entries()) {
     box(bookcase, 2.3, 0.055, 0.56, 0, y, 0.03, dark);
     for (let i = 0; i < 12; i++) {
       const serial = row * 13 + i + 113,
@@ -614,7 +621,7 @@ export function buildGarden(k: Kit) {
         0.22,
         -0.98 + i * 0.175,
         y + 0.03,
-        0.19,
+        0.1,
         bookBindings[serial % bookBindings.length],
         i % 5 === 0 ? 0.05 : 0,
       );
@@ -629,12 +636,62 @@ export function buildGarden(k: Kit) {
       spine.castShadow = false;
     }
   }
-  bot.plant(bookcase, -0.7, 1.3, 0, 0.85, 'vine', 11);
+  const shelfPlant = bot.plant(
+    bookcase,
+    detail.bookcase.plantX,
+    detail.bookcase.top + 0.002,
+    0.02,
+    0.55,
+    'broad',
+    11,
+  );
+  shelfPlant.name = 'Garden detail / bookcase plant';
+  const topBooks = group(
+    bookcase,
+    detail.bookcase.bookStart,
+    detail.bookcase.top + 0.002,
+    0.05,
+    'Garden detail / top books',
+  );
+  for (let i = 0; i < 3; i++) {
+    const h = 0.27 + i * 0.025;
+    const book = volume(
+      topBooks,
+      0.1,
+      h,
+      0.23,
+      i * 0.145,
+      0,
+      0,
+      bookBindings[4 + i],
+    );
+    const spine = mesh(
+      book,
+      bookAtlas.geometry(0.094, h * 0.96, 151 + i),
+      bookAtlas.material,
+      0,
+      h / 2,
+      0.12,
+    );
+    spine.castShadow = false;
+  }
   const hooks = group(west, 10.5, 2.38, 0.15);
   box(hooks, 1.7, 0.09, 0.08, 0, 0, 0, wood);
   for (let i = 0; i < 4; i++) {
     const x = -0.65 + i * 0.43;
     rod(hooks, [x, 0, 0], [x, -0.13, 0.1], 0.018, brass);
+    tube(
+      hooks,
+      [
+        [x, -0.105, 0.09],
+        [x - 0.024, -0.15, 0.15],
+        [x, -0.17, 0.15],
+        [x + 0.024, -0.15, 0.15],
+        [x, -0.105, 0.09],
+      ],
+      0.004,
+      craft.twine,
+    );
     for (let j = 0; j < 7; j++) {
       const zz = 0.15 + (j % 2) * 0.02;
       rod(
@@ -662,8 +719,15 @@ export function buildGarden(k: Kit) {
   }
   const reading = object('gardenAlbum', f.readingTable.x, f.readingTable.z);
   roundTable(reading, 0.86, 0.82);
-  const album = group(reading, -0.14, 0.865, 0.1);
-  album.rotation.y = -0.19;
+  const album = group(
+    reading,
+    detail.reading.album.x,
+    detail.reading.top + 0.002,
+    detail.reading.album.z,
+    'Garden detail / open album',
+  );
+  album.rotation.y = detail.reading.album.yaw;
+  album.scale.setScalar(detail.reading.album.scale);
   box(album, 0.87, 0.033, 0.62, 0, 0.017, 0, green);
   box(album, 0.39, 0.04, 0.57, -0.218, 0.05, 0, paper);
   box(album, 0.39, 0.04, 0.57, 0.218, 0.05, 0, paper);
@@ -735,52 +799,67 @@ export function buildGarden(k: Kit) {
   page.mesh.rotation.x = -Math.PI / 2;
   const fieldGuide = volume(
     reading,
-    0.45,
-    0.1,
-    0.57,
-    -0.35,
-    0.863,
-    -0.4,
+    detail.reading.guide.width,
+    0.065,
+    detail.reading.guide.depth,
+    detail.reading.guide.x,
+    detail.reading.top + 0.002,
+    detail.reading.guide.z,
     dark,
-    0.13,
+    detail.reading.guide.yaw,
   );
-  label(fieldGuide, '植物图鉴', 0.36, 0, 0.102, 0, 0.12).mesh.rotation.x =
+  fieldGuide.name = 'Garden detail / field guide';
+  label(fieldGuide, '植物图鉴', 0.28, 0, 0.067, 0, 0.1).mesh.rotation.x =
     -Math.PI / 2;
-  box(album, 0.035, 0.004, 0.28, 0.28, 0.075, 0.28, ochre);
-  plate(reading, 0.5, 0.871, -0.19, 0.2);
+  // The ribbon stays wholly on its page, clear of the turning leaf.
+  box(album, 0.025, 0.003, 0.23, -0.35, 0.077, 0.13, ochre);
+  const biscuits = group(
+    reading,
+    detail.reading.plate.x,
+    detail.reading.top,
+    detail.reading.plate.z,
+    'Garden detail / biscuit plate',
+  );
+  plate(biscuits, 0, 0.012, 0, detail.reading.plate.radius);
   for (let i = 0; i < 5; i++) {
-    const a = i * 2.4;
-    cyl(
-      reading,
-      0.054,
-      0.057,
-      0.024,
-      0.5 + Math.cos(a) * 0.11,
-      0.902,
-      -0.19 + Math.sin(a) * 0.1,
-      ochre,
-    );
+    const a = (i * Math.PI * 2) / 5,
+      x = Math.cos(a) * 0.09,
+      z = Math.sin(a) * 0.09;
+    cyl(biscuits, 0.045, 0.047, 0.024, x, 0.037, z, ochre);
     for (let j = 0; j < 3; j++)
-      ball(
-        reading,
-        0.007,
-        0.5 + Math.cos(a) * 0.11 + (j - 1) * 0.018,
-        0.918,
-        -0.19 + Math.sin(a) * 0.1,
-        bot.bark,
-      );
+      ball(biscuits, 0.005, x + (j - 1) * 0.015, 0.052, z, bot.bark);
   }
-  cup(reading, 0.24, 0.865, 0.43);
-  const magnifier = group(reading, -0.52, 0.883, 0.36);
-  magnifier.rotation.y = -0.65;
+  const tea = group(
+    reading,
+    detail.reading.cup.x,
+    detail.reading.top,
+    detail.reading.cup.z,
+    'Garden detail / tea and coaster',
+  );
+  cyl(tea, 0.112, 0.112, 0.008, 0, 0.004, 0, cane);
+  cup(tea, 0, 0.009, 0);
+  const magnifier = group(
+    reading,
+    detail.reading.magnifier.x,
+    detail.reading.top + 0.013,
+    detail.reading.magnifier.z,
+    'Garden detail / magnifier',
+  );
+  magnifier.rotation.y = detail.reading.magnifier.yaw;
   mesh(
     magnifier,
-    new T.TorusGeometry(0.1, 0.012, 6, 28).rotateX(Math.PI / 2),
+    new T.TorusGeometry(0.075, 0.01, 8, 32).rotateX(Math.PI / 2),
     brass,
   );
-  cyl(magnifier, 0.09, 0.09, 0.006, 0, 0, 0, glass);
-  rod(magnifier, [0, 0, 0.1], [0, 0, 0.27], 0.015, dark);
-  const readingBasket = group(bookcase, 0.7, 1.24, 0.05);
+  cyl(magnifier, 0.068, 0.068, 0.005, 0, 0, 0, glass);
+  rod(magnifier, [0, 0, 0.075], [0, 0, 0.2], 0.012, dark);
+  const readingBasket = group(
+    bookcase,
+    detail.bookcase.basketX,
+    detail.bookcase.top + 0.002,
+    0.03,
+    'Garden detail / book basket',
+  );
   wovenBasket(readingBasket, 0.5, 0.3, 0.23);
   for (let i = 0; i < 3; i++)
     volume(
@@ -988,12 +1067,16 @@ export function buildGarden(k: Kit) {
   }
   mesh(
     bench,
-    drapedLinen(0.4, 0.65, 0.57, false),
+    edgeDrapeGeometry(
+      detail.workcloth.width,
+      detail.workcloth.run,
+      detail.workcloth.drop,
+    ),
     linen,
-    1.04,
-    1.128,
-    0.61,
-    'Used folded work cloth',
+    detail.workcloth.x,
+    detail.workcloth.y,
+    detail.workcloth.z,
+    'Garden detail / workbench edge cloth',
   );
   const wateringPivot = group(
     bench,
@@ -1073,32 +1156,44 @@ export function buildGarden(k: Kit) {
     for (const x of [-2.65, -0.8, 0.8, 2.65])
       box(rack, 0.05, 1.53, 0.05, x, 0.87, -0.2, wood);
   }
-  for (let i = 0; i < 8; i++)
-    bot.plant(
+  for (let i = 0; i < 8; i++) {
+    const plant = bot.plant(
       rack,
       -2.36 + i * 0.67,
-      0.9,
+      0.888,
       0,
-      0.64,
+      i % 3 === 0 ? 0.48 : 0.5,
       i % 3 === 0 ? 'fern' : 'flowers',
       100 + i,
     );
+    plant.name = `Garden detail / middle shelf plant ${i}`;
+  }
   for (let i = 0; i < 5; i++) {
-    const p = group(rack, -2.1 + i, 0.28, 0.02);
+    const p = group(rack, -2.1 + i, 0.268, 0.02);
     if (i === 2) continue; // The central shelf holds a seed wallet instead of another empty pot.
     bot.pot(p, 0.22, 0.31, undefined, false);
   }
   // Flowering upper shelf leaves the terrarium and hydroponic bottles clear.
-  for (const [i, x] of [-2.55, -0.92, -0.1, 0.72].entries())
-    bot.plant(rack, x, 1.64, 0, 0.5 + (i % 2) * 0.06, 'flowers', 117 + i);
+  for (const [i, x] of [-2.55, -0.12, 0.68].entries()) {
+    const plant = bot.plant(
+      rack,
+      x,
+      1.628,
+      0,
+      0.5 + (i % 2) * 0.06,
+      'flowers',
+      117 + i,
+    );
+    plant.name = `Garden detail / top shelf plant ${i}`;
+  }
   // Three small window brackets add bloom clusters without using floor circulation.
   for (const [i, z] of [-7.8, 4.95, 10.7].entries()) {
     const ledge = group(east, z, 1.05, 0.18);
     box(ledge, 0.82, 0.06, 0.48, 0, 0, 0.1, wood);
     for (const x of [-0.28, 0.28])
       rod(ledge, [x, -0.22, -0.1], [x, -0.03, 0.24], 0.018, brass);
-    bot.plant(ledge, -0.16, 0.03, 0.1, 0.56, 'flowers', 130 + i);
-    bot.plant(ledge, 0.23, 0.03, 0.13, 0.38, 'flowers', 137 + i);
+    bot.plant(ledge, -0.16, 0.032, 0.1, 0.56, 'flowers', 130 + i);
+    bot.plant(ledge, 0.23, 0.032, 0.13, 0.38, 'flowers', 137 + i);
   }
   const hydro = group(rack, 1.82, 1.65, 0);
   for (let i = 0; i < 3; i++) {
@@ -1107,12 +1202,12 @@ export function buildGarden(k: Kit) {
     bot.foliage(
       b,
       [
-        { x: 0, y: 0.23, z: 0, dx: 0.4, dy: 1, dz: 0.2, l: 0.32, w: 0.13 },
-        { x: 0, y: 0.36, z: 0, dx: -1, dy: 0.6, dz: 0, l: 0.17, w: 0.1 },
+        { x: 0, y: 0.36, z: 0, dx: 0.4, dy: 1, dz: 0.2, l: 0.32, w: 0.13 },
+        { x: 0, y: 0.46, z: 0, dx: -1, dy: 0.6, dz: 0, l: 0.17, w: 0.1 },
       ],
       i,
     );
-    rod(b, [0, 0.06, 0], [0, 0.51, 0], 0.005, bot.bark);
+    rod(b, [0, 0.06, 0], [0, 0.65, 0], 0.005, bot.bark);
   }
   const terrarium = object('gardenTerrarium', 2.94, -2.6);
   cyl(terrarium, 0.29, 0.29, 0.055, 0, 1.65, 0, wood);
@@ -1137,13 +1232,7 @@ export function buildGarden(k: Kit) {
     ],
     44,
   );
-  const dome = group(
-    terrarium,
-    0,
-    1.678,
-    0,
-    'Terrarium cover resting on shelf',
-  );
+  const dome = group(terrarium, 0, 1.678, 0, 'Garden detail / terrarium cover');
   mesh(
     dome,
     new T.LatheGeometry(
@@ -1174,25 +1263,29 @@ export function buildGarden(k: Kit) {
   cap.scale.y = 0.43;
   planter(f.westPlanter, 72);
   planter(f.loungePlanter, 83);
-  const basin = group(root, f.basin.x, 0, f.basin.z);
-  cyl(basin, 0.41, 0.3, 0.69, 0, 0.45, 0, mat('#aaa895'));
-  mesh(
-    basin,
-    new T.TorusGeometry(0.43, 0.075, 9, 36).rotateX(Math.PI / 2),
-    cream,
+  const basin = group(
+    root,
+    f.basin.x,
     0,
-    0.83,
-    0,
+    f.basin.z,
+    'Garden detail / clear water basin',
   );
-  cyl(basin, 0.37, 0.37, 0.012, 0, 0.79, 0, water);
-  rod(basin, [0.25, 0.82, -0.13], [0.25, 1.5, -0.13], 0.047, cane);
-  rod(basin, [0.25, 1.42, -0.13], [0.06, 1.26, -0.13], 0.043, cane);
-  rod(basin, [0.055, 1.25, -0.13], [0.055, 0.8, -0.13], 0.009, water);
-  for (const [x, z] of [
-    [-0.42, 0.15],
-    [0.31, 0.31],
-  ])
-    bot.plant(basin, x, 0.09, z, 0.75, 'fern', 62);
+  mesh(basin, gardenBasinGeometry(), white);
+  cyl(basin, 0.37, 0.37, 0.008, 0, detail.basin.waterY, 0, water);
+  // A rear-mounted bamboo spout rests outside the water well.
+  rod(basin, [0.22, 0.1, -0.49], [0.22, 1.42, -0.49], 0.035, cane);
+  rod(basin, [0.22, 1.35, -0.49], [0.05, 1.22, -0.13], 0.032, cane);
+  rod(basin, [0.05, 1.215, -0.13], [0.05, 0.735, -0.13], 0.007, water);
+  const basinPlant = bot.plant(
+    root,
+    f.basinPlant.x,
+    0.09,
+    f.basinPlant.z,
+    0.32,
+    'fern',
+    62,
+  );
+  basinPlant.name = 'Garden detail / separate basin fern';
 
   // GARDEN LOUNGE: woven chairs face the table, with drinks and a half-open picnic basket.
   function rug(x: number, z: number, w: number, d: number) {
@@ -1242,7 +1335,16 @@ export function buildGarden(k: Kit) {
       });
       tube(g, points, j === 11 ? 0.025 : 0.011, cane);
     }
-    pillow(g, 1.01, 0.22, 1.02, 0, 0.79, 0.07, green);
+    const seat = pillow(g, 0.98, 0.22, 0.94, 0, 0.79, 0.025, green);
+    const points = seat.geometry.getAttribute('position');
+    for (let i = 0; i < points.count; i++) {
+      const x = points.getX(i),
+        z = points.getZ(i),
+        r = Math.hypot(x / 0.49, z / 0.46);
+      if (r > 1) points.setXYZ(i, x / r, points.getY(i), z / r);
+    }
+    seat.geometry.computeVertexNormals();
+    seat.geometry.computeBoundingSphere();
     pillow(g, 0.52, 0.5, 0.15, 0.05, 1.06, -0.36, linen, -0.1);
     attachSeats(k.seats, g, [id]);
     k.interactables.push(g);
@@ -1325,22 +1427,21 @@ export function buildGarden(k: Kit) {
     );
     fruit.scale.y = 0.78;
   }
-  const napkin = mesh(
+  const napkin = group(
     lounge,
-    drapedLinen(0.36, 0.33, 0.1, false),
-    linen,
     -0.31,
-    0.862,
+    0.8395,
     0.46,
-    'Folded cloth napkin',
+    'Garden detail / folded table napkin',
   );
   napkin.rotation.y = 0.23;
-  for (let i = 0; i < 6; i++)
+  pillow(napkin, 0.33, 0.016, 0.29, 0, 0.009, 0, linen);
+  for (let i = 0; i < 3; i++)
     rod(
-      lounge,
-      [-0.12 + i * 0.045, 0.87, 0.44],
-      [-0.12 + i * 0.045, 0.87, 0.67],
-      0.003,
+      napkin,
+      [-0.14, 0.016, 0.095 + i * 0.012],
+      [0.14, 0.016, 0.095 + i * 0.012],
+      0.0015,
       green,
     );
   const cart = group(root, f.drinksCart.x, 0, f.drinksCart.z);
@@ -1362,7 +1463,7 @@ export function buildGarden(k: Kit) {
     const b = bottle(
       cart,
       -0.47 + i * 0.24,
-      1.06,
+      1.054,
       -0.16,
       0.067,
       0.32,
@@ -1370,46 +1471,80 @@ export function buildGarden(k: Kit) {
     );
     cyl(b, 0.03, 0.03, 0.055, 0, 0.34, 0, cane);
   }
-  for (let i = 0; i < 3; i++) cup(cart, -0.4 + i * 0.29, 1.06, 0.2, true);
-  const cartBasket = group(cart, 0, 0.31, 0);
+  for (let i = 0; i < 3; i++) cup(cart, -0.4 + i * 0.29, 1.054, 0.2, true);
+  const cartBasket = group(cart, 0, 0.294, 0);
   wovenBasket(cartBasket, 0.95, 0.57, 0.27);
-  volume(cart, 0.6, 0.14, 0.45, 0.05, 0.7, 0, linen, 0.04);
-  const basket = group(root, f.picnicBasket.x, 0.09, f.picnicBasket.z);
-  basket.rotation.y = -0.1;
-  wovenBasket(basket, 1.17, 0.72, 0.54);
-  const lid = group(basket, 0, 0.56, -0.36, 'Half-open picnic lid');
-  lid.rotation.x = -0.76;
-  box(lid, 1.17, 0.035, 0.72, 0, 0, 0.36, cane);
+  volume(cart, 0.6, 0.14, 0.45, 0.05, 0.674, 0, linen, 0.04);
+  const basket = group(
+    root,
+    f.picnicBasket.x,
+    0.1,
+    f.picnicBasket.z,
+    'Garden detail / picnic basket',
+  );
+  basket.rotation.y = f.picnicBasket.yaw;
+  wovenBasket(basket, detail.picnic.width, detail.picnic.depth, 0.54);
+  const lid = group(
+    basket,
+    0,
+    0.578,
+    detail.picnic.hingeZ,
+    'Garden detail / picnic lid',
+  );
+  lid.rotation.x = detail.picnic.angle;
+  box(lid, 1.15, 0.025, 0.7, 0, 0, 0.35, cane);
   for (let i = 0; i < 16; i++)
     rod(
       lid,
-      [-0.55 + i * 0.073, 0.022, 0.03],
-      [-0.55 + i * 0.073, 0.022, 0.69],
-      0.011,
+      [-0.53 + i * 0.071, 0.018, 0.035],
+      [-0.53 + i * 0.071, 0.018, 0.665],
+      0.008,
       dark,
     );
-  tube(
+  for (const x of [-0.41, 0.41]) {
+    rod(
+      basket,
+      [x - 0.04, 0.567, -0.393],
+      [x + 0.04, 0.567, -0.393],
+      0.018,
+      brass,
+    );
+  }
+  const handle = group(
     basket,
+    0,
+    0,
+    0,
+    'Garden detail / outside picnic handle',
+  );
+  tube(
+    handle,
     [
-      [-0.43, 0.55, 0],
-      [-0.28, 0.91, 0],
-      [0.28, 0.91, 0],
-      [0.43, 0.55, 0],
+      [-0.615, 0.38, 0.09],
+      [-0.615, 0.77, 0.09],
+      [-0.34, 1.02, 0.09],
+      [0.34, 1.02, 0.09],
+      [0.615, 0.77, 0.09],
+      [0.615, 0.38, 0.09],
     ],
-    0.03,
+    0.025,
     cane,
   );
+  for (const x of [-0.615, 0.615]) {
+    rod(handle, [x - 0.022, 0.38, 0.09], [x + 0.022, 0.38, 0.09], 0.018, brass);
+  }
   mesh(
     basket,
-    drapedLinen(0.42, 0.54, 0.42, false),
+    edgeDrapeGeometry(0.38, 0.055, 0.26),
     linen,
-    0.26,
-    0.55,
-    0.3,
-    'Picnic cloth spilling over edge',
+    0.25,
+    0.573,
+    0.393,
+    'Garden detail / picnic rim cloth',
   );
-  bottle(basket, -0.31, 0.15, 0.04, 0.1, 0.49, green);
-  volume(basket, 0.44, 0.12, 0.31, 0.11, 0.28, -0.1, paper, 0.15);
+  const picnicBottle = bottle(basket, -0.3, 0.043, -0.03, 0.085, 0.43, green);
+  picnicBottle.name = 'Garden detail / picnic bottle';
+  volume(basket, 0.36, 0.15, 0.26, 0.14, 0.043, -0.1, paper, 0.07);
   bot.plant(root, f.southPalm.x, 0.09, f.southPalm.z, 1.34, 'broad', 90);
   for (const [i, z] of [-8.5, -3, 2, 7, 10.7].entries()) {
     const g = group(east, z, 2.63, 0.22);
