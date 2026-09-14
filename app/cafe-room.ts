@@ -1,3 +1,4 @@
+import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
 import { paintingTexture } from './painting-textures';
@@ -52,6 +53,7 @@ type Kit = {
   landscape: HouseLandscape;
 };
 export function buildCafe(k: Kit) {
+  const suite = furnitureSuite(k.materials, k.textures, k.assets);
   const { root, materials, textures } = k;
   root.name = 'cafe';
   const mat = (color: string, roughness = 0.6, metalness = 0) => {
@@ -1135,31 +1137,47 @@ export function buildCafe(k: Kit) {
     height = 1.18,
   ) {
     const g = child(root, x, 0, z);
-    if (round) {
-      cyl(g, w / 2, w / 2, 0.07, 0, height, 0, wood, 64);
+    refinedTabletop(
+      g,
+      w,
+      d,
+      height + (round ? 0.035 : 0.04),
+      suite,
+      round,
+      round,
+    );
+    if (w > 2) {
+      // Two rounded trestles leave the four existing seats and approach lanes open.
+      for (const x of [-0.84, 0.84]) {
+        box(
+          g,
+          0.21,
+          height - 0.21,
+          0.55,
+          x,
+          (height + 0.09) / 2,
+          0,
+          suite.timber,
+          0.055,
+        );
+        box(g, 0.29, 0.06, 0.69, x, 0.13, 0, suite.edge, 0.028);
+      }
+      box(g, 1.73, 0.12, 0.09, 0, height - 0.17, 0, suite.edge, 0.018);
+    } else {
+      cyl(g, 0.25, 0.3, 0.055, 0, 0.125, 0, suite.stone, 64);
       cyl(
         g,
-        w / 2 - 0.025,
-        w / 2 - 0.025,
-        0.025,
+        0.09,
+        0.135,
+        height - 0.2,
         0,
-        height - 0.05,
+        (height + 0.1) / 2,
         0,
-        darkWood,
-        64,
+        suite.timber,
+        48,
       );
-    } else {
-      box(g, w, 0.08, d, 0, height, 0, wood, 0.055);
-      box(g, w - 0.08, 0.04, d - 0.08, 0, height - 0.055, 0, darkWood, 0.018);
+      cyl(g, 0.14, 0.14, 0.018, 0, 0.165, 0, suite.metal, 48);
     }
-    cyl(g, 0.24, 0.3, 0.045, 0, 0.13, 0, black, 48);
-    cyl(g, 0.048, 0.072, height - 0.15, 0, (height + 0.13) / 2, 0, black);
-    cyl(g, 0.075, 0.075, 0.05, 0, 0.18, 0, brass);
-    if (w > 2)
-      for (const x of [-0.85, 0.85]) {
-        rod(g, [x, 0.15, -0.38], [x, 0.15, 0.38], 0.035, black);
-        rod(g, [x, 0.15, 0], [x, height - 0.04, 0], 0.035, black);
-      }
     return g;
   }
   for (const [index, t] of cafeBistroTables.entries()) {

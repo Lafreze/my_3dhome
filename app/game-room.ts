@@ -1,3 +1,4 @@
+import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
 import { paintingTexture } from './painting-textures';
@@ -42,6 +43,7 @@ type Kit = {
   interactables: T.Object3D[];
 };
 export function buildGameRoom(k: Kit) {
+  const suite = furnitureSuite(k.materials, k.textures, k.assets);
   const { root, corridor, oak, paleWood, cream, darkWood, brass, charcoal } = k;
   root.name = '06 / Retro arcade & family game corner';
   corridor.name = 'East expansion corridor';
@@ -644,9 +646,9 @@ export function buildGameRoom(k: Kit) {
   label(pin, 'PINBALL CLUB', 0.99, 0, 1.78, -0.78);
   // Round table, separate grid, bowls and individually addressable stones.
   const table = object('gameTable', f.board.x, f.board.z);
-  cyl(table, 0.8, 0.8, 0.1, 0, 0.91, 0, oak);
-  cyl(table, 0.12, 0.19, 0.71, 0, 0.51, 0, darkWood);
-  cyl(table, 0.43, 0.36, 0.09, 0, 0.145, 0, oak);
+  refinedTabletop(table, 1.6, 1.6, 0.96, suite, true);
+  cyl(table, 0.12, 0.19, 0.71, 0, 0.51, 0, suite.timber);
+  cyl(table, 0.43, 0.36, 0.09, 0, 0.145, 0, suite.edge);
   const boardGroup = group(table, 0, 0.982, 0, 'gomoku/replaceable-board');
   box(boardGroup, 1.04, 0.038, 1.04, 0, 0, 0, paleWood);
   const spacing = 0.064;
@@ -986,7 +988,7 @@ export function buildGameRoom(k: Kit) {
   for (const x of [1.26, 3.84])
     box(root, 0.015, 0.004, 3.87, x, 0.108, 0.15, sage, 0);
   const side = group(root, f.sideTable.x, 0, f.sideTable.z);
-  cyl(side, 0.35, 0.35, 0.075, 0, 0.69, 0, oak);
+  refinedTabletop(side, 0.7, 0.7, 0.7275, suite, true, true);
   for (let i = 0; i < 3; i++) {
     const a = i * 2.094;
     rod(

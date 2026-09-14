@@ -1,3 +1,4 @@
+import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
 import { createSpineAtlas, bindingColors } from './book-spines';
@@ -19,6 +20,7 @@ import { gardenBotany } from './garden-botany';
 import { createGardenState } from './garden-state';
 
 type Kit = {
+  assets: import('./asset-loading').RoomAssets;
   root: T.Group;
   seats: SeatAnchors;
   cutaways: WallCutaways;
@@ -37,6 +39,7 @@ type Kit = {
   interactables: T.Object3D[];
 };
 export function buildGarden(k: Kit) {
+  const suite = furnitureSuite(k.materials, k.textures, k.assets);
   const { root, brass, charcoal } = k,
     state = createGardenState();
   root.name = '09 / Conservatory — read, grow, rest';
@@ -628,14 +631,14 @@ export function buildGarden(k: Kit) {
   }
   planter(f.readingPlanter, 60);
   function roundTable(p: T.Group, r: number, h: number) {
-    cyl(p, r, r, 0.075, 0, h, 0, wood);
+    refinedTabletop(p, r * 2, r * 2, h + 0.0375, suite, true);
     for (const a of [0, 2.094, 4.188])
       rod(
         p,
         [Math.sin(a) * r * 0.6, 0.1, Math.cos(a) * r * 0.6],
         [Math.sin(a) * r * 0.46, h - 0.04, Math.cos(a) * r * 0.46],
         0.038,
-        wood,
+        suite.timber,
       );
   }
   const reading = object('gardenAlbum', f.readingTable.x, f.readingTable.z);

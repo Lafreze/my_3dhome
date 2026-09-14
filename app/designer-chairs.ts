@@ -12,7 +12,8 @@ import {
 } from './designer-chair-layout';
 import { seatById } from './seat-data';
 import type { SeatAnchors } from './seat-scene';
-import { interiorMaterial } from './house-finishes';
+import { neutralFurnitureFinish } from './furniture-suite';
+import { interiorPalette as palette } from './interior-palette';
 
 /** Shared source meshes, room-scoped loading and a complete fallback until ready. */
 export function installDesignerChairs(k: {
@@ -61,8 +62,21 @@ export function installDesignerChairs(k: {
                   m.roughness = 0.93;
                   m.metalness = 1;
                   m.envMapIntensity = 0.65;
-                  // Source leather photographs are dark; a warm linear exposure keeps their grain visible.
-                  if (id === 'tufted-dining') m.color.setRGB(2.5, 2.1, 1.7);
+                  if (
+                    m.name === 'Chair upholstery' ||
+                    m.name === 'Chair timber'
+                  ) {
+                    const role =
+                      m.name === 'Chair timber' ? 'timber' : 'upholstery';
+                    m.color.set(
+                      role === 'timber'
+                        ? palette.furnitureOak
+                        : palette.furnitureIvory,
+                    );
+                    m.metalness = 0;
+                    m.normalScale.setScalar(role === 'timber' ? 0.2 : 0.42);
+                    neutralFurnitureFinish(m, role);
+                  }
                 }
               }
             });
@@ -125,31 +139,32 @@ export function installDesignerChairs(k: {
         model.scale.set(...fit.scale);
         model.rotation.y = fit.yaw;
         model.position.set(...fit.position);
-        if (chair.upholstery) {
-          const upholstery =
-            chair.seat === 'study-reading'
-              ? k.readingMaterial
-              : interiorMaterial(
-                  'linen',
-                  chair.upholstery,
-                  k.materials,
-                  k.textures,
-                );
+        if (chair.upholstery)
           model.traverse((o) => {
             if (
-              o instanceof T.Mesh &&
-              !Array.isArray(o.material) &&
-              o.material.name.includes('pillow')
-            ) {
-              const authored = o.material as T.MeshStandardMaterial;
-              // Retain baked seams and soft creases while allowing the house's existing colour control.
-              upholstery.normalMap = authored.normalMap;
-              upholstery.normalScale.setScalar(0.32);
-              upholstery.needsUpdate = true;
-              o.material = upholstery;
+              !(o instanceof T.Mesh) ||
+              Array.isArray(o.material) ||
+              o.material.name !== 'Chair upholstery'
+            )
+              return;
+            const authored = o.material as T.MeshStandardMaterial;
+            const upholstery =
+              chair.seat === 'study-reading'
+                ? k.readingMaterial
+                : authored.clone();
+            if (chair.seat !== 'study-reading') {
+              upholstery.color.set(chair.upholstery!);
+              materials.add(upholstery);
             }
+            upholstery.map = authored.map;
+            upholstery.normalMap = authored.normalMap;
+            upholstery.roughnessMap = authored.roughnessMap;
+            upholstery.bumpMap = null;
+            upholstery.normalScale.setScalar(0.42);
+            upholstery.roughness = 0.85;
+            neutralFurnitureFinish(upholstery, 'upholstery');
+            o.material = upholstery;
           });
-        }
         parent.add(model);
         fallback.visible = false;
         parent.userData.modelStatus = 'ready';

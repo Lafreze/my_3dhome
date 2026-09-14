@@ -35,14 +35,14 @@ export const designerChairs: DesignerChair[] = [
     model: 'oak-armchair',
     width: 1.12,
     depth: 1.1,
-    upholstery: '#a86e48',
+    upholstery: '#efeae1',
   },
   {
     seat: 'bedroom-reading',
     model: 'oak-armchair',
     width: 1.06,
     depth: 1.04,
-    upholstery: '#d9cebc',
+    upholstery: '#f1ece3',
   },
   { seat: 'library-desk', model: 'tufted-dining', width: 0.78, depth: 0.74 },
   {

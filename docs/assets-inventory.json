@@ -1,5 +1,5 @@
 {
-  "version": "75929257e127e89c",
+  "version": "94722d59158040c6",
   "roomSizes": {
     "study": {
       "bytes": 9690284,
@@ -24,7 +24,7 @@
   },
   "commonCharacters": {
     "files": 16,
-    "bytes": 34465648
+    "bytes": 34466640
   },
   "pending": [
     "character.bear.sit",
@@ -149,6 +149,21 @@
       "classification": "catalogued-production"
     },
     {
+      "path": "public/materials/furniture/white-oak-color.jpg",
+      "bytes": 595257,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/furniture/white-oak-normal.jpg",
+      "bytes": 623607,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/materials/furniture/white-oak-roughness.jpg",
+      "bytes": 520649,
+      "classification": "catalogued-production"
+    },
+    {
       "path": "public/materials/leather_white/Diffuse.jpg",
       "bytes": 728363,
       "classification": "excluded-unused-or-documentation"
@@ -240,17 +255,17 @@
     },
     {
       "path": "public/models/chairs/mid-century-lounge.glb",
-      "bytes": 890544,
+      "bytes": 891216,
       "classification": "catalogued-production"
     },
     {
       "path": "public/models/chairs/oak-armchair.glb",
-      "bytes": 1214000,
+      "bytes": 1213976,
       "classification": "catalogued-production"
     },
     {
       "path": "public/models/chairs/tufted-dining.glb",
-      "bytes": 1050476,
+      "bytes": 1050820,
       "classification": "catalogued-production"
     },
     {

@@ -123,3 +123,27 @@ void test('CC0 furniture is bundled on the app origin, versioned and below the d
   }
   assert(total < 3.2 * 1024 * 1024);
 });
+
+void test('separate white upholstery and wood preserve every authored chair triangle', async () => {
+  for (const [name, count] of [
+    ['oak-armchair', 8916],
+    ['tufted-dining', 22013],
+    ['mid-century-lounge', 6148],
+  ]) {
+    const bytes = await readFile(`public/models/chairs/${name}.glb`);
+    const json = JSON.parse(
+      bytes.toString('utf8', 20, 20 + bytes.readUInt32LE(12)),
+    );
+    const names = json.materials.map((m) => m.name);
+    assert(
+      names.includes('Chair upholstery') && names.includes('Chair timber'),
+    );
+    if (name === 'mid-century-lounge') assert(names.includes('Chair metal'));
+    assert.equal(
+      json.meshes
+        .flatMap((m) => m.primitives)
+        .reduce((n, p) => n + json.accessors[p.indices].count / 3, 0),
+      count,
+    );
+  }
+});

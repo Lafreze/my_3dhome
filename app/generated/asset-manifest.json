@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "75929257e127e89c",
+  "version": "94722d59158040c6",
   "assets": {
     "art.botanical-study": {
       "type": "image",
@@ -541,10 +541,10 @@
         "cafe",
         "library"
       ],
-      "path": "models/furniture/mid-century-lounge.dee809b9e775618c.glb",
+      "path": "models/furniture/mid-century-lounge.4fb73cade7708eca.glb",
       "logicalPath": "models/furniture/mid-century-lounge.glb",
-      "size": 890544,
-      "sha256": "dee809b9e775618c02f00a27a770247c873a1b3276882e0e442f59a9b632b60a",
+      "size": 891216,
+      "sha256": "4fb73cade7708eca8adad52a3e75afd4e7205311c9d560f6fa9eda1c33358f2f",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false
@@ -556,10 +556,10 @@
         "study",
         "bedroom"
       ],
-      "path": "models/furniture/oak-armchair.171496b6094b6d59.glb",
+      "path": "models/furniture/oak-armchair.bbb17b721019e564.glb",
       "logicalPath": "models/furniture/oak-armchair.glb",
-      "size": 1214000,
-      "sha256": "171496b6094b6d59574a9d36e5eb5ac09834c86ebfa9fe7094dcb0bbd10d773c",
+      "size": 1213976,
+      "sha256": "bbb17b721019e564ce950f07e0078b63dc1844aa68002882ed84da91dd3f5623",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false
@@ -572,11 +572,74 @@
         "cafe",
         "library"
       ],
-      "path": "models/furniture/tufted-dining.fbd5d6b442f0f72f.glb",
+      "path": "models/furniture/tufted-dining.f1bea9361ba99658.glb",
       "logicalPath": "models/furniture/tufted-dining.glb",
-      "size": 1050476,
-      "sha256": "fbd5d6b442f0f72f805b53ca17c08d3a3c0fc89389696c728fa1471f2cd1a9ab",
+      "size": 1050820,
+      "sha256": "f1bea9361ba99658fb0faa5d1a775581053f32277938305f459724328d718f97",
       "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.oak.color": {
+      "type": "texture",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "cafe",
+        "library",
+        "bar",
+        "gaming",
+        "garden"
+      ],
+      "path": "textures/furniture/white-oak-color.8fdec14fd3c06de9.jpg",
+      "logicalPath": "textures/furniture/white-oak-color.jpg",
+      "size": 595257,
+      "sha256": "8fdec14fd3c06de907693c9c3241037dc93327ad907296371a2f74a0becd8187",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.oak.normal": {
+      "type": "texture",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "cafe",
+        "library",
+        "bar",
+        "gaming",
+        "garden"
+      ],
+      "path": "textures/furniture/white-oak-normal.9e8dd65e443d9210.jpg",
+      "logicalPath": "textures/furniture/white-oak-normal.jpg",
+      "size": 623607,
+      "sha256": "9e8dd65e443d92107caa4cd30403d78946a8b8c5a6029e6446c7368865b1d1c0",
+      "contentType": "image/jpeg",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.oak.roughness": {
+      "type": "texture",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "cafe",
+        "library",
+        "bar",
+        "gaming",
+        "garden"
+      ],
+      "path": "textures/furniture/white-oak-roughness.a8670e80f203bd03.jpg",
+      "logicalPath": "textures/furniture/white-oak-roughness.jpg",
+      "size": 520649,
+      "sha256": "a8670e80f203bd031ac3c80f0f606383be51a0ee108e016fa19cad6b9bd373e7",
+      "contentType": "image/jpeg",
       "dependencies": [],
       "publish": false
     },

@@ -649,7 +649,7 @@
     "sourceUrl": "https://polyhaven.com/a/modern_arm_chair_01",
     "license": "CC0-1.0",
     "licenseUrl": "https://polyhaven.com/license",
-    "modifications": "Original silhouette and UVs; deduplicated resources, 1K JPEG textures, embedded GLB. Runtime seat fit and material tuning.",
+    "modifications": "Original silhouette and UVs; disconnected upholstery, timber and metal parts grouped for separate ivory/oak finishes. 1K JPEG textures embedded in GLB. Runtime seat fit.",
     "rooms": [
       "study",
       "bedroom"
@@ -663,7 +663,7 @@
     "sourceUrl": "https://polyhaven.com/a/dining_chair_02",
     "license": "CC0-1.0",
     "licenseUrl": "https://polyhaven.com/license",
-    "modifications": "Original silhouette and UVs; deduplicated resources, 1K JPEG textures, embedded GLB. Runtime seat fit and material tuning.",
+    "modifications": "Original silhouette and UVs; disconnected upholstery, timber and metal parts grouped for separate ivory/oak finishes. 1K JPEG textures embedded in GLB. Runtime seat fit.",
     "rooms": [
       "study",
       "cafe",
@@ -678,10 +678,70 @@
     "sourceUrl": "https://polyhaven.com/a/mid_century_lounge_chair",
     "license": "CC0-1.0",
     "licenseUrl": "https://polyhaven.com/license",
-    "modifications": "Original silhouette and UVs; deduplicated resources, 1K JPEG textures, embedded GLB. Runtime seat fit and material tuning.",
+    "modifications": "Original silhouette and UVs; disconnected upholstery, timber and metal parts grouped for separate ivory/oak finishes. 1K JPEG textures embedded in GLB. Runtime seat fit.",
     "rooms": [
       "cafe",
       "library"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "furniture.oak.color",
+    "name": "White oak veneer / color",
+    "author": "Jenelle van Heerden",
+    "sourceUrl": "https://polyhaven.com/a/white_oak_veneer",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "Original 1K map. Runtime neutral finishing, physically scaled UVs and softened normals.",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "library",
+      "bar",
+      "gaming",
+      "garden"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "furniture.oak.normal",
+    "name": "White oak veneer / normal",
+    "author": "Jenelle van Heerden",
+    "sourceUrl": "https://polyhaven.com/a/white_oak_veneer",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "Original 1K map. Runtime neutral finishing, physically scaled UVs and softened normals.",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "library",
+      "bar",
+      "gaming",
+      "garden"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "furniture.oak.roughness",
+    "name": "White oak veneer / roughness",
+    "author": "Jenelle van Heerden",
+    "sourceUrl": "https://polyhaven.com/a/white_oak_veneer",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "modifications": "Original 1K map. Runtime neutral finishing, physically scaled UVs and softened normals.",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "library",
+      "bar",
+      "gaming",
+      "garden"
     ],
     "attributionRequired": false
   }

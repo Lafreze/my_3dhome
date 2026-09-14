@@ -1,3 +1,4 @@
+import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { paintingTexture } from './painting-textures';
 import { RecordMechanism } from './record-mechanism';
 import { createInteriorDoor } from './interior-doors';
@@ -74,6 +75,7 @@ type Kit = {
   textile: (color: string) => T.MeshStandardMaterial;
 };
 export function buildHouse(k: Kit) {
+  const suite = furnitureSuite(k.materials, k.textures, k.assets);
   const {
     materials,
     textures,
@@ -149,8 +151,7 @@ export function buildHouse(k: Kit) {
     bedCloth = finish('cotton', furnitureColors.sleepBed[0]),
     blanketCloth = finish('wool', '#796d69'),
     bedroomLounge = finish('boucle', '#d5c4ae'),
-    benchLeather = finish('leather', '#986e52'),
-    honedStone = finish('travertine', '#d2c2ae');
+    benchLeather = finish('leather', '#d9cebc');
   const terracottaWall = cream.clone();
   terracottaWall.color.set('#eee5d4');
   materials.push(terracottaWall);
@@ -705,8 +706,11 @@ export function buildHouse(k: Kit) {
     b(rug, 0.017, 0.004, 3.05, x, 0.112, 0.15, sage, 0);
   const table = group('living', undefined, lf.table.x, 0, lf.table.z);
   feet(table, 1.35, 0.52, 0.52);
-  b(table, 1.75, 0.1, 0.83, 0, 0.63, 0, honedStone, 0.13);
-  b(table, 1.45, 0.055, 0.58, 0, 0.29, 0, darkWood, 0.025);
+  table.traverse((o) => {
+    if (o instanceof T.Mesh) o.material = suite.timber;
+  });
+  refinedTabletop(table, 1.75, 0.83, 0.68, suite, false, true);
+  b(table, 1.45, 0.055, 0.58, 0, 0.29, 0, suite.timber, 0.025);
   book(table, 0.42, 0.32, -0.43, 0.736, 0.05, green);
   book(table, 0.38, 0.3, -0.41, 0.83, 0.04, terracotta);
   const cupGlaze = k.ceramic,
@@ -1293,7 +1297,10 @@ export function buildHouse(k: Kit) {
 
   const listening = group('living', 'livingRecord', 2.88, 0, -0.71);
   feet(listening, 0.61, 0.51, 0.59);
-  b(listening, 0.94, 0.07, 0.76, 0, 0.73, 0, oak, 0.04);
+  listening.traverse((o) => {
+    if (o instanceof T.Mesh) o.material = suite.timber;
+  });
+  refinedTabletop(listening, 0.94, 0.76, 0.765, suite);
   b(listening, 0.84, 0.13, 0.61, 0, 0.83, 0, darkWood, 0.03);
   b(listening, 0.8, 0.016, 0.57, 0, 0.904, 0, charcoal, 0.008);
   const livingRecord = new RecordMechanism(0, -0.34);
@@ -1411,10 +1418,10 @@ export function buildHouse(k: Kit) {
   for (const x of [-2.55, 1.54]) {
     const stand = child(roots.bedroom, x, 0, -1.94);
     feet(stand, 0.49, 0.51, 0.14);
-    b(stand, 0.66, 0.49, 0.69, 0, 0.42, 0, oak, 0.04);
-    b(stand, 0.59, 0.2, 0.035, 0, 0.48, 0.356, paleWood, 0.015);
+    b(stand, 0.66, 0.49, 0.69, 0, 0.42, 0, suite.timber, 0.04);
+    b(stand, 0.59, 0.2, 0.035, 0, 0.48, 0.356, suite.timber, 0.015);
     b(stand, 0.16, 0.014, 0.03, 0, 0.48, 0.385, brass, 0.005);
-    b(stand, 0.72, 0.065, 0.75, 0, 0.704, 0, paleWood, 0.025);
+    refinedTabletop(stand, 0.72, 0.75, 0.7365, suite);
     const light = child(bedside, x, 0.742, -1.98);
     cyl(light, 0.12, 0.15, 0.045, 0, 0.023, 0, brass);
     cyl(light, 0.018, 0.018, 0.3, 0, 0.18, 0, brass);

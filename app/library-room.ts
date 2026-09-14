@@ -1,3 +1,4 @@
+import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
 import { paintingTexture } from './painting-textures';
@@ -40,6 +41,7 @@ type Kit = {
   interactables: T.Object3D[];
 };
 export function buildLibrary(k: Kit) {
+  const suite = furnitureSuite(k.materials, k.textures, k.assets);
   const { root, brass, charcoal } = k;
   root.name = '08 / The library — a room for unhurried reading';
   const state = createLibraryState();
@@ -680,8 +682,8 @@ export function buildLibrary(k: Kit) {
   rug.mesh.material = rugWool;
   rug.mesh.rotation.x = -Math.PI / 2;
   const desk = object('libraryDesk', root, f.desk.x, 0, f.desk.z);
-  box(desk, 2.73, 0.12, 1.47, 0, 1.2, 0, oak, 0.045);
-  box(desk, 2.53, 0.28, 1.3, 0, 1.02, 0, dark);
+  refinedTabletop(desk, 2.73, 1.47, 1.26, suite);
+  box(desk, 2.53, 0.28, 1.3, 0, 1.02, 0, suite.edge);
   for (const x of [-1.08, 1.08])
     for (const z of [-0.49, 0.49]) {
       const points = [
@@ -693,10 +695,10 @@ export function buildLibrary(k: Kit) {
         [0.06, 0.78],
         [0.065, 0.96],
       ].map(([r, y]) => new T.Vector2(r, y));
-      mesh(desk, new T.LatheGeometry(points, 16), oak, x, 0.1, z);
+      mesh(desk, new T.LatheGeometry(points, 16), suite.timber, x, 0.1, z);
     }
   for (const x of [-0.82, 0, 0.82]) {
-    box(desk, 0.73, 0.22, 0.03, x, 1.01, 0.667, oak);
+    box(desk, 0.73, 0.22, 0.03, x, 1.01, 0.667, suite.timber);
     tube(
       desk,
       [
@@ -867,11 +869,11 @@ export function buildLibrary(k: Kit) {
   for (const x of [-0.34, 0.34])
     for (const z of [-0.23, 0.23])
       cyl(ottoman, 0.025, 0.035, 0.25, x, 0.225, z, oak);
-  box(ottoman, 0.92, 0.15, 0.74, 0, 0.4, 0, oak);
+  box(ottoman, 0.92, 0.15, 0.74, 0, 0.4, 0, suite.timber);
   cushion(ottoman, 0.96, 0.23, 0.79, 0, 0.585, 0, leather);
   const side = group(root, f.sideTable.x, 0, f.sideTable.z);
-  cyl(side, 0.21, 0.21, 0.05, 0, 0.72, 0, oak);
-  cyl(side, 0.045, 0.07, 0.6, 0, 0.4, 0, oak);
+  refinedTabletop(side, 0.42, 0.42, 0.745, suite, true, true);
+  cyl(side, 0.045, 0.07, 0.6, 0, 0.4, 0, suite.timber);
   cyl(side, 0.18, 0.23, 0.04, 0, 0.12, 0, dark);
   cyl(side, 0.055, 0.045, 0.085, 0.05, 0.787, 0.075, ivory);
   cyl(side, 0.058, 0.058, 0.01, 0.05, 0.834, 0.075, charcoal);

@@ -1,3 +1,4 @@
+import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { installDesignerChairs } from './designer-chairs';
 import { paintingTexture } from './painting-textures';
 import { boundBooks } from './bound-books';
@@ -155,6 +156,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     return m;
   };
   const textures: T.Texture[] = [];
+  const suite = furnitureSuite(materials, textures, assets);
   const finish = (
     kind: Parameters<typeof interiorMaterial>[0],
     color: string,
@@ -661,10 +663,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     charcoal,
   );
   const desk = placed('desk');
-  box(desk, 2.75, 0.1, 1.1, 0, 1.22, 0, paleWood, 0.035);
-  box(desk, 2.54, 0.13, 0.05, 0, 1.1, -0.43, oak, 0.01);
+  refinedTabletop(desk, 2.75, 1.1, 1.27, suite);
+  box(desk, 2.54, 0.13, 0.05, 0, 1.1, -0.43, suite.timber, 0.01);
   for (const x of [-1.22, 1.22])
-    box(desk, 0.05, 0.13, 0.86, x, 1.1, 0, oak, 0.01);
+    box(desk, 0.05, 0.13, 0.86, x, 1.1, 0, suite.timber, 0.01);
   for (const x of [-1.15, 1.15])
     for (const z of [-0.35, 0.35])
       rod(
@@ -672,22 +674,22 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         new T.Vector3(x, 1.16, z),
         new T.Vector3(x * 1.025, 0.078, z * 1.04),
         0.043,
-        oak,
+        suite.timber,
       );
   for (const x of [0.62, 1.18])
-    box(desk, 0.04, 0.7, 0.76, x, 0.8, 0, paleWood, 0.012);
+    box(desk, 0.04, 0.7, 0.76, x, 0.8, 0, suite.timber, 0.012);
   for (const y of [0.46, 1.14])
-    box(desk, 0.56, 0.035, 0.76, 0.9, y, 0, paleWood, 0.008);
-  box(desk, 0.54, 0.66, 0.025, 0.9, 0.8, -0.365, darkWood, 0.003);
+    box(desk, 0.56, 0.035, 0.76, 0.9, y, 0, suite.timber, 0.008);
+  box(desk, 0.54, 0.66, 0.025, 0.9, 0.8, -0.365, suite.edge, 0.003);
   const drawer = group('drawer', 0.9, 0.99, 0);
   desk.add(drawer);
-  box(drawer, 0.54, 0.18, 0.025, 0, 0, 0.39, paleWood);
-  box(drawer, 0.48, 0.035, 0.65, 0, -0.07, 0.02, oak);
+  box(drawer, 0.54, 0.18, 0.025, 0, 0, 0.39, suite.timber);
+  box(drawer, 0.48, 0.035, 0.65, 0, -0.07, 0.02, suite.timber);
   for (const x of [-0.24, 0.24])
-    box(drawer, 0.025, 0.12, 0.64, x, 0, 0.02, paleWood);
+    box(drawer, 0.025, 0.12, 0.64, x, 0, 0.02, suite.timber);
   box(drawer, 0.17, 0.024, 0.045, 0, 0, 0.422, brass);
   box(drawer, 0.31, 0.016, 0.36, 0, -0.04, 0.09, cream).rotation.y = 0.14;
-  box(drawer, 0.47, 0.12, 0.025, 0, 0, -0.3, paleWood, 0.004);
+  box(drawer, 0.47, 0.12, 0.025, 0, 0, -0.3, suite.timber, 0.004);
   for (const x of [-0.255, 0.255]) {
     box(drawer, 0.009, 0.023, 0.5, x, -0.016, -0.01, brass, 0.003);
     for (let i = 0; i < 4; i++)
@@ -699,7 +701,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         x,
         0.042 - i * 0.025,
         0.351,
-        darkWood,
+        suite.edge,
         0.001,
       );
   }
@@ -727,7 +729,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   );
 
   for (let i = 0; i < 2; i++) {
-    box(desk, 0.55, 0.19, 0.025, 0.9, 0.565 + i * 0.21, 0.39, paleWood);
+    box(desk, 0.55, 0.19, 0.025, 0.9, 0.565 + i * 0.21, 0.39, suite.timber);
     box(desk, 0.16, 0.02, 0.04, 0.9, 0.565 + i * 0.21, 0.41, brass);
   }
 
@@ -933,13 +935,13 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       new T.Vector3(Math.cos(a) * 0.4, 0.57, Math.sin(a) * 0.36),
       new T.Vector3(Math.cos(a) * 0.51, 0.09, Math.sin(a) * 0.46),
       0.055,
-      oak,
+      suite.timber,
     );
   }
-  const top = cylinder(coffee, 0.72, 0.72, 0.11, 0, 0.67, 0, paleWood);
-  top.scale.set(1.028, 1, 0.875);
-  const apron = cylinder(coffee, 0.63, 0.63, 0.05, 0, 0.603, 0, oak);
-  apron.scale.z = 0.85;
+  const coffeeSurface = new T.Group();
+  coffee.add(coffeeSurface);
+  coffeeSurface.scale.set(1.028, 1, 0.875);
+  refinedTabletop(coffeeSurface, 1.44, 1.44, 0.725, suite, true, true);
   box(coffee, 0.37, 0.048, 0.47, -0.2, 0.752, -0.05, darkGreen).rotation.y =
     0.2;
   box(coffee, 0.33, 0.025, 0.43, -0.2, 0.784, -0.05, cream).rotation.y = 0.2;

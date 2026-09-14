@@ -1,3 +1,4 @@
+import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
 import { paintingTexture } from './painting-textures';
@@ -37,6 +38,7 @@ type Kit = {
   interactables: T.Object3D[];
 };
 export function buildBar(k: Kit) {
+  const suite = furnitureSuite(k.materials, k.textures, k.assets);
   const { root, brass, charcoal } = k;
   root.name = '07 / Amber — neighbourhood listening bar';
   const state = createBarState();
@@ -661,7 +663,7 @@ export function buildBar(k: Kit) {
     const g = group(root, t.x, 0, t.z);
     cyl(g, 0.23, 0.3, 0.065, 0, 0.13, 0, dark);
     cyl(g, 0.047, 0.07, 0.85, 0, 0.56, 0, brass);
-    cyl(g, t.width / 2, t.width / 2, 0.075, 0, 1.01, 0, wood);
+    refinedTabletop(g, t.width, t.width, 1.0475, suite, true);
     candle(g, -0.12, 1.055, 0);
     tumbler(g, 0.17, 1.06, -0.06);
     if (i) plant(g, 0.13, 1.055, 0.19);

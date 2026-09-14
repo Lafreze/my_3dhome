@@ -1,3 +1,4 @@
+import { furnitureSuite } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
 import * as T from 'three';
@@ -9,6 +10,7 @@ import type { SeatAnchors } from './seat-scene';
 
 /** Room-specific construction, fitted to the existing furniture and seat anchors. */
 export function addFurnitureCraft(k: {
+  assets: import('./asset-loading').RoomAssets;
   roots: Record<RoomId, T.Group>;
   groups: Map<ObjectId, T.Group>;
   seats: SeatAnchors;
@@ -19,6 +21,7 @@ export function addFurnitureCraft(k: {
   darkWood: T.MeshStandardMaterial;
   brass: T.MeshStandardMaterial;
 }) {
+  const suite = furnitureSuite(k.materials, k.textures, k.assets);
   const mat = (color: string, roughness = 0.7) => {
     const m = new T.MeshStandardMaterial({ color, roughness });
     k.materials.push(m);
@@ -33,8 +36,8 @@ export function addFurnitureCraft(k: {
       k.materials,
       k.textures,
     ),
-    wood = k.oak,
-    pale = k.paleWood,
+    wood = suite.timber,
+    pale = suite.timber,
     brass = k.brass;
   const cv = document.createElement('canvas');
   cv.width = cv.height = 256;
