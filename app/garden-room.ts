@@ -1,3 +1,4 @@
+import { gardenCraftFinishes, trowelGeometry } from './garden-surfaces';
 import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
@@ -40,6 +41,7 @@ type Kit = {
 };
 export function buildGarden(k: Kit) {
   const suite = furnitureSuite(k.materials, k.textures, k.assets);
+  const craft = gardenCraftFinishes(k.materials, k.textures);
   const { root, brass, charcoal } = k,
     state = createGardenState();
   root.name = '09 / Conservatory — read, grow, rest';
@@ -59,18 +61,22 @@ export function buildGarden(k: Kit) {
   linen.side = T.DoubleSide;
   const cane = interiorMaterial('ash', '#b9a17d', k.materials, k.textures),
     paper = mat('#ede4cc'),
-    white = mat('#e9e0c6'),
+    white = interiorMaterial('glaze', '#eee7db', k.materials, k.textures),
     lemon = mat('#ddb345'),
     water = mat('#bacbb3', 0.18);
   const glass = new T.MeshPhysicalMaterial({
-    color: '#d6e3d5',
+    color: '#eff6f3',
     transparent: true,
-    opacity: 0.2,
-    roughness: 0.12,
+    opacity: 0.14,
+    roughness: 0.09,
     side: T.DoubleSide,
     depthWrite: false,
   });
-  k.materials.push(glass);
+  const windowGlass = glass.clone();
+  windowGlass.opacity = 0.065;
+  windowGlass.roughness = 0.065;
+  windowGlass.name = 'Conservatory / low tint panoramic glazing';
+  k.materials.push(glass, windowGlass);
   const glow = mat('#ffe4ae');
   glow.emissive.set('#ffc47e');
   glow.emissiveIntensity = 0.4;
@@ -390,7 +396,9 @@ export function buildGarden(k: Kit) {
   addOakFloor(floorNorth, 6.68, 6.28, k.floorMaterials);
   const floorSouth = group(root, 0, 0, 8.0);
   addOakFloor(floorSouth, 6.68, 7.68, k.floorMaterials);
-  const tiles = ['#b88d70', '#c09270', '#aa8066', '#c79c79'].map((c) => mat(c));
+  const tiles = ['#bd987e', '#c49f83', '#b4917b', '#cba78b'].map((c) =>
+    interiorMaterial('clay', c, k.materials, k.textures),
+  );
   box(root, 6.68, 0.022, 9.75, 0, 0.066, -0.7, mat('#9b907a'));
   for (let i = 0; i < 14; i++)
     for (let j = 0; j < 20; j++)
@@ -467,24 +475,30 @@ export function buildGarden(k: Kit) {
         height: 2.56,
       }),
     );
-    box(g, width, 2.57, 0.012, 0, 0, 0.06, glass);
+    const pane = box(g, width, 2.57, 0.012, 0, 0, 0.06, windowGlass);
+    pane.castShadow = false;
     for (const xx of [-width / 2, width / 2])
-      box(g, 0.09, 2.66, 0.16, xx, 0, 0.075, wood);
-    for (const yy of [-1.3, 0, 1.3])
-      box(g, width, 0.065, 0.14, 0, yy, 0.095, wood);
-    const divisions = Math.ceil(width / 1.05);
+      box(g, 0.055, 2.66, 0.13, xx, 0, 0.075, craft.frame);
+    for (const yy of [-1.3, 1.3])
+      box(g, width, 0.05, 0.12, 0, yy, 0.095, craft.frame);
+    // Wide, uninterrupted full-height panes: no central rail or small square lights.
+    const divisions = Math.ceil(width / 3.0);
     for (let j = 1; j < divisions; j++)
       box(
         g,
-        0.045,
+        0.034,
         2.56,
         0.09,
         -width / 2 + (j * width) / divisions,
         0,
         0.12,
-        wood,
+        craft.frame,
       );
-    box(g, width, 0.075, 0.45, 0, -1.34, 0.13, wood);
+    box(g, width, 0.055, 0.37, 0, -1.34, 0.13, craft.stone);
+    // A restrained sill channel and discreet drainage slots complete the aluminium joinery.
+    box(g, width - 0.12, 0.012, 0.025, 0, -1.303, 0.2, craft.frame);
+    for (const x of [-width * 0.3, width * 0.3])
+      box(g, 0.07, 0.006, 0.011, x, -1.295, 0.215, dark, 0.002);
     return g;
   }
   for (const [z, w] of [
@@ -494,20 +508,29 @@ export function buildGarden(k: Kit) {
   ])
     windowBay(east, z, w);
   for (const z of [-11.8, -2.9, 3.9, 11.8])
-    box(east, 0.28, 2.77, 0.22, z, 2.2, 0, wood);
+    box(east, 0.105, 2.77, 0.18, z, 2.2, 0, craft.frame);
   const northBase = group(root, 0, 0, -11.81),
     north = wall(northBase, 6.8, [], true);
   windowBay(north, 0, 6.45);
   const southBase = group(root, 0, 0, 11.81);
   southBase.rotation.y = Math.PI;
   wall(southBase, 6.8);
-  // A narrow glass roof edge suggests the greenhouse without covering its furniture.
-  for (const z of [-11.4, -8, -4.5, -1, 2.5, 6, 9.5, 11.45]) {
-    rod(east, [z, 3.57, 0], [z, 3.83, 1.12], 0.055, wood);
-    const roof = box(east, 2.7, 0.016, 1.05, z, 3.69, 0.55, glass);
+  // A continuous glazed eave with slender rafters reinforces the conservatory silhouette.
+  for (let i = 0; i < 8; i++) {
+    const z = -10.4125 + i * 2.975;
+    const roof = box(east, 2.94, 0.012, 1.09, z, 3.69, 0.55, windowGlass);
     roof.rotation.x = 0.21;
+    roof.castShadow = false;
   }
-  rod(east, [-11.75, 3.83, 1.12], [11.75, 3.83, 1.12], 0.065, wood);
+  for (let i = 0; i <= 8; i++)
+    rod(
+      east,
+      [-11.9 + i * 2.975, 3.57, 0],
+      [-11.9 + i * 2.975, 3.83, 1.12],
+      0.025,
+      craft.frame,
+    );
+  rod(east, [-11.9, 3.83, 1.12], [11.9, 3.83, 1.12], 0.034, craft.frame);
   for (const [i, p] of gardenPortals.entries()) {
     const id = (
         ['gardenLibraryDoor', 'gardenGameDoor', 'gardenBarDoor'] as const
@@ -793,7 +816,14 @@ export function buildGarden(k: Kit) {
   attachSeats(k.seats, lemonBench, ['garden-tree-1', 'garden-tree-2']);
   k.interactables.push(lemonBench);
   const bench = object('gardenWorkbench', f.workbench.x, f.workbench.z);
-  box(bench, 3.1, 0.09, 1.34, 0, 1.07, 0, wood);
+  box(bench, 3.1, 0.09, 1.34, 0, 1.07, 0, craft.stone, 0.032);
+  box(bench, 3.0, 0.035, 1.24, 0, 1.006, 0, wood);
+  // Protected splash edge, corner fixings and a towel bar stay inside the existing footprint.
+  box(bench, 3.04, 0.075, 0.035, 0, 1.15, -0.64, craft.steel, 0.012);
+  for (const x of [-1.37, 1.37])
+    for (const z of [-0.48, 0.48])
+      cyl(bench, 0.013, 0.013, 0.003, x, 1.117, z, craft.steel);
+  rod(bench, [-1.39, 0.88, 0.54], [-0.72, 0.88, 0.54], 0.016, craft.steel);
   box(bench, 2.91, 0.07, 1.15, 0, 0.32, 0, dark);
   for (const x of [-1.37, 1.37])
     for (const z of [-0.48, 0.48])
@@ -801,10 +831,10 @@ export function buildGarden(k: Kit) {
   for (const z of [-0.48, 0.48]) box(bench, 2.9, 0.22, 0.07, 0, 0.88, z, wood);
   for (const [i, x] of [-1.03, -0.57, 0.76, 1.1].entries()) {
     const p = group(bench, x, 0.36, 0);
-    bot.pot(p, 0.19, 0.27);
+    bot.pot(p, 0.19, 0.27, undefined, false);
     if (i % 2 === 0) {
       const pp = group(p, 0.02, 0.16, 0);
-      bot.pot(pp, 0.17, 0.27);
+      bot.pot(pp, 0.17, 0.27, undefined, false);
     }
   }
   const soilSack = group(bench, 0.02, 0.35, 0.11);
@@ -859,7 +889,7 @@ export function buildGarden(k: Kit) {
     mesh(
       twine,
       new T.TorusGeometry(0.09, 0.016, 5, 20).rotateX(Math.PI / 2),
-      cane,
+      craft.twine,
       0,
       0.025 + i * 0.014,
       0,
@@ -873,38 +903,75 @@ export function buildGarden(k: Kit) {
       [1.07, 1.14, 0.21],
     ],
     0.008,
-    cane,
+    craft.twine,
   );
-  const tools = group(bench, 0.5, 1.13, 0.27, 'Gardening hand tools');
+  const tools = group(bench, 0.5, 1.14, 0.27, 'Gardening hand tools');
   tools.rotation.y = -0.13;
-  for (const x of [-0.18, 0.02]) {
+  for (const [i, x] of [-0.18, 0.02].entries()) {
     mesh(
       tools,
-      new T.TorusGeometry(0.065, 0.012, 6, 24).rotateX(Math.PI / 2),
-      charcoal,
+      new T.TorusGeometry(0.065, 0.012, 8, 28).rotateX(Math.PI / 2),
+      craft.enamel,
       x,
-      0,
+      0.006,
       0,
     );
-    rod(
+    const blade = new T.Shape();
+    blade.moveTo(-0.012, 0.04);
+    blade.quadraticCurveTo(-0.024, -0.12, 0.018, -0.25);
+    blade.quadraticCurveTo(0.047, -0.15, 0.024, 0.04);
+    blade.closePath();
+    const b = mesh(
       tools,
-      [x, 0, -0.04],
-      [x === -0.18 ? 0.04 : -0.19, 0, -0.3],
-      0.014,
-      brass,
+      new T.ExtrudeGeometry(blade, {
+        depth: 0.005,
+        bevelEnabled: true,
+        bevelSize: 0.0015,
+        bevelThickness: 0.001,
+        bevelSegments: 2,
+        steps: 1,
+      }),
+      craft.steel,
+      -0.075,
+      i * 0.006,
+      -0.1,
     );
+    b.rotation.x = Math.PI / 2;
+    b.rotation.z = i ? -0.3 : 0.3;
+    rod(tools, [x, 0, -0.045], [-0.075, 0.012, -0.12], 0.009, craft.steel);
   }
-  ball(tools, 0.022, -0.075, 0.02, -0.14, brass);
+  cyl(tools, 0.02, 0.02, 0.009, -0.075, 0.022, -0.12, brass);
+  box(tools, 0.022, 0.002, 0.003, -0.075, 0.027, -0.12, charcoal, 0.001);
   const trowel = group(bench, 1.12, 1.135, 0.21);
   trowel.rotation.y = 0.35;
-  cyl(trowel, 0.025, 0.03, 0.18, 0, 0.0, 0, dark).rotation.x = Math.PI / 2;
-  const scoop = ball(trowel, 0.1, 0, 0.012, -0.22, brass);
-  scoop.scale.set(0.65, 0.18, 1.3);
-  rod(trowel, [0, 0.01, -0.08], [0, 0.01, -0.16], 0.012, brass);
+  mesh(
+    trowel,
+    new T.LatheGeometry(
+      [
+        [0.018, -0.1],
+        [0.033, -0.08],
+        [0.035, 0.045],
+        [0.024, 0.09],
+        [0.012, 0.1],
+      ].map((p) => new T.Vector2(...p)),
+      24,
+    ),
+    wood,
+    0,
+    0.035,
+    0,
+  ).rotation.x = Math.PI / 2;
+  cyl(trowel, 0.022, 0.022, 0.038, 0, 0.027, -0.084, craft.steel).rotation.x =
+    Math.PI / 2;
+  mesh(trowel, trowelGeometry(), craft.steel);
+  rod(trowel, [0, 0.025, -0.08], [0, 0.012, -0.16], 0.009, craft.steel);
   for (let i = 0; i < 2; i++) {
     const glove = group(bench, -0.23 + i * 0.16, 1.132 + i * 0.012, 0.36);
     glove.rotation.y = 0.25 - i * 0.5;
-    pillow(glove, 0.19, 0.045, 0.22, 0, 0.023, 0, linen);
+    box(glove, 0.195, 0.045, 0.06, 0, 0.025, 0.104, linen, 0.014);
+    for (const x of [-0.062, 0.062])
+      rod(glove, [x, 0.047, -0.075], [x, 0.047, 0.06], 0.002, craft.twine);
+    pillow(glove, 0.19, 0.045, 0.22, 0, 0.023, 0, craft.glove);
     for (let j = 0; j < 4; j++)
       box(
         glove,
@@ -914,10 +981,10 @@ export function buildGarden(k: Kit) {
         -0.057 + j * 0.04,
         0.022,
         -0.14,
-        linen,
+        craft.glove,
         0.012,
       );
-    box(glove, 0.07, 0.038, 0.1, 0.106, 0.021, -0.026, linen, 0.013);
+    box(glove, 0.07, 0.038, 0.1, 0.106, 0.021, -0.026, craft.glove, 0.013);
   }
   mesh(
     bench,
@@ -935,10 +1002,51 @@ export function buildGarden(k: Kit) {
     0.35,
     'Animated watering can',
   );
-  cyl(wateringPivot, 0.13, 0.16, 0.24, 0, 0.12, 0, mat('#71806b'));
-  rod(wateringPivot, [0.11, 0.11, 0], [0.34, 0.25, 0], 0.034, brass);
-  cyl(wateringPivot, 0.07, 0.065, 0.035, 0.35, 0.25, 0, brass).rotation.z =
-    -Math.PI / 3;
+  mesh(
+    wateringPivot,
+    new T.LatheGeometry(
+      [
+        [0.15, 0],
+        [0.16, 0.02],
+        [0.15, 0.2],
+        [0.13, 0.24],
+        [0.113, 0.24],
+        [0.13, 0.2],
+        [0.14, 0.03],
+      ].map((p) => new T.Vector2(...p)),
+      32,
+    ),
+    craft.enamel,
+  );
+  for (const y of [0.02, 0.235])
+    mesh(
+      wateringPivot,
+      new T.TorusGeometry(y < 0.1 ? 0.153 : 0.123, 0.005, 6, 32).rotateX(
+        Math.PI / 2,
+      ),
+      craft.steel,
+      0,
+      y,
+      0,
+    );
+  rod(wateringPivot, [0.11, 0.11, 0], [0.34, 0.25, 0], 0.034, craft.steel);
+  const rose = group(wateringPivot, 0.35, 0.25, 0);
+  rose.rotation.z = -Math.PI / 3;
+  cyl(rose, 0.07, 0.065, 0.035, 0, 0, 0, craft.steel);
+  for (let i = 0; i < 9; i++) {
+    const a = i * 2.399,
+      r = Math.sqrt(i / 9) * 0.052;
+    cyl(
+      rose,
+      0.004,
+      0.004,
+      0.001,
+      Math.sin(a) * r,
+      0.018,
+      Math.cos(a) * r,
+      charcoal,
+    );
+  }
   tube(
     wateringPivot,
     [
@@ -948,7 +1056,7 @@ export function buildGarden(k: Kit) {
       [-0.1, 0.06, 0],
     ],
     0.016,
-    brass,
+    craft.steel,
   );
   const waterDrops = new T.InstancedMesh(
     new T.SphereGeometry(0.013, 6, 4),
@@ -978,7 +1086,7 @@ export function buildGarden(k: Kit) {
   for (let i = 0; i < 5; i++) {
     const p = group(rack, -2.1 + i, 0.28, 0.02);
     if (i === 2) continue; // The central shelf holds a seed wallet instead of another empty pot.
-    bot.pot(p, 0.22, 0.31);
+    bot.pot(p, 0.22, 0.31, undefined, false);
   }
   // Flowering upper shelf leaves the terrarium and hydroponic bottles clear.
   for (const [i, x] of [-2.55, -0.92, -0.1, 0.72].entries())
@@ -1238,7 +1346,7 @@ export function buildGarden(k: Kit) {
   const cart = group(root, f.drinksCart.x, 0, f.drinksCart.z);
   cart.rotation.y = -Math.PI / 2;
   for (const y of [0.27, 0.65, 1.03]) {
-    box(cart, 1.5, 0.045, 0.89, 0, y, 0, wood);
+    box(cart, 1.5, 0.045, 0.89, 0, y, 0, y > 1 ? craft.stone : wood);
     for (const z of [-0.43, 0.43])
       box(cart, 1.5, 0.06, 0.035, 0, y + 0.04, z, wood);
   }

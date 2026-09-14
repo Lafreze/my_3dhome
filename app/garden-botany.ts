@@ -1,3 +1,5 @@
+import { botanicalSurface, petalGeometry } from './garden-surfaces';
+import { interiorMaterial } from './house-finishes';
 import { flowerForSeed, gardenSpecies } from './garden-species';
 import * as T from 'three';
 import type { InteriorBreeze } from './interior-atmosphere';
@@ -7,45 +9,31 @@ export function gardenBotany(
   textures: T.Texture[],
   breeze: InteriorBreeze,
 ) {
-  const mat = (color: string) => {
-    const m = new T.MeshStandardMaterial({ color, roughness: 0.83 });
-    materials.push(m);
-    return m;
-  };
-  const soil = mat('#40342a'),
-    bark = mat('#776046'),
-    clay = mat('#b87851'),
-    moss = mat('#677b42');
-  const cv = document.createElement('canvas');
-  cv.width = 128;
-  cv.height = 256;
-  const c = cv.getContext('2d')!,
-    gradient = c.createLinearGradient(0, 0, 128, 0);
-  gradient.addColorStop(0, '#516d36');
-  gradient.addColorStop(0.49, '#a7ad67');
-  gradient.addColorStop(0.54, '#7d984e');
-  gradient.addColorStop(1, '#385f38');
-  c.fillStyle = gradient;
-  c.fillRect(0, 0, 128, 256);
-  c.strokeStyle = '#d9d59d90';
-  c.lineWidth = 1;
-  c.beginPath();
-  c.moveTo(64, 256);
-  c.lineTo(64, 0);
-  c.stroke();
-  for (let y = 30; y < 250; y += 22)
-    for (const side of [-1, 1]) {
-      c.beginPath();
-      c.moveTo(64, y);
-      c.quadraticCurveTo(64 + side * 30, y - 7, 64 + side * 60, y - 26);
-      c.stroke();
-    }
-  const tex = new T.CanvasTexture(cv);
-  tex.colorSpace = T.SRGBColorSpace;
-  textures.push(tex);
-  const leavesMat = mat('#b0c191');
-  leavesMat.map = tex;
-  leavesMat.side = T.DoubleSide;
+  const soil = new T.MeshStandardMaterial({
+    color: '#79634c',
+    ...botanicalSurface('soil', textures),
+    roughness: 1,
+    bumpScale: 0.016,
+  });
+  soil.name = 'Conservatory / granular potting compost';
+  materials.push(soil);
+  const bark = interiorMaterial('walnut', '#74644d', materials, textures),
+    clay = interiorMaterial('clay', '#bc8d72', materials, textures),
+    moss = interiorMaterial('wool', '#697c4d', materials, textures);
+  const leavesMat = new T.MeshPhysicalMaterial({
+    color: '#83a563',
+    ...botanicalSurface('leaf', textures),
+    side: T.DoubleSide,
+    roughness: 0.63,
+    bumpScale: 0.003,
+    clearcoat: 0.1,
+    clearcoatRoughness: 0.55,
+    sheen: 0.16,
+    sheenColor: new T.Color('#b9ca83'),
+    sheenRoughness: 0.8,
+  });
+  leavesMat.name = 'Conservatory / satin leaf cuticle and fine veins';
+  materials.push(leavesMat);
   breeze.add(leavesMat);
   const geo = new T.BufferGeometry(),
     positions: number[] = [],
@@ -133,9 +121,9 @@ export function gardenBotany(
       inst.setColorAt(
         i,
         new T.Color().setHSL(
-          0.18 + rnd(i + seed) * 0.08,
-          0.25,
-          0.54 + rnd(i + 31) * 0.21,
+          0.21 + rnd(i + seed) * 0.045,
+          0.16,
+          0.77 + rnd(i + 31) * 0.18,
         ),
       );
     });
@@ -144,7 +132,13 @@ export function gardenBotany(
     p.add(inst);
     return inst;
   }
-  function pot(p: T.Object3D, r: number, h: number, m: T.Material = clay) {
+  function pot(
+    p: T.Object3D,
+    r: number,
+    h: number,
+    m: T.Material = clay,
+    filled = true,
+  ) {
     const profile = [
       [r * 0.65, 0],
       [r * 0.72, 0.04],
@@ -155,15 +149,29 @@ export function gardenBotany(
       [r * 0.86, h * 0.84],
       [r * 0.63, 0.05],
     ].map(([x, y]) => new T.Vector2(x, y));
-    mesh(p, new T.LatheGeometry(profile, 24), m, 0, 0, 0);
-    mesh(
-      p,
-      new T.CylinderGeometry(r * 0.87, r * 0.87, 0.025, 24),
-      soil,
-      0,
-      h * 0.86,
-      0,
+    mesh(p, new T.LatheGeometry(profile, 40), m, 0, 0, 0);
+    const saucer = new T.LatheGeometry(
+      [
+        [0, 0],
+        [r * 0.86, 0],
+        [r * 1.04, 0.018],
+        [r * 1.04, 0.04],
+        [r * 0.97, 0.04],
+        [r * 0.9, 0.016],
+        [0, 0.016],
+      ].map(([x, y]) => new T.Vector2(x, y)),
+      40,
     );
+    mesh(p, saucer, m, 0, -0.012, 0);
+    if (filled)
+      mesh(
+        p,
+        new T.CylinderGeometry(r * 0.87, r * 0.87, 0.025, 24),
+        soil,
+        0,
+        h * 0.86,
+        0,
+      );
   }
   function plant(
     p: T.Object3D,
@@ -247,14 +255,30 @@ export function gardenBotany(
     return g;
   }
 
-  const flowerPots = [clay, mat('#e0d4b9'), mat('#687e78'), mat('#b9a47e')];
+  const flowerPots = [
+    clay,
+    interiorMaterial('glaze', '#ece4d8', materials, textures),
+    interiorMaterial('glaze', '#a4b3a7', materials, textures),
+    interiorMaterial('clay', '#c7b49b', materials, textures),
+  ];
+  const petalMaps = botanicalSurface('petal', textures);
   const petals = gardenSpecies.map((s) => {
-    const m = mat(s.color);
-    m.side = T.DoubleSide;
+    const m = new T.MeshPhysicalMaterial({
+      color: s.color,
+      ...petalMaps,
+      side: T.DoubleSide,
+      roughness: 0.72,
+      bumpScale: 0.0015,
+      sheen: 0.35,
+      sheenRoughness: 0.85,
+      sheenColor: new T.Color(s.color).lerp(new T.Color('#fff1df'), 0.5),
+    });
+    m.name = `Conservatory / delicate ${s.id} petals`;
+    materials.push(m);
     return m;
   });
-  const pollen = mat('#cfaa4c'),
-    seedHead = mat('#634f37');
+  const pollen = interiorMaterial('clay', '#d9b050', materials, textures),
+    seedHead = interiorMaterial('clay', '#705339', materials, textures);
   function bloom(g: T.Group, size: number, seed: number) {
     const spec = flowerForSeed(seed),
       material = petals[gardenSpecies.indexOf(spec)];
@@ -271,13 +295,13 @@ export function gardenBotany(
     ) {
       const o = mesh(
         p,
-        new T.SphereGeometry(1, 9, 6),
+        petalGeometry(),
         material,
         Math.sin(a) * r,
         0,
         Math.cos(a) * r,
       );
-      o.scale.set(width, 0.012 * size, l);
+      o.scale.set(width, l * 0.8, l);
       o.rotation.set(tilt, a, 0);
       return o;
     }
@@ -351,16 +375,30 @@ export function gardenBotany(
           const angle = (k * Math.PI * 2) / spec.petals,
             profile = [
               [0.022, 0],
-              [0.074, 0.07],
-              [0.081, 0.14],
-              [0.075, 0.16],
+              [0.048, 0.025],
+              [0.068, 0.055],
+              [0.08, 0.09],
+              [0.084, 0.125],
+              [0.079, 0.15],
+              [0.076, 0.169],
             ];
           const shape = new T.LatheGeometry(
             profile.map(([r, y]) => new T.Vector2(r * size, y * size)),
             8,
             angle,
-            ((Math.PI * 2) / spec.petals) * 0.98,
+            ((Math.PI * 2) / spec.petals) * 1.06,
           );
+          const position = shape.getAttribute('position'),
+            uv = shape.getAttribute('uv');
+          for (let j = 0; j < position.count; j++) {
+            const tip = Math.pow(uv.getY(j), 5);
+            position.setY(
+              j,
+              position.getY(j) +
+                Math.sin(uv.getX(j) * Math.PI) * 0.013 * size * tip,
+            );
+          }
+          shape.computeVertexNormals();
           mesh(head, shape, material, 0, 0, 0);
         }
         mesh(
@@ -372,17 +410,17 @@ export function gardenBotany(
           0,
         );
       } else if (spec.form === 'rosette') {
-        for (let j = 0; j < 3; j++)
-          for (let k = 0; k < 6; k++) {
+        for (let j = 0; j < 4; j++)
+          for (let k = 0; k < 8; k++) {
             const p = petal(
               head,
-              (k * Math.PI) / 3 + j * 0.47,
-              (0.025 + j * 0.025) * size,
-              (0.028 + j * 0.015) * size,
-              (0.022 + j * 0.01) * size,
-              0.26 + j * 0.16,
+              (k * Math.PI) / 4 + j * 0.47,
+              (0.011 + j * 0.019) * size,
+              (0.028 + j * 0.014) * size,
+              (0.026 + j * 0.012) * size,
+              -0.65 + j * 0.17,
             );
-            p.position.y = (2 - j) * 0.025 * size;
+            p.position.y = (3 - j) * 0.016 * size;
           }
       } else {
         const radius =
@@ -431,7 +469,8 @@ export function gardenBotany(
     mesh(p, new T.CylinderGeometry(0.59, 0.59, 0.035, 32), soil, 0, 0.525, 0);
     rod(p, [0, 0.53, 0], [0.08, 2.45, -0.04], 0.09);
     const leaves = [];
-    const lemon = mat('#d9ad3f');
+    const lemon = interiorMaterial('clay', '#deb949', materials, textures);
+    lemon.roughness = 0.61;
     for (let i = 0; i < 10; i++) {
       const a = i * 2.4,
         xx = Math.sin(a) * (0.55 + rnd(i) * 0.2),
