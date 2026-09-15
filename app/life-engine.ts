@@ -1,3 +1,4 @@
+import { ResidentDialogue } from './resident-dialogue.ts';
 import { roomAt, type RoomId, type HouseView } from './house-data.ts';
 import type { Environment } from './environment-data';
 import { catRiseTime, catSettleTime } from './cat-gait.ts';
@@ -177,6 +178,7 @@ export class LifeEngine {
   birdRoomCooldown = new Map<RoomId, number>();
   private lastView: HouseView = 'study';
   private visitorGreetings = new Set<string>();
+  private dialogue = new ResidentDialogue();
   private offscreen = new Map<ActorId, number>();
   private catRide: {
     phase: 'mount' | 'aboard' | 'dismount';
@@ -378,7 +380,12 @@ export class LifeEngine {
           this.visitorGreetings.add(v.id);
           resident.fsm.set('wave');
           resident.stayUntil = this.clock + 24;
-          this.hooks.bubble('resident', '欢迎，找个舒服的位置坐坐。');
+          this.hooks.bubble(
+            'resident',
+            this.dialogue.next(this.environment, resident.room, () =>
+              this.random.next(),
+            ),
+          );
           break;
         }
       }
@@ -631,11 +638,7 @@ export class LifeEngine {
       );
       this.hooks.bubble(
         id,
-        this.random.choose([
-          '欢迎来到小屋，咖啡刚刚好。',
-          '正在把一个小小的灵感，做成可以体验的作品。',
-          '今天想多留一点空白，给新的想法。',
-        ])!,
+        this.dialogue.next(this.environment, a.room, () => this.random.next()),
       );
       this.hooks.collect('resident.firstGreeting', id, a.room);
       this.hooks.sound('cup', a.position);

@@ -150,6 +150,9 @@ export async function createHouseHandler({
   secureCookies = process.env.NODE_ENV === 'production',
   trustRailwayProxy = false,
   modelOptions = {},
+  analytics = /** @type {Awaited<ReturnType<typeof import('./visitor-analytics.mjs').createVisitStore>> | null} */ (
+    null
+  ),
   now = Date.now,
 } = {}) {
   const file = resolve(dataDir, 'house-settings.json');
@@ -240,6 +243,7 @@ export async function createHouseHandler({
     if (
       path !== '/api/house' &&
       path !== '/api/notes' &&
+      path !== '/api/visits' &&
       path !== '/api/models' &&
       !path.startsWith('/api/models/') &&
       !path.startsWith('/api/model-share/') &&
@@ -247,6 +251,33 @@ export async function createHouseHandler({
     )
       return false;
     try {
+      if (path === '/api/visits') {
+        if (req.method !== 'POST') throw fail(405, '请求方法不支持。');
+        sameOrigin(req);
+        if (!analytics) throw fail(503, '访问记录暂不可用。');
+        analytics.event(
+          req,
+          res,
+          await body(req, 2048),
+          visitorIP(req, trustRailwayProxy),
+        );
+        send(res, 200, { ok: true });
+        return true;
+      }
+      if (path === '/api/admin/visits' && req.method === 'GET') {
+        if (!session(req)) throw fail(401, '请先输入管理暗号。');
+        if (!analytics) throw fail(503, '访问记录暂不可用。');
+        const params = new URL(req.url, 'http://localhost').searchParams;
+        send(
+          res,
+          200,
+          analytics.report({
+            days: params.get('days') ?? 30,
+            page: params.get('page') ?? 0,
+          }),
+        );
+        return true;
+      }
       if (
         path.startsWith('/api/models') ||
         path.startsWith('/api/model-share/') ||

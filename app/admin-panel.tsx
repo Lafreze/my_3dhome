@@ -1,4 +1,5 @@
 'use client';
+import VisitorAnalytics from './visitor-analytics';
 import { useState } from 'react';
 import {
   appearanceColor,
@@ -10,10 +11,12 @@ export default function AdminPanel({
   onProfile,
   onDevice,
   onArt,
+  onExit,
 }: {
   onProfile: () => void;
   onDevice: (id: 'computer' | 'tv') => void;
   onArt: () => void;
+  onExit: () => void;
 }) {
   const studio = useStudio();
   const [colorDraft, setColorDraft] = useState(studio.settings.appearance);
@@ -51,6 +54,7 @@ export default function AdminPanel({
           墙上画作 <span>书房、客厅与展厅的八个画框</span>
         </button>
       </div>
+      <VisitorAnalytics />
       <fieldset disabled={busy}>
         <legend>家具配色</legend>
         <div className="admin-colors">
@@ -111,7 +115,12 @@ export default function AdminPanel({
       <button
         className="text-button"
         disabled={busy}
-        onClick={() => void run(studio.logout)}
+        onClick={() =>
+          void run(async () => {
+            await studio.logout();
+            onExit();
+          })
+        }
       >
         退出管理模式
       </button>

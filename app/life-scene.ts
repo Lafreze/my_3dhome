@@ -215,8 +215,8 @@ export function createLifeScene(k: Options, session: LifeSession) {
     stopHum();
     audio = context;
   }
-  function click(id: ActorId) {
-    engine.interact(id, k.camera.position.toArray() as Point);
+  function click(id: ActorId, from?: Point) {
+    engine.interact(id, from ?? (k.camera.position.toArray() as Point));
   }
   let diagnosticEnabled = true,
     visitorCheck = 0;

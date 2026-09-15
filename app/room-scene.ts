@@ -1,3 +1,5 @@
+import { createRoamScene, type RoamTarget } from './roam-scene';
+import { trackVisit } from './visit-tracker';
 import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { installDesignerChairs } from './designer-chairs';
 import { paintingTexture } from './painting-textures';
@@ -68,6 +70,8 @@ import type { ActorId, CollectionData } from './life-data';
 import type { Visitor } from './seat-data';
 
 type Options = {
+  onRoamTarget: (target: RoamTarget | null) => void;
+  onRoamExit: () => void;
   onCuriosity: (id: CuriosityId, active: boolean) => void;
   onCoffee: (state: CoffeeSnapshot) => void;
   onLifeBubble: (text: string) => void;
@@ -1962,10 +1966,33 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     assets,
     (room) => house.isRoomVisible(room),
   );
+  let roamPaused = false;
+  const roaming = createRoamScene(scene, groups, seatAnchors, {
+    room: (room) => api.setView(room),
+    target: options.onRoamTarget,
+    bubble: options.onLifeBubble,
+    door: (id) => house.openDoor(id),
+    actors: () => life?.snapshot().actors || {},
+    activate: (target) => {
+      if (target.kind !== 'object') trackVisit('interact', target.id);
+      if (target.kind === 'actor')
+        life?.click(target.id as ActorId, roaming.position);
+      else if (target.kind === 'seat') {
+        api.setRoamMode(false);
+        options.onRoamExit();
+        api.focusSeat(target.id);
+        options.onSeatSelect(target.id);
+      } else {
+        api.focus(target.id as ObjectId);
+        options.onSelect(target.id as ObjectId);
+      }
+    },
+  });
   const occlusion = createCameraOcclusion(groups);
   if (['localhost', '127.0.0.1'].includes(location.hostname))
     Object.assign(window, {
       __kuroVisitors: {
+        roam: roaming.snapshot,
         chairs: () => designerChairs.snapshot(),
         games: () => house.gameSnapshot(),
         bar: () => house.barSnapshot(),
@@ -2145,6 +2172,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     downY = e.clientY;
   };
   const pointerMove = (e: PointerEvent) => {
+    if (roaming.enabled) {
+      options.onHover(null, 0, 0);
+      return;
+    }
     const hit = pick(e);
     host.style.cursor = hit ? 'pointer' : 'grab';
     visitors.hover(hit?.seatId || null);
@@ -2159,6 +2190,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     multiTouch = false;
   };
   const pointerUp = (e: PointerEvent) => {
+    if (roaming.enabled) return;
     if ((e.target as HTMLElement).closest('.tv-native-screen')) return;
     activePointers.delete(e.pointerId);
     const wasMulti = multiTouch;
@@ -2189,6 +2221,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     }
     const hit = pick(e);
     if (hit && 'actorId' in hit && hit.actorId) {
+      trackVisit('interact', hit.actorId);
       life?.click(hit.actorId);
       return;
     }
@@ -2419,6 +2452,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     life?.setView(activeView);
     life?.setReduced(motionPreference.matches);
     life?.update(dt, environment);
+    roaming.update(dt, t, lifePaused || roamPaused, motionPreference.matches);
     atmosphere.setView(activeView);
     atmosphere.update(t, dt, reduced, environment);
     house.update(t, dt, reduced, night, camera);
@@ -2518,6 +2552,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     );
     controls.target.y = T.MathUtils.clamp(controls.target.y, 0.15, 4.5);
     camera.position.add(controls.target.clone().sub(unclamped));
+    if (roaming.enabled && !focusedObject && !roamPaused) {
+      tween = null;
+      roaming.follow(camera, controls.target, dt, motionPreference.matches);
+    }
     occlusion.update(camera, controls.target, t, focusedObject);
     landscape.update(camera, t);
     tvScreen.update(camera);
@@ -2528,6 +2566,30 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   }
   const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
+    setRoamMode(enabled) {
+      tween = null;
+      focusedObject = null;
+      controls.enabled = !enabled;
+      roaming.enable(enabled, activeView as import('./house-data').RoomId);
+      if (enabled) house.setSeatFocus();
+      else {
+        resize();
+        api.setView(activeView);
+      }
+      refreshShadows();
+    },
+    setRoamInput: (x, z) => roaming.input(x, z),
+    setRoamPaused: (paused) => {
+      if (roamPaused && !paused && roaming.enabled) {
+        focusedObject = null;
+        tween = null;
+      }
+      roamPaused = paused;
+      if (paused) roaming.input(0, 0);
+    },
+    roamInteract: () => {
+      if (!lifePaused && !roamPaused) roaming.interact();
+    },
     setMapOpen(open) {
       mapOpen = open;
       if (!open) refreshShadows();
@@ -2610,6 +2672,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       visitors.refreshVisible();
       releaseHiddenRoomGpu(scene);
       options.onView(view);
+      if (roaming.enabled) {
+        roaming.enterRoom(view as import('./house-data').RoomId);
+        house.setSeatFocus();
+        tween = null;
+        return;
+      }
       const all = view === 'overview' || view === 'plan';
       controls.minPolarAngle = view === 'plan' ? 0.001 : Math.PI / 9;
       controls.maxPolarAngle = view === 'plan' ? 0.001 : Math.PI / 2.15;
@@ -3023,6 +3091,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       quietObjects.dispose();
       coffeeSteam.dispose();
       disposed = true;
+      roaming.dispose();
       life?.dispose();
       assets.dispose();
       designerChairs.dispose();

@@ -1,4 +1,7 @@
 'use client';
+import RoamControls from './roam-controls';
+import type { RoamTarget } from './roam-scene';
+import { trackVisit } from './visit-tracker';
 import CoffeeMenu from './coffee-menu';
 import RoomNotes from './room-notes';
 import LibraryPanel, {
@@ -180,6 +183,8 @@ function StudioHome() {
   });
   useVisibleViewport();
   const [view, setView] = useState<HouseView>('study');
+  const [roaming, setRoaming] = useState(false);
+  const [roamTarget, setRoamTarget] = useState<RoamTarget | null>(null);
   const [cameraMode, setCameraMode] = useState<'orbit' | 'pan'>('orbit');
   const [lifeBubble, setLifeBubble] = useState('');
   const [collectionData, setCollectionData] = useState<CollectionData>({});
@@ -346,6 +351,8 @@ function StudioHome() {
         if (disposed || !host.current) return;
         try {
           api.current = createRoom(host.current, {
+            onRoamTarget: setRoamTarget,
+            onRoamExit: () => setRoaming(false),
             onCuriosity: (id, active) =>
               setCuriosityBusy((state) => ({ ...state, [id]: active })),
             onLifeBubble: setLifeBubble,
@@ -367,6 +374,7 @@ function StudioHome() {
               seatSelection.current?.(id);
             },
             onSelect: (id) => {
+              if (id) trackVisit('interact', id);
               setSelected(id === 'computer' ? null : id);
               if (id && id in libraryObjectIds) {
                 setSelected(null);
@@ -425,7 +433,10 @@ function StudioHome() {
               )
                 quickAction.current(id);
             },
-            onView: setView,
+            onView: (value) => {
+              setView(value);
+              trackVisit('room', value);
+            },
             onHover: (id, x, y) => setHover(id ? { id, x, y } : null),
             onReady: () => setReady(true),
           });
@@ -584,12 +595,62 @@ function StudioHome() {
     (element: HTMLElement | null) => api.current?.setTVScreen(element),
     [],
   );
+  const toggleRoaming = async () => {
+    const next = !roaming;
+    if (next) {
+      // Release the shared seat before walking so one visitor never occupies two places.
+      try {
+        const response = await fetch('/api/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'leave' }),
+        });
+        if (!response.ok) throw Error();
+        const presence = await response.json();
+        api.current?.setVisitors(presence.visitors, presence.me);
+      } catch {
+        notify('暂时无法离座，请稍后再试。');
+        return;
+      }
+    }
+    setSelected(null);
+    setModal(null);
+    setRoaming(next);
+    api.current?.setRoamMode(next);
+    trackVisit('mode', next ? 'roam' : 'browse');
+    notify(
+      next
+        ? '慢慢逛逛吧。摇杆或方向键行走，靠近物品后互动。'
+        : '已回到浏览模式。',
+    );
+  };
+  useEffect(() => {
+    api.current?.setRoamPaused(
+      !!modal ||
+        !!selected ||
+        !!playing ||
+        !!barSelection ||
+        !!librarySelection ||
+        seatPanel ||
+        environmentOpen,
+    );
+  }, [
+    modal,
+    selected,
+    playing,
+    barSelection,
+    librarySelection,
+    seatPanel,
+    environmentOpen,
+    ready,
+  ]);
   const reset = () => {
     api.current?.reset();
     setSelected(null);
     setHover(null);
   };
   const choose = (id: ObjectId) => {
+    trackVisit('interact', id);
     if (id === 'galleryArchive') {
       location.assign('/models');
       return;
@@ -905,7 +966,7 @@ function StudioHome() {
     selected && isCuriosity(selected) ? curiosities[selected] : null;
   return (
     <main
-      className={`studio ${night ? 'night' : ''} ${selected ? 'focused' : ''} ${quiet && ready && !modal && !selected && !environmentOpen && !seatPanel ? 'quiet' : ''}`}
+      className={`studio ${night ? 'night' : ''} ${roaming ? 'roaming' : ''} ${selected ? 'focused' : ''} ${quiet && !roaming && ready && !modal && !selected && !environmentOpen && !seatPanel ? 'quiet' : ''}`}
     >
       <div ref={host} className="scene" />
       <div className="viewport-ui">
@@ -922,6 +983,16 @@ function StudioHome() {
             </span>
           </button>
           <div className="top-actions">
+            <button
+              className="mode-toggle"
+              aria-label="切换漫游模式"
+              aria-pressed={roaming}
+              disabled={!ready}
+              onClick={() => void toggleRoaming()}
+            >
+              <Move size={16} />
+              <span>{roaming ? '退出漫游' : '漫游模式'}</span>
+            </button>
             <span className="day-caption">
               {live.mode === 'live'
                 ? `${live.clock} · ${live.weather ? (live.stale ? '天气待更新' : weathers.find((w) => w.id === environment.weather)?.label) : '天气待定位'}`
@@ -1121,6 +1192,21 @@ function StudioHome() {
             <Expand size={16} />
           </button>
         </div>
+        {roaming && (
+          <RoamControls
+            api={api}
+            target={roamTarget}
+            blocked={
+              !!modal ||
+              !!selected ||
+              !!playing ||
+              !!barSelection ||
+              !!librarySelection ||
+              seatPanel ||
+              environmentOpen
+            }
+          />
+        )}
         <footer className="bottom-bar">
           <nav className="dock" aria-label="工作室导航">
             <label className="room-select">
@@ -1436,6 +1522,7 @@ function StudioHome() {
           {modal === 'admin' && studio.admin && (
             <AdminPanel
               key="manager"
+              onExit={() => setModal(null)}
               onProfile={openEditor}
               onDevice={(id) => {
                 visit(id === 'computer' ? 'study' : 'living');
@@ -1777,6 +1864,18 @@ function StudioHome() {
               <p>
                 客厅电视可播放
                 网页、YouTube、视频直链或管理者的本地预览。播放在线内容时需要网络，关闭播放器会停止播放。本地视频不会上传。
+              </p>
+              <p>
+                右上角可切换漫游模式。手机用半透明摇杆行走、星形按钮互动；电脑用方向键或
+                WASD 行走，E
+                或空格互动。靠近房门会自动开门，打开面板时暂停行走。
+              </p>
+              <p>
+                漫游使用当前衣橱造型，开始散步时会释放原座位。自由行走的位置只在当前页面呈现，入座与社交仍与在线访客同步。
+              </p>
+              <p>
+                小屋保存匿名访问时间、来源网站、设备类别、停留和物品互动记录，仅管理员可查看；不记录输入内容、精确位置或完整
+                IP。
               </p>
               <p>键盘可从「探索」访问当前房间物件。弹窗按 Esc 关闭。</p>
             </div>

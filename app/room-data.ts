@@ -59,6 +59,10 @@ export type Profile = {
 };
 export const defaultProfile: Profile = houseDefaults.profile;
 export type RoomApi = {
+  setRoamMode: (enabled: boolean) => void;
+  setRoamInput: (x: number, z: number) => void;
+  setRoamPaused: (paused: boolean) => void;
+  roamInteract: () => void;
   gardenSnapshot: () => ReturnType<
     ReturnType<typeof import('./garden-state').createGardenState>['snapshot']
   >;

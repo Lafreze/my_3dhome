@@ -5,6 +5,7 @@ import { stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createPresenceHandler } from './seat-presence.mjs';
+import { createVisitStore } from './visitor-analytics.mjs';
 import { createHouseHandler } from './house-settings.mjs';
 import { createExhibitAssetHandler } from './model-storage.mjs';
 
@@ -51,7 +52,11 @@ const handlePresence = createPresenceHandler({
     process.env.RAILWAY_PROJECT_ID && process.env.RAILWAY_ENVIRONMENT_ID
   ),
 });
+const analytics = await createVisitStore(
+  process.env.STUDIO_DATA_DIR || resolve('output/server-data'),
+);
 const handleHouse = await createHouseHandler({
+  analytics,
   trustRailwayProxy: !!(
     process.env.RAILWAY_PROJECT_ID && process.env.RAILWAY_ENVIRONMENT_ID
   ),
@@ -123,6 +128,7 @@ const server = createServer(async (req, res) => {
     if ((await stat(file)).isDirectory()) file = resolve(file, 'index.html');
     const info = await stat(file);
     if (!info.isFile()) throw new Error('Not a file');
+    if (extname(file) === '.html') analytics.page(req, res, path);
     const headers = {
       'Content-Type': types[extname(file)] || 'application/octet-stream',
       'Cache-Control': 'no-cache',
