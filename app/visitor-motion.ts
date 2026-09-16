@@ -11,6 +11,7 @@ export const motionRig = {
   fox: { neck: 0.237, neckZ: 0.085, headStart: 0.19, headEnd: 0.3 },
   noir: figures.noir.motionRig,
   rose: figures.rose.motionRig,
+  ivory: figures.ivory.motionRig,
 } satisfies Record<Character, object>;
 
 const smooth = (a: number, b: number, x: number) => {
@@ -142,8 +143,10 @@ export function configureVisitorMotion(
         float swing=max(0.,(phase-.6)/.4);
         float stepZ=phase<.6 ? .108-.36*phase : -.108+.216*(swing*swing*(3.-2.*swing));
         float enabled=action.x*step(.001,abs(action.y));
-        p.z += stepZ*.12*weight*enabled;
-        p.y += sin(swing*3.14159265)*.008*weight*enabled;
+        // Negative activity identifies free walking; shared seated activities keep their gentle gait.
+        float walking = step(.5, -action.z);
+        p.z += stepZ*mix(.12, 1., walking)*weight*enabled;
+        p.y += sin(swing*3.14159265)*mix(.008, .045, walking)*weight*enabled;
         return p;
       }
       attribute vec3 visitorBlinkDelta;

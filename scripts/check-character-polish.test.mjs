@@ -118,7 +118,7 @@ void test('resident tailored sit retains the complete upper body and round leg s
   assert(ankle.z < knee.z);
 });
 void test('every visitor preserves standing data, upper silhouette, topology and finite seated normals', () => {
-  for (const kind of ['bear', 'cat', 'fox', 'noir', 'rose']) {
+  for (const kind of ['bear', 'cat', 'fox', 'noir', 'rose', 'ivory']) {
     const geometries = meshes('studio-visitor-' + kind + '-v3');
     for (const g of geometries) {
       g.setAttribute(

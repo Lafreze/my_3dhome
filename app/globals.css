@@ -3077,8 +3077,38 @@ a {
   color: #fffdf4;
 }
 .roaming .bottom-bar,
-.roaming .view-tools {
+.roaming .room-caption,
+.roaming .day-caption,
+.roaming .view-tools i,
+.roaming .view-tools .fullscreen {
   display: none;
+}
+.roaming .view-tools { bottom: 42px; }
+.roaming.focused .view-tools { display: none; }
+.roam-desktop-action {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  border: 1px solid #fff9e680;
+  background: #faf6e9ba;
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 9px 17px 9px 9px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #514e42;
+  font-size: 12px;
+  cursor: pointer;
+}
+.roam-desktop-action kbd { font: inherit; border-radius: 50%; padding: 5px 9px; background: #fffdf5b3; }
+.roam-joystick, .roam-context { visibility: hidden; }
+@media (pointer: coarse) {
+  .roam-joystick, .roam-context { visibility: visible; }
+  .roam-desktop-action { display: none; }
+  .roaming .view-tools { bottom: 205px; right: 23px; }
 }
 .roam-controls {
   position: absolute;
@@ -3193,29 +3223,11 @@ a {
   transform: scale(0.95);
   background: #dbc084b3;
 }
-.roam-keyboard-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 3px;
-  transform: translateX(-50%);
-  font-size: 12px;
-  white-space: nowrap;
-  background: #faf6e9b3;
-  color: #625c4e;
-  padding: 8px 14px;
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-}
-.roam-keyboard-hint span {
-  margin: 0 8px;
-}
-.roam-keyboard-hint kbd {
-  font: inherit;
-  font-weight: 600;
-}
 .roam-controls.is-blocked {
-  opacity: 0.25;
+  visibility: hidden;
 }
+.roam-controls.is-blocked .roam-joystick,
+.roam-controls.is-blocked .roam-context { visibility: hidden; }
 .roam-controls.is-blocked .roam-joystick {
   pointer-events: none;
 }
@@ -3367,20 +3379,7 @@ a {
   margin-top: 13px;
   font-size: 12px;
 }
-@media (pointer: fine) and (min-width: 769px) {
-  .roam-joystick {
-    opacity: 0.65;
-    width: 110px;
-    height: 110px;
-  }
-  .roam-controls {
-    height: 114px;
-  }
-}
 @media (max-width: 768px), (pointer: coarse) {
-  .roam-keyboard-hint {
-    display: none;
-  }
   .roam-controls {
     padding: 0 22px;
     bottom: calc(20px + env(safe-area-inset-bottom));

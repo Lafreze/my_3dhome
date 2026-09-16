@@ -27,6 +27,7 @@ export default function RoamControls({
           Number(keys.has('ArrowLeft') || keys.has('KeyA')),
         Number(keys.has('ArrowDown') || keys.has('KeyS')) -
           Number(keys.has('ArrowUp') || keys.has('KeyW')),
+        keys.has('ShiftLeft') || keys.has('ShiftRight'),
       );
     const stop = () => {
       keys.clear();
@@ -47,11 +48,17 @@ export default function RoamControls({
           'KeyA',
           'KeyS',
           'KeyD',
+          'ShiftLeft',
+          'ShiftRight',
         ].includes(e.code)
       ) {
         e.preventDefault();
         keys.add(e.code);
         move();
+      }
+      if (['Equal', 'NumpadAdd', 'Minus', 'NumpadSubtract'].includes(e.code)) {
+        e.preventDefault();
+        api.current?.zoom(['Equal', 'NumpadAdd'].includes(e.code) ? 1 : -1);
       }
       if (
         e.code === 'Space' &&
@@ -99,7 +106,7 @@ export default function RoamControls({
       y /= Math.max(1, length);
     }
     setStick([x * radius, y * radius]);
-    api.current?.setRoamInput(x, y);
+    api.current?.setRoamInput(x, y, length > 0.9);
   };
   const release = (e: React.PointerEvent<HTMLFieldSetElement>) => {
     if (pointer.current !== e.pointerId) return;
@@ -112,9 +119,15 @@ export default function RoamControls({
       className={`roam-controls${blocked ? ' is-blocked' : ''}`}
       aria-label="漫游操作"
     >
-      <div className="roam-keyboard-hint">
-        <kbd>W A S D</kbd> / 方向键行走 <span>·</span> <kbd>E</kbd> / 空格互动
-      </div>
+      {!blocked && target && (
+        <button
+          className="roam-desktop-action"
+          onClick={() => api.current?.roamInteract()}
+        >
+          <kbd>E</kbd>
+          {target.label}
+        </button>
+      )}
       <fieldset
         ref={base}
         className="roam-joystick"
@@ -138,11 +151,7 @@ export default function RoamControls({
         <i style={{ transform: `translate(${stick[0]}px, ${stick[1]}px)` }} />
       </fieldset>
       <div className="roam-context">
-        <span>
-          {blocked
-            ? '关闭面板，继续散步'
-            : target?.label || '慢慢走，看看身边的小事'}
-        </span>
+        {!blocked && target && <span>{target.label}</span>}
         <button
           className="roam-interact"
           disabled={blocked || !target}

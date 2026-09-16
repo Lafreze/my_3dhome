@@ -151,7 +151,8 @@ for (const { id: character } of appearances.characters) {
     geometry.dispose();
   }
   assert(
-    triangles > (['noir', 'rose'].includes(character) ? 47_000 : 95_000) &&
+    triangles >
+      (['noir', 'rose', 'ivory'].includes(character) ? 47_000 : 95_000) &&
       triangles < 110_000,
   );
   assert(

@@ -8,7 +8,8 @@ import {
 } from './visitor-motion';
 import { humanScale } from './character-scale.mjs';
 import { footLift } from './visitor-travel.mjs';
-import { moveRoamer, roamSpawn } from './roam-movement';
+import { adjustRoamZoom, defaultRoamZoom } from './roam-camera';
+import { easeRoamInput, moveRoamer, roamSpawn } from './roam-movement';
 import { roomAt, roomForObject, type RoomId } from './house-data';
 import { objects, type ObjectId } from './room-data';
 import { houseDoorLayout } from './house-door-layout';
@@ -48,7 +49,17 @@ export function createRoamScene(
     scan = 0,
     gait = 0,
     loaded = false,
-    loading = false;
+    loading = false,
+    reloadRequested = false;
+  let velocity: [number, number] = [0, 0],
+    running = false,
+    zoom = defaultRoamZoom;
+  try {
+    const saved = localStorage.getItem('kuro-roam-zoom');
+    if (saved !== null) zoom = adjustRoamZoom(Number(saved), 0);
+  } catch {
+    /* Storage is optional. */
+  }
   let release: (() => void) | undefined;
   const materials: T.Material[] = [],
     geometries: T.BufferGeometry[] = [];
@@ -68,7 +79,10 @@ export function createRoamScene(
     loaded = false;
   }
   async function load() {
-    if (loading) return;
+    if (loading) {
+      reloadRequested = true;
+      return;
+    }
     let nextAppearance = readAppearance(null);
     try {
       nextAppearance = readAppearance(
@@ -102,7 +116,7 @@ export function createRoamScene(
           geometry.setAttribute(name, attribute);
         const motion = new T.InstancedBufferAttribute(new Float32Array(4), 4);
         const action = new T.InstancedBufferAttribute(
-          new Float32Array([1, 0, 0, 0]),
+          new Float32Array([1, 0, -1, 0]),
           4,
         );
         geometry.setAttribute('visitorInstanceMotion', motion);
@@ -155,6 +169,10 @@ export function createRoamScene(
       hooks.bubble('角色暂时没有准备好，请切回浏览后重试漫游。');
     } finally {
       loading = false;
+      if (reloadRequested && !disposed && enabled) {
+        reloadRequested = false;
+        void load();
+      }
     }
   }
   function findTarget() {
@@ -177,6 +195,7 @@ export function createRoamScene(
               (z - position[2]) * Math.cos(root.rotation.y)) /
             d
           : 1;
+      if (d > 0.4 && facing < 0.15) return;
       candidates.push({
         target: { id, label, kind },
         distance: d + (1 - facing) * 0.35 - (target?.id === id ? 0.16 : 0),
@@ -206,9 +225,14 @@ export function createRoamScene(
         roomForObject(id) !== room
       )
         continue;
-      // Use the object's own origin, avoiding a room-wide parent bounding box.
-      const point = group.getWorldPosition(new T.Vector3());
-      add(id, objects[id].name, 'object', point.x, point.z, 1.9);
+      // Some shared wrappers sit at the room origin, away from their visible objects.
+      const points: T.Vector3[] = group.userData.roamPoints || [
+        new T.Vector3(),
+      ];
+      for (const local of points) {
+        const point = group.localToWorld(local.clone());
+        add(id, objects[id].name, 'object', point.x, point.z, 1.9);
+      }
     }
     for (const [id, anchor] of anchors) {
       const seat = seatById.get(id)!;
@@ -240,7 +264,8 @@ export function createRoamScene(
     },
     enable(value: boolean, nextRoom: RoomId) {
       enabled = value;
-      input = [0, 0];
+      input = velocity = [0, 0];
+      running = false;
       root.visible = value;
       if (value) {
         room = nextRoom;
@@ -252,17 +277,38 @@ export function createRoamScene(
         hooks.target(null);
       }
     },
+    refreshAppearance() {
+      if (enabled) void load();
+    },
     enterRoom(next: RoomId) {
       if (roomAt(position[0], position[2]) !== next) position = roamSpawn(next);
       room = next;
       scan = 0;
     },
-    input(x: number, z: number) {
+    input(x: number, z: number, run = false) {
       input = [x, z];
+      running = run;
+      if (!x && !z) velocity = [0, 0];
+    },
+    zoom(delta: number) {
+      zoom = adjustRoamZoom(zoom, delta);
+      try {
+        localStorage.setItem('kuro-roam-zoom', String(zoom));
+      } catch {
+        /* Optional. */
+      }
+    },
+    resetCamera() {
+      zoom = defaultRoamZoom;
+      try {
+        localStorage.removeItem('kuro-roam-zoom');
+      } catch {
+        /* Optional. */
+      }
     },
     interact() {
       if (enabled && loaded) {
-        input = [0, 0];
+        input = velocity = [0, 0];
         findTarget();
         if (target) hooks.activate(target);
       }
@@ -271,20 +317,27 @@ export function createRoamScene(
       if (!enabled) return;
       root.visible = loaded;
       const before = position;
+      velocity = easeRoamInput(
+        velocity,
+        paused || !loaded ? [0, 0] : input,
+        dt,
+      );
       if (!paused && loaded)
         position = moveRoamer(
           position,
-          input,
+          velocity,
           dt,
           Object.values(hooks.actors())
             .filter((a) => a.active)
             .map((a) => a.position),
+          running ? 1.7 : 1,
         );
       const dx = position[0] - before[0],
         dz = position[2] - before[2],
         distance = Math.hypot(dx, dz);
-      if (distance > 0.0001) {
-        const yaw = Math.atan2(dx, dz);
+      if (Math.hypot(...velocity) > 0.01) {
+        // Face the intended direction even when furniture prevents another step.
+        const yaw = Math.atan2(velocity[0], velocity[1]);
         root.rotation.y +=
           Math.atan2(
             Math.sin(yaw - root.rotation.y),
@@ -340,13 +393,14 @@ export function createRoamScene(
         camera.fov = fov;
         camera.updateProjectionMatrix();
       }
-      const offset = new T.Vector3(0, 6.5, 8.8);
+      const offset = new T.Vector3(0, 6.5, 8.8).multiplyScalar(zoom);
       camera.position.lerp(look.clone().add(offset), factor);
       camera.lookAt(look);
     },
     snapshot: () => ({
       enabled,
       loaded,
+      zoom,
       room,
       position: [...position],
       target,

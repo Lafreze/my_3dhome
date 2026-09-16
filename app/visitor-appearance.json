@@ -168,6 +168,11 @@
       "id": "rose",
       "label": "绯音",
       "labelHeight": 0.89
+    },
+    {
+      "id": "ivory",
+      "label": "白凛",
+      "labelHeight": 0.94
     }
   ],
   "characterColors": {
@@ -200,6 +205,12 @@
       "eyeColor": "#ac7495",
       "topColor": "#38363e",
       "bottomColor": "#34313a"
+    },
+    "ivory": {
+      "hairColor": "#e6e4ed",
+      "eyeColor": "#a87791",
+      "topColor": "#38343c",
+      "bottomColor": "#333137"
     }
   }
 }

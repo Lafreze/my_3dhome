@@ -37,11 +37,14 @@ export function moveRoamer(
   input: [number, number],
   dt: number,
   occupied: Point[] = [],
+  pace = 1,
 ): Point {
   const length = Math.hypot(...input);
   if (!length || !Number.isFinite(length) || !Number.isFinite(dt))
     return [...position];
-  const scale = (1.35 * Math.max(0, Math.min(dt, 0.05))) / Math.max(1, length);
+  const speed =
+    1.35 * (Number.isFinite(pace) ? Math.max(1, Math.min(1.7, pace)) : 1);
+  const scale = (speed * Math.max(0, Math.min(dt, 0.05))) / Math.max(1, length);
   const dx = input[0] * scale,
     dz = input[1] * scale;
   const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / 0.025));
@@ -56,4 +59,19 @@ export function moveRoamer(
     else if (clear([p[0], 0.085, next[2]])) p[2] = next[2];
   }
   return roomAt(p[0], p[2]) ? p : position;
+}
+
+/** Quick, gentle starts; releasing input stops without sliding past an interaction. */
+export function easeRoamInput(
+  current: [number, number],
+  input: [number, number],
+  dt: number,
+): [number, number] {
+  const length = Math.hypot(...input);
+  if (!length || !Number.isFinite(length) || !Number.isFinite(dt))
+    return [0, 0];
+  const amount = 1 - Math.exp(-Math.max(0, Math.min(dt, 0.05)) * 18);
+  return current.map(
+    (v, i) => v + (input[i] / Math.max(1, length) - v) * amount,
+  ) as [number, number];
 }

@@ -618,11 +618,6 @@ function StudioHome() {
     setRoaming(next);
     api.current?.setRoamMode(next);
     trackVisit('mode', next ? 'roam' : 'browse');
-    notify(
-      next
-        ? '慢慢逛逛吧。摇杆或方向键行走，靠近物品后互动。'
-        : '已回到浏览模式。',
-    );
   };
   useEffect(() => {
     api.current?.setRoamPaused(
@@ -644,8 +639,8 @@ function StudioHome() {
     environmentOpen,
     ready,
   ]);
-  const reset = () => {
-    api.current?.reset();
+  const reset = (restoreDistance = false) => {
+    api.current?.reset(restoreDistance);
     setSelected(null);
     setHover(null);
   };
@@ -973,7 +968,7 @@ function StudioHome() {
         <header className="studio-header">
           <button
             className="wordmark"
-            onClick={reset}
+            onClick={() => reset(true)}
             aria-label="重置当前房间视角"
           >
             <span className="brand-dot" />
@@ -1157,7 +1152,7 @@ function StudioHome() {
                 更换手柄配色
               </button>
             )}
-            <button className="return-link" onClick={reset}>
+            <button className="return-link" onClick={() => reset()}>
               <ArrowLeft size={12} />
               返回全景
             </button>
@@ -1181,7 +1176,11 @@ function StudioHome() {
             <Minus size={17} />
           </button>
           <i />
-          <button className="icon-button" aria-label="重置视角" onClick={reset}>
+          <button
+            className="icon-button"
+            aria-label="重置视角"
+            onClick={() => reset(true)}
+          >
             <RotateCcw size={16} />
           </button>
           <button
@@ -1867,8 +1866,10 @@ function StudioHome() {
               </p>
               <p>
                 右上角可切换漫游模式。手机用半透明摇杆行走、星形按钮互动；电脑用方向键或
-                WASD 行走，E
-                或空格互动。靠近房门会自动开门，打开面板时暂停行走。
+                WASD 行走，按住 Shift 快走，E
+                或空格互动。手机轻推摇杆慢走、推到边缘快走。
+                滚轮、双指缩放或右侧加减按钮可调整镜头远近，电脑也可用加减键。
+                靠近并面向物品后互动，走到房门会自动开门，打开面板时暂停行走。
               </p>
               <p>
                 漫游使用当前衣橱造型，开始散步时会释放原座位。自由行走的位置只在当前页面呈现，入座与社交仍与在线访客同步。

@@ -1,5 +1,5 @@
 {
-  "version": "94722d59158040c6",
+  "version": "4ee544c703663335",
   "roomSizes": {
     "study": {
       "bytes": 9690284,
@@ -23,8 +23,8 @@
     }
   },
   "commonCharacters": {
-    "files": 16,
-    "bytes": 34466640
+    "files": 18,
+    "bytes": 37691596
   },
   "pending": [
     "character.bear.sit",
@@ -40,7 +40,9 @@
     "character.noir.sit",
     "character.noir.rest",
     "character.rose.sit",
-    "character.rose.rest"
+    "character.rose.rest",
+    "character.ivory.sit",
+    "character.ivory.rest"
   ],
   "inventory": [
     {
@@ -389,6 +391,16 @@
       "classification": "excluded-unused-or-documentation"
     },
     {
+      "path": "public/models/studio-visitor-ivory-standing-v5.glb",
+      "bytes": 1612432,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-ivory-v3.glb",
+      "bytes": 1612524,
+      "classification": "catalogued-production"
+    },
+    {
       "path": "public/models/studio-visitor-noir-standing-v5.glb",
       "bytes": 1715072,
       "classification": "catalogued-production"
@@ -416,6 +428,11 @@
     {
       "path": "public/models/studio-visitor.glb",
       "bytes": 1477064,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/visitor-ivory.json",
+      "bytes": 1411,
       "classification": "excluded-unused-or-documentation"
     },
     {

@@ -17,14 +17,14 @@ test('wardrobe changes only the owner appearance, preserving seat and resting po
   });
   const result = store.mutate('me', {
     action: 'appearance',
-    name: '银铃',
-    appearance: { character: 'cat' },
+    name: '白凛',
+    appearance: { character: 'ivory' },
     seatId: 'cafe-chair-1',
   });
   const own = result.visitors.find((v) => v.id === result.me),
     other = result.visitors.find((v) => v.id !== result.me);
-  assert.equal(own.name, '银铃');
-  assert.equal(own.appearance.character, 'cat');
+  assert.equal(own.name, '白凛');
+  assert.equal(own.appearance.character, 'ivory');
   assert.equal(own.seatId, 'bedroom-bed-left');
   assert.equal(own.posture, 'rest');
   assert(!own.journey);
@@ -50,7 +50,7 @@ test('wardrobe changes only the owner appearance, preserving seat and resting po
   );
   assert.equal(
     store.snapshot('me').visitors.find((v) => v.id === result.me).name,
-    '银铃',
+    '白凛',
   );
 });
 test('expressions are shared, rate limited, cannot puppeteer another visitor, and expire', () => {
@@ -65,7 +65,7 @@ test('expressions are shared, rate limited, cannot puppeteer another visitor, an
   assert.throws(
     () =>
       store.mutate('one', { action: 'gesture', kind: 'smile', targetId: peer }),
-    /自己的表情/,
+    /只能为自己选择/,
   );
   for (const kind of Object.keys(expressions)) {
     const result = store.mutate('one', { action: 'gesture', kind });

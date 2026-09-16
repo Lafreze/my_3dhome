@@ -80,3 +80,51 @@ void test('dialogue follows each weather and time, cycles rooms and avoids immed
       assert(new Set(messages).size >= 10);
     }
 });
+
+void test('walk easing gives gentle starts, stops on release, and normalizes diagonals', async () => {
+  const { easeRoamInput } = await import('../app/roam-movement.ts');
+  let velocity = easeRoamInput([0, 0], [1, 1], 1 / 60);
+  assert(Math.hypot(...velocity) > 0.1 && Math.hypot(...velocity) < 0.4);
+  for (let i = 0; i < 90; i++)
+    velocity = easeRoamInput(velocity, [1, 1], 1 / 60);
+  assert(Math.abs(Math.hypot(...velocity) - 1) < 0.0001);
+  assert.deepEqual(easeRoamInput(velocity, [0, 0], 1 / 60), [0, 0]);
+  assert.deepEqual(easeRoamInput(velocity, [NaN, 0], 1 / 60), [0, 0]);
+});
+void test('fast walking still respects furniture, doorways, actor separation and lag limits', () => {
+  for (const room of Object.keys(rooms)) {
+    let p = roamSpawn(room);
+    for (let i = 0; i < 180; i++) {
+      p = moveRoamer(p, [Math.cos(i / 40), Math.sin(i / 40)], 0.05, [], 1.7);
+      assert(floorClear(p, 'resident'));
+    }
+    assert.deepEqual(
+      moveRoamer(p, [1, 0], 10, [], 1.7),
+      moveRoamer(p, [1, 0], 0.05, [], 1.7),
+    );
+  }
+  const p = roamSpawn('gallery');
+  assert.deepEqual(
+    moveRoamer(p, [1, 0], 0.05, [[p[0] + 0.6, 0.085, p[2]]], 1.7),
+    p,
+  );
+});
+void test('camera distance is bounded, reversible and stable with invalid saved values', async () => {
+  const { adjustRoamZoom, defaultRoamZoom } =
+    await import('../app/roam-camera.ts');
+  const near = adjustRoamZoom(defaultRoamZoom, -0.18);
+  assert(near < defaultRoamZoom);
+  assert(Math.abs(adjustRoamZoom(near, 0.18) - defaultRoamZoom) < 1e-12);
+  assert.equal(adjustRoamZoom(NaN, 0), defaultRoamZoom);
+  assert.equal(adjustRoamZoom(defaultRoamZoom, Infinity), defaultRoamZoom);
+  let close = defaultRoamZoom,
+    far = defaultRoamZoom;
+  for (let i = 0; i < 100; i++) {
+    close = adjustRoamZoom(close, -1);
+    far = adjustRoamZoom(far, 1);
+  }
+  assert.equal(close, 0.46);
+  assert.equal(far, 1.3);
+  assert.equal(adjustRoamZoom(close, -1), close);
+  assert.equal(adjustRoamZoom(far, 1), far);
+});

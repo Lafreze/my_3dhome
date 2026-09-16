@@ -2123,6 +2123,21 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     downY = 0;
   const activePointers = new Set<number>();
   let multiTouch = false;
+  const roamTouches = new Map<number, [number, number]>();
+  const touchSpan = () => {
+    const points = [...roamTouches.values()];
+    return points.length === 2
+      ? Math.hypot(points[0][0] - points[1][0], points[0][1] - points[1][1])
+      : 0;
+  };
+  const roamWheel = (e: WheelEvent) => {
+    if (!roaming.enabled || roamPaused || focusedObject) return;
+    e.preventDefault();
+    const pixels =
+      e.deltaY *
+      (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? host.clientHeight : 1);
+    roaming.zoom(Math.max(-180, Math.min(180, pixels)) * 0.0018);
+  };
 
   const pick = (e: PointerEvent) => {
     const r = renderer.domElement.getBoundingClientRect();
@@ -2166,6 +2181,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   };
   const pointerDown = (e: PointerEvent) => {
     if ((e.target as HTMLElement).closest('.tv-native-screen')) return;
+    if (
+      roaming.enabled &&
+      e.pointerType === 'touch' &&
+      !roamPaused &&
+      !focusedObject
+    ) {
+      roamTouches.set(e.pointerId, [e.clientX, e.clientY]);
+      host.setPointerCapture(e.pointerId);
+    }
     activePointers.add(e.pointerId);
     if (activePointers.size > 1) multiTouch = true;
     downX = e.clientX;
@@ -2173,6 +2197,14 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   };
   const pointerMove = (e: PointerEvent) => {
     if (roaming.enabled) {
+      if (roamTouches.has(e.pointerId)) {
+        const previous = touchSpan();
+        roamTouches.set(e.pointerId, [e.clientX, e.clientY]);
+        const next = touchSpan();
+        if (!roamPaused && !focusedObject && previous > 8 && next > 8)
+          roaming.zoom(Math.log(previous / next));
+      }
+      host.style.cursor = 'default';
       options.onHover(null, 0, 0);
       return;
     }
@@ -2186,15 +2218,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     options.onHover(null, 0, 0);
   };
   const pointerCancel = () => {
+    roamTouches.clear();
     activePointers.clear();
     multiTouch = false;
   };
   const pointerUp = (e: PointerEvent) => {
-    if (roaming.enabled) return;
-    if ((e.target as HTMLElement).closest('.tv-native-screen')) return;
+    roamTouches.delete(e.pointerId);
     activePointers.delete(e.pointerId);
     const wasMulti = multiTouch;
     if (activePointers.size === 0) multiTouch = false;
+    if (roaming.enabled) return;
+    if ((e.target as HTMLElement).closest('.tv-native-screen')) return;
     if (
       wasMulti ||
       e.button !== 0 ||
@@ -2239,6 +2273,14 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   host.addEventListener('pointerleave', pointerLeave);
   host.addEventListener('pointerup', pointerUp);
   host.addEventListener('pointercancel', pointerCancel);
+  const pointerLost = (e: PointerEvent) => {
+    roamTouches.delete(e.pointerId);
+    activePointers.delete(e.pointerId);
+    if (!activePointers.size) multiTouch = false;
+  };
+  host.addEventListener('lostpointercapture', pointerLost);
+  host.addEventListener('wheel', roamWheel, { passive: false });
+  window.addEventListener('blur', pointerCancel);
   let tween: {
     from: T.Vector3;
     to: T.Vector3;
@@ -2375,7 +2417,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     if (
       now - lastShadow >
       (now < shadowsUntil ||
-      (!motionPreference.matches && visitors.hasVisibleVisitors())
+      (!motionPreference.matches &&
+        (visitors.hasVisibleVisitors() || roaming.enabled))
         ? 50
         : 400)
     ) {
@@ -2567,6 +2610,8 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   const occupiedStudySeats = new Set<string>();
   const api: RoomApi = {
     setRoamMode(enabled) {
+      pointerCancel();
+      host.style.cursor = enabled ? 'default' : 'grab';
       tween = null;
       focusedObject = null;
       controls.enabled = !enabled;
@@ -2578,9 +2623,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       }
       refreshShadows();
     },
-    setRoamInput: (x, z) => roaming.input(x, z),
+    setRoamInput: (x, z, running) => roaming.input(x, z, running),
     setRoamPaused: (paused) => {
       if (roamPaused && !paused && roaming.enabled) {
+        roaming.refreshAppearance();
         focusedObject = null;
         tween = null;
       }
@@ -2759,10 +2805,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     setTVScreen(element) {
       tvScreen.set(element);
     },
-    reset() {
+    reset(restoreDistance = false) {
+      if (roaming.enabled && restoreDistance) roaming.resetCamera();
       this.setView(activeView);
     },
     zoom(direction) {
+      if (roaming.enabled) {
+        if (!roamPaused && !focusedObject) roaming.zoom(-direction * 0.18);
+        return;
+      }
       const delta = camera.position.clone().sub(controls.target);
       delta.multiplyScalar(direction > 0 ? 0.83 : 1.2);
       delta.clampLength(controls.minDistance, controls.maxDistance);
@@ -3105,6 +3156,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       host.removeEventListener('pointerleave', pointerLeave);
       host.removeEventListener('pointerup', pointerUp);
       host.removeEventListener('pointercancel', pointerCancel);
+      host.removeEventListener('lostpointercapture', pointerLost);
+      host.removeEventListener('wheel', roamWheel);
+      window.removeEventListener('blur', pointerCancel);
       windowEnvironment.dispose();
       occlusion.dispose();
       computerScreen.dispose();

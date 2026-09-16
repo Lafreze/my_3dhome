@@ -11,6 +11,7 @@ export function refineVisitorSeated(parts: VisitorPart[]) {
     fox: 0.06,
     noir: 0.025,
     rose: 0.025,
+    ivory: 0.025,
   }[kind];
   const smooth = T.MathUtils.smoothstep;
   for (const part of parts.filter((p) => p.pose === 'sit')) {

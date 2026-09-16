@@ -507,6 +507,8 @@ export function buildHouse(k: Kit) {
       g.position.set(side === 'left' ? -3.91 : 3.91, 0, 0);
       g.rotation.y = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
     }
+    // The window wrapper lives at the room origin; interaction follows the actual window bay.
+    parent.userData.roamPoints = [g.position.clone()];
     const span = side === 'back' ? 8 : 6.8;
     b(
       g,
@@ -1415,6 +1417,9 @@ export function buildHouse(k: Kit) {
   });
   bedsideShade.emissive.set('#ffd697');
   const bedside = group('bedroom', 'bedsideLamp');
+  bedside.userData.roamPoints = [-2.55, 1.54].map(
+    (x) => new T.Vector3(x, 0.742, -1.98),
+  );
   for (const x of [-2.55, 1.54]) {
     const stand = child(roots.bedroom, x, 0, -1.94);
     feet(stand, 0.49, 0.51, 0.14);

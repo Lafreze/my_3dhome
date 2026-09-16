@@ -7,6 +7,7 @@ export const handProfiles: Record<Character, { palm: Point; eye: Point }> = {
   cat: { palm: [-0.235, 0.087, 0.185], eye: [0, 0.52, 0.225] },
   fox: { palm: [-0.12, 0.18, 0.32], eye: [0, 0.45, 0.26] },
   noir: { palm: [-0.23, 0.09, 0.155], eye: [0, 0.57, 0.225] },
+  ivory: { palm: [-0.23, 0.07, 0.17], eye: [0, 0.49, 0.2] },
   rose: { palm: [-0.22, 0.1, 0.185], eye: [0, 0.48, 0.205] },
 };
 

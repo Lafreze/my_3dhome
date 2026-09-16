@@ -1292,6 +1292,44 @@
       "sourceSha256": "a8670e80f203bd031ac3c80f0f606383be51a0ee108e016fa19cad6b9bd373e7",
       "approval": "approved",
       "delivery": "origin"
+    },
+    {
+      "id": "character.ivory.sit",
+      "source": "public/models/studio-visitor-ivory-v3.glb",
+      "path": "models/characters/ivory/sit.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User-supplied hi3d-white-boy_1.glb; 48k triangles, 1K original PBR textures; continuous seated derivative and intact standing body for walking/rest",
+      "approval": "pending"
+    },
+    {
+      "id": "character.ivory.rest",
+      "source": "public/models/studio-visitor-ivory-standing-v5.glb",
+      "path": "models/characters/ivory/rest.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User-supplied hi3d-white-boy_1.glb; 48k triangles, 1K original PBR textures; continuous seated derivative and intact standing body for walking/rest",
+      "approval": "pending"
     }
   ]
 }

@@ -264,7 +264,7 @@ export default function VisitorSeats({
         localStorage.setItem('satori-visitor-name', name.trim());
         localStorage.setItem(appearanceStorageKey, JSON.stringify(appearance));
         onClose();
-        onNotice('造型已收好，下次入座就会穿上。');
+        onNotice('造型已换好。');
         return;
       }
       const response = await fetch('/api/presence', {

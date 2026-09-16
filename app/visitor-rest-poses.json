@@ -33,5 +33,12 @@
     "lift": 0.1639687,
     "lengthOffset": 0,
     "labelHeight": 0.61
+  },
+  "ivory": {
+    "scale": 1,
+    "pitch": 0.14,
+    "lift": 0.1396797,
+    "lengthOffset": 0,
+    "labelHeight": 0.56
   }
 }

@@ -75,9 +75,10 @@ export function createVisitorEyelids(
   parts: VisitorPart[],
   character: Character,
 ): VisitorPart {
-  const newFigure = character === 'noir' || character === 'rose';
+  const newFigure =
+    character === 'noir' || character === 'rose' || character === 'ivory';
   const traced =
-    character === 'noir' || character === 'rose'
+    character === 'noir' || character === 'rose' || character === 'ivory'
       ? figures[character].eyelids
       : eyes[character].map((eye) =>
           eye.map(([x, upper, lower]) => [
