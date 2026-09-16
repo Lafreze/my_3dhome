@@ -19,13 +19,19 @@ export function pillowGeometry(width: number, height: number, depth: number) {
         Math.sin(Math.atan2(nz, nx) * 3)) *
       rim *
       0.002;
+    const gathered =
+      Math.max(0, ny) *
+      Math.exp(-Math.abs(ny) * 3.8) *
+      (Math.sin(x * 48 + z * 9) + Math.sin(z * 58 - x * 7)) *
+      0.012;
     const center = Math.exp(
       -((x / width + 0.07) ** 2 + (z / depth - 0.06) ** 2) * 28,
     );
     const y =
       (signed(ny, 0.8) * height) / 2 +
       wrinkle -
-      Math.max(0, ny) * center * height * 0.14;
+      Math.max(0, ny) * center * height * 0.14 +
+      gathered;
     positions.setXYZ(i, x, y, z);
     uv.setXY(i, x / width + 0.5, z / depth + 0.5);
   }
@@ -82,10 +88,16 @@ export function drapedLinen(
         0.016 *
         Math.exp(-((u - width * 0.2) ** 2) * 2) +
       Math.sin(v * 3.5 + u) * 0.009;
+    const edgeGather = Math.exp(-((Math.abs(u) - width * 0.42) ** 2) * 26);
+    const creases =
+      Math.sin(v * 21 + u * 4) * 0.007 * edgeGather +
+      Math.sin(u * 19 - v * 3) *
+        0.004 *
+        Math.exp(-((v + depth * 0.4) ** 2) * 24);
     p.setXYZ(
       i,
       x + Math.sin(v * 6 + 0.7) * overX * 0.025,
-      folds * 0.48 -
+      0.023 * Math.tanh((folds * 0.48 + creases) / 0.023) -
         Math.max(overX * (asymmetric && u < 0 ? 0.75 : 1), overZ) * 0.95,
       z + Math.sin(u * 5.2) * overZ * 0.03,
     );

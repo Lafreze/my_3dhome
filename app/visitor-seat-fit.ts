@@ -1,4 +1,8 @@
 import * as T from 'three';
+import {
+  visitorSeatedArmWeight,
+  relaxedVisitorArm,
+} from './visitor-arm-pose.ts';
 import type { VisitorPart } from './visitor-model';
 
 /** Local, static tailoring only. Standing and lying artwork retain their original shape. */
@@ -16,7 +20,9 @@ export function refineVisitorSeated(parts: VisitorPart[]) {
   const smooth = T.MathUtils.smoothstep;
   for (const part of parts.filter((p) => p.pose === 'sit')) {
     const geometry = part.geometry,
-      position = geometry.getAttribute('position');
+      position = geometry.getAttribute('position'),
+      standing = geometry.getAttribute('visitorStandPosition');
+    const relaxed = new T.Vector3();
     for (let i = 0; i < position.count; i++) {
       const x = position.getX(i),
         y = position.getY(i),
@@ -42,7 +48,18 @@ export function refineVisitorSeated(parts: VisitorPart[]) {
           smooth(z, 0.03, 0.1);
         nextZ += 0.07 * hem;
       }
-      position.setXYZ(i, x, nextY, nextZ + clearance);
+      let nextX = x;
+      if (standing && !part.eyelid) {
+        const sx = standing.getX(i),
+          sy = standing.getY(i),
+          sz = standing.getZ(i);
+        const weight = visitorSeatedArmWeight(kind, sx, sy, sz);
+        relaxedVisitorArm(kind, sx, sy, sz, relaxed);
+        nextX = T.MathUtils.lerp(x, relaxed.x, weight);
+        nextY = T.MathUtils.lerp(nextY, relaxed.y, weight);
+        nextZ = T.MathUtils.lerp(nextZ, relaxed.z, weight);
+      }
+      position.setXYZ(i, nextX, nextY, nextZ + clearance);
     }
     // Eyelid meshes are separate surfaces and must follow the same small seat offset.
     const open = geometry.getAttribute('visitorLidOpen');

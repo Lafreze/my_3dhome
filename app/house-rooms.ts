@@ -1,4 +1,5 @@
 import { furnitureSuite, refinedTabletop } from './furniture-suite';
+import { bedroomMaterials, fitPlasterGrain } from './bedroom-materials';
 import { paintingTexture } from './painting-textures';
 import { RecordMechanism } from './record-mechanism';
 import { createInteriorDoor } from './interior-doors';
@@ -76,6 +77,7 @@ type Kit = {
 };
 export function buildHouse(k: Kit) {
   const suite = furnitureSuite(k.materials, k.textures, k.assets);
+  const bedroom = bedroomMaterials(k.materials, k.textures, k.assets);
   const {
     materials,
     textures,
@@ -136,6 +138,7 @@ export function buildHouse(k: Kit) {
   const curtainCloth = k.textile('#e8e0cf');
   curtainCloth.side = T.DoubleSide;
   k.breeze.add(curtainCloth, true);
+  k.breeze.add(bedroom.curtain, true);
   const finishes = houseFinishes(materials, textures, k);
   const fabric = k.textile;
   const finish = (
@@ -148,13 +151,11 @@ export function buildHouse(k: Kit) {
     black = mat('#171c1c', 0.48);
   const ivoryCloth = finish('linen', '#dfd5c6'),
     sofaCloth = finish('boucle', furnitureColors.livingSofa[0]),
-    bedCloth = finish('cotton', furnitureColors.sleepBed[0]),
-    blanketCloth = finish('wool', beddingThrows[0]),
+    bedCloth = bedroom.cotton,
+    blanketCloth = bedroom.wool,
     bedroomLounge = finish('boucle', '#eee8dd'),
     benchLeather = finish('leather', '#d9cebc');
-  const terracottaWall = cream.clone();
-  terracottaWall.color.set('#eee5d4');
-  materials.push(terracottaWall);
+  const terracottaWall = bedroom.wall;
   const galleryWall = cream.clone();
   galleryWall.color.set('#e6ddc9');
   materials.push(galleryWall);
@@ -181,6 +182,7 @@ export function buildHouse(k: Kit) {
     z = 0,
   ) {
     fitTimberGrain(geo, m);
+    if (m === bedroom.wall) fitPlasterGrain(geo);
     const obj = new T.Mesh(geo, m);
     obj.position.set(x, y, z);
     obj.castShadow = true;
@@ -477,7 +479,12 @@ export function buildHouse(k: Kit) {
     const p = group(id);
     floors[id] = p;
     b(p, 8, 0.4, 6.8, 0, -0.23, 0, paleWood, 0.04);
-    addOakFloor(p, 7.92, 6.67, k.floorMaterials);
+    addOakFloor(
+      p,
+      7.92,
+      6.67,
+      id === 'bedroom' ? bedroom.floor : k.floorMaterials,
+    );
     for (const item of Object.values(houseFurniture[id])) {
       const patch = mesh(
         p,
@@ -568,7 +575,7 @@ export function buildHouse(k: Kit) {
         const drape = mesh(
           curtainGroup,
           curtainGeometry(room === 'bedroom' ? 0.63 : 0.5),
-          curtainCloth,
+          room === 'bedroom' ? bedroom.curtain : curtainCloth,
           side * 1.85,
           0.03,
           0.19,
@@ -1406,7 +1413,12 @@ export function buildHouse(k: Kit) {
         blanketCloth,
       );
   const bedRug = group('bedroom');
-  b(bedRug, 4.18, 0.028, 4.39, -0.5, 0.098, 0.05, ivoryCloth, 0.08);
+  b(bedRug, 4.18, 0.028, 4.39, -0.5, 0.098, 0.05, bedroom.rug, 0.08);
+  // A bound edge gives the wool rug a visible thickness against the timber floor.
+  for (const x of [-2.568, 1.568])
+    b(bedRug, 0.018, 0.012, 4.24, x, 0.113, 0.05, bedroom.linen, 0.005);
+  for (const z of [-2.13, 2.23])
+    b(bedRug, 4.03, 0.012, 0.018, -0.5, 0.113, z, bedroom.linen, 0.005);
   const lamps: T.PointLight[] = [];
   const bedsideShade = fabric('#e8d4ae');
   Object.assign(bedsideShade, {
@@ -1426,7 +1438,7 @@ export function buildHouse(k: Kit) {
     b(stand, 0.66, 0.49, 0.69, 0, 0.42, 0, suite.timber, 0.04);
     b(stand, 0.59, 0.2, 0.035, 0, 0.48, 0.356, suite.timber, 0.015);
     b(stand, 0.16, 0.014, 0.03, 0, 0.48, 0.385, brass, 0.005);
-    refinedTabletop(stand, 0.72, 0.75, 0.7365, suite);
+    refinedTabletop(stand, 0.72, 0.75, 0.7365, suite, false, true);
     const light = child(bedside, x, 0.742, -1.98);
     cyl(light, 0.12, 0.15, 0.045, 0, 0.023, 0, brass);
     cyl(light, 0.018, 0.018, 0.3, 0, 0.18, 0, brass);
@@ -2050,11 +2062,23 @@ export function buildHouse(k: Kit) {
     mount.position.set(spec.x, 0, spec.z);
     mount.rotation.y = spec.yaw;
     k.scene.add(mount);
-    const timber = spec.style === 'solid' ? suite.timber : suite.pale;
-    const door = createInteriorDoor(mount, 0, timber, brass, materials, {
-      style: spec.style,
-      side: spec.side,
-    });
+    const bedroomDoor = spec.rooms.some((room) => room === 'bedroom');
+    const timber = bedroomDoor
+      ? bedroom.wood
+      : spec.style === 'solid'
+        ? suite.timber
+        : suite.pale;
+    const door = createInteriorDoor(
+      mount,
+      0,
+      timber,
+      bedroomDoor ? bedroom.metal : brass,
+      materials,
+      {
+        style: spec.style,
+        side: spec.side,
+      },
+    );
     door.root.name = `Room door / ${spec.id}`;
     door.root.userData.id = spec.id;
     k.interactables.push(door.root);
@@ -2110,6 +2134,17 @@ export function buildHouse(k: Kit) {
       }
     }
   }
+  const bedroomPalette = new Map<T.Material, T.Material>([
+    [oak, bedroom.wood],
+    [suite.timber, bedroom.wood],
+    [paleWood, bedroom.pale],
+    [suite.pale, bedroom.pale],
+    [darkWood, bedroom.dark],
+    [suite.edge, bedroom.dark],
+    [cream, bedroom.wall],
+    [ivoryCloth, bedroom.linen],
+    [brass, bedroom.metal],
+  ]);
   // Assign independent finishes before batching, preserving the live upholstery controls.
   for (const room of ['living', 'bedroom', 'gallery'] as const) {
     const finish = finishes[room],
@@ -2121,6 +2156,13 @@ export function buildHouse(k: Kit) {
     ]);
     const remap = (m: T.Material): T.Material => {
       if (cache.has(m)) return cache.get(m)!;
+      if (room === 'bedroom') {
+        const replacement = bedroomPalette.get(m);
+        if (replacement) {
+          cache.set(m, replacement);
+          return replacement;
+        }
+      }
       if (
         !(m instanceof T.MeshStandardMaterial) ||
         m === glass ||
@@ -2169,10 +2211,15 @@ export function buildHouse(k: Kit) {
       return next;
     };
     roots[room].traverse((o) => {
-      if (o instanceof T.Mesh)
+      if (o instanceof T.Mesh) {
         o.material = Array.isArray(o.material)
           ? o.material.map(remap)
           : remap(o.material);
+        if (room === 'bedroom' && !Array.isArray(o.material)) {
+          if (o.material === bedroom.wall) fitPlasterGrain(o.geometry);
+          else fitTimberGrain(o.geometry, o.material);
+        }
+      }
     });
     pictureMaterials.forEach((entry) => {
       entry.material = (cache.get(entry.material) ||

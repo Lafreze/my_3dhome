@@ -143,6 +143,8 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
   model.root.userData.bones = bones.length;
   let initialized = false,
     sitBlend = 0,
+    walkBlend = 0,
+    walkPhase = 0,
     crouchBlend = 0,
     headPitch = 0,
     headYaw = 0,
@@ -170,19 +172,17 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     seatedMeshes.forEach((mesh) => {
       mesh.morphTargetInfluences![0] = sitBlend;
     });
-    const walk =
-      state === 'walk' && !reduced
-        ? Math.sin(
-            ((motion?.travelDistance ?? t * 0.62) / 0.68) * Math.PI * 2,
-          ) *
-          (1 - sitBlend) *
-          0.08
-        : 0;
+    walkBlend += ((state === 'walk' && !reduced ? 1 : 0) - walkBlend) * blend;
+    if (state === 'walk')
+      walkPhase = ((motion?.travelDistance ?? t * 0.62) / 0.68) * Math.PI * 2;
+    const walk = reduced
+      ? 0
+      : Math.sin(walkPhase) * walkBlend * (1 - sitBlend) * 0.08;
     legs.forEach((leg, i) => {
       const stride = walk * (i ? 1 : -1);
       leg.thigh.rotation.x = 0.6 * crouchBlend + stride;
-      leg.shin.rotation.x = -1.05 * crouchBlend;
-      leg.foot.rotation.x = 0.35 * crouchBlend;
+      leg.shin.rotation.x = -1.05 * crouchBlend - Math.max(0, stride) * 0.45;
+      leg.foot.rotation.x = 0.35 * crouchBlend - stride * 0.2;
     });
     spine.rotation.x = 0.2 * crouchBlend;
     // This supplied model has a neutral neck: never apply the old model's roll correction.

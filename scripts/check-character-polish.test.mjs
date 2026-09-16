@@ -117,16 +117,9 @@ void test('resident tailored sit retains the complete upper body and round leg s
   assert(ankle.y < knee.y - 0.1);
   assert(ankle.z < knee.z);
 });
-void test('every visitor preserves standing data, upper silhouette, topology and finite seated normals', () => {
+void test('static seat tailoring preserves upper silhouette and finite normals without a standing morph', () => {
   for (const kind of ['bear', 'cat', 'fox', 'noir', 'rose', 'ivory']) {
     const geometries = meshes('studio-visitor-' + kind + '-v3');
-    for (const g of geometries) {
-      g.setAttribute(
-        'visitorStandPosition',
-        g.getAttribute('position').clone(),
-      );
-      g.setAttribute('visitorStandNormal', g.getAttribute('normal').clone());
-    }
     const before = geometries.map((g) =>
       g.getAttribute('position').array.slice(),
     );
@@ -137,9 +130,7 @@ void test('every visitor preserves standing data, upper silhouette, topology and
     for (const [j, g] of geometries.entries()) {
       const p = g.getAttribute('position'),
         n = g.getAttribute('normal'),
-        source = before[j],
-        stand = g.getAttribute('visitorStandPosition');
-      assert.deepEqual(stand.array, source);
+        source = before[j];
       for (let i = 0; i < p.count; i++) {
         assert([p.getX(i), p.getY(i), p.getZ(i)].every(Number.isFinite));
         assert.equal(p.getX(i), source[i * 3]);

@@ -3,6 +3,7 @@ import type { Character } from './visitor-appearance';
 import { visitorRestMatrix } from './visitor-rest.ts';
 import figures from './visitor-figure-profiles.json' with { type: 'json' };
 import { configureCharacterSurface } from './character-surface.ts';
+import { visitorArmWeight } from './visitor-arm-pose.ts';
 
 // Metres in the seated model's coordinate system; the cushion is y = 0.
 export const motionRig = {
@@ -87,7 +88,7 @@ export function prepareMotionGeometry(
   character: Character,
 ) {
   const position = geometry.getAttribute('position');
-  const weights = new Float32Array(position.count * 2);
+  const weights = new Float32Array(position.count * 4);
   for (let i = 0; i < position.count; i++) {
     const [head, chest] = visitorWeights(
       character,
@@ -95,15 +96,41 @@ export function prepareMotionGeometry(
       position.getY(i),
       position.getZ(i),
     );
-    weights[i * 2] = head;
-    weights[i * 2 + 1] = chest;
+    weights[i * 4] = head;
+    weights[i * 4 + 1] = chest;
   }
-  geometry.setAttribute('visitorWeights', new T.BufferAttribute(weights, 2));
+  geometry.setAttribute('visitorWeights', new T.BufferAttribute(weights, 4));
   if (!geometry.hasAttribute('visitorBlinkDelta'))
     geometry.setAttribute(
       'visitorBlinkDelta',
       new T.BufferAttribute(new Float32Array(position.count * 3), 3),
     );
+}
+
+/** Bind limb influence on the intact pose, so low-hanging hands never inherit the leg stride. */
+export function prepareVisitorLimbs(
+  geometry: T.BufferGeometry,
+  character: Character,
+) {
+  const p =
+    geometry.getAttribute('visitorStandPosition') ||
+    geometry.getAttribute('position');
+  if (!geometry.hasAttribute('visitorWeights'))
+    prepareMotionGeometry(geometry, character);
+  const weights = geometry.getAttribute('visitorWeights');
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i),
+      y = p.getY(i),
+      z = p.getZ(i);
+    const arm = visitorArmWeight(character, x, y, z);
+    const leg =
+      (1 - smooth(-0.04, 0.045, y)) *
+      smooth(0.012, 0.075, Math.abs(x)) *
+      (1 - arm);
+    weights.setZ(i, character === 'fox' ? leg * smooth(-0.11, -0.035, z) : leg);
+    weights.setW(i, arm * (1 - smooth(0.16, 0.25, y)));
+  }
+  weights.needsUpdate = true;
 }
 
 // Shared by the color, shadow and preview passes. Motion is per instance, not per mesh.
@@ -121,7 +148,7 @@ export function configureVisitorMotion(
   const rig = motionRig[character];
   const restTransform = { value: visitorRestMatrix(character) };
   material.customProgramCacheKey = () =>
-    `${previousKey}/puppet-v5/${character}/${instanced}/${eyelid}`;
+    `${previousKey}/puppet-v6/${character}/${instanced}/${eyelid}`;
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
     shader.uniforms.visitorMotion = state;
@@ -130,23 +157,35 @@ export function configureVisitorMotion(
     shader.uniforms.visitorRestTransform = restTransform;
     shader.vertexShader =
       `
-      attribute vec2 visitorWeights;
+      attribute vec4 visitorWeights;
       attribute vec3 visitorStandPosition;
       attribute vec3 visitorStandNormal;
       ${instanced ? 'attribute vec4 visitorInstanceActivity;' : 'uniform vec4 visitorActivity;'}
       vec4 visitorAction() { return ${instanced ? 'visitorInstanceActivity' : 'visitorActivity'}; }
+      float visitorStride() {
+        vec4 action = visitorAction();
+        return action.x * (action.z < -.5 ? action.w : step(.001, abs(action.y)));
+      }
+      mat3 visitorArmTurn() {
+        vec4 action = visitorAction();
+        float angle = sin(action.y + (visitorStandPosition.x < 0. ? 3.14159265 : 0.))
+          * .13 * visitorWeights.w * visitorStride() * step(.5, -action.z);
+        float c = cos(angle), s = sin(angle);
+        return mat3(1.,0.,0., 0.,c,s, 0.,-s,c);
+      }
       vec3 visitorGait(vec3 p) {
         vec4 action = visitorAction();
-        float weight = (1. - smoothstep(-.04, .045, p.y)) * smoothstep(.012, .075, abs(p.x));
-        ${character === 'fox' ? 'weight *= smoothstep(-.11, -.035, p.z);' : ''}
+        float weight = visitorWeights.z;
         float phase=fract(action.y / 6.2831853 + (p.x < 0. ? .5 : 0.));
         float swing=max(0.,(phase-.6)/.4);
         float stepZ=phase<.6 ? .108-.36*phase : -.108+.216*(swing*swing*(3.-2.*swing));
-        float enabled=action.x*step(.001,abs(action.y));
+        float enabled=visitorStride();
         // Negative activity identifies free walking; shared seated activities keep their gentle gait.
         float walking = step(.5, -action.z);
         p.z += stepZ*mix(.12, 1., walking)*weight*enabled;
         p.y += sin(swing*3.14159265)*mix(.008, .045, walking)*weight*enabled;
+        vec3 shoulder = vec3(p.x, .22, .015);
+        p = shoulder + visitorArmTurn() * (p - shoulder);
         return p;
       }
       attribute vec3 visitorBlinkDelta;
@@ -196,9 +235,9 @@ export function configureVisitorMotion(
         objectNormal = normalize(mix(objectNormal, visitorStandNormal, visitorAction().x));
         mat3 visitorNormalTransform = visitorResting() > .5 ? mat3(visitorRestTransform) : visitorTurn(visitorNormalState.y * visitorWeights.x,
           visitorNormalState.w * visitorWeights.x);
-        objectNormal = normalize(visitorNormalTransform * objectNormal);
+        objectNormal = normalize(visitorNormalTransform * visitorArmTurn() * objectNormal);
         #ifdef USE_TANGENT
-          objectTangent = normalize(visitorNormalTransform * objectTangent);
+          objectTangent = normalize(visitorNormalTransform * visitorArmTurn() * objectTangent);
         #endif`,
       );
   };

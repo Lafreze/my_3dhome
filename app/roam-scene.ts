@@ -48,6 +48,7 @@ export function createRoamScene(
     targetKey = '',
     scan = 0,
     gait = 0,
+    stride = 0,
     loaded = false,
     loading = false,
     reloadRequested = false;
@@ -264,6 +265,7 @@ export function createRoamScene(
     },
     enable(value: boolean, nextRoom: RoomId) {
       enabled = value;
+      stride = 0;
       input = velocity = [0, 0];
       running = false;
       root.visible = value;
@@ -353,6 +355,9 @@ export function createRoamScene(
         position[2],
       );
       sampleVisitorMotion(time, 731, reduced, state.value);
+      // Settle at the current step instead of snapping both feet to phase zero.
+      const moving = distance > 0.0001 && !reduced && !paused;
+      stride = reduced ? 0 : T.MathUtils.damp(stride, moving ? 1 : 0, 12, dt);
       for (const a of animated) {
         a.motion.setXYZW(
           0,
@@ -361,7 +366,7 @@ export function createRoamScene(
           state.value.z,
           state.value.w,
         );
-        a.action.setXY(0, 1, distance > 0.0001 && !reduced ? gait : 0);
+        a.action.setXYZW(0, 1, gait, -1, stride);
         a.motion.needsUpdate = a.action.needsUpdate = true;
       }
       const next = roomAt(position[0], position[2]);

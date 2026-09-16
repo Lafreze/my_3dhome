@@ -5,7 +5,7 @@ import * as T from 'three';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
 import { createVisitorEyelids } from './visitor-eyelids';
 import { prepareRestGeometry } from './visitor-rest';
-import { prepareMotionGeometry } from './visitor-motion';
+import { prepareMotionGeometry, prepareVisitorLimbs } from './visitor-motion';
 import {
   appearanceOptions,
   type Appearance,
@@ -182,6 +182,7 @@ async function loadCharacter(character: Character) {
     const parts = [...seated, ...standing];
     await prepareStandingMorph(parts);
     refineVisitorSeated(parts);
+    parts.forEach((part) => prepareVisitorLimbs(part.geometry, character));
     for (const pose of ['sit', 'rest']) {
       const geometries = parts
         .filter((p) => p.pose === pose && !p.eyelid)
