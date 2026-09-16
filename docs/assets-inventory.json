@@ -1,5 +1,5 @@
 {
-  "version": "4ee544c703663335",
+  "version": "672befa0e1131320",
   "roomSizes": {
     "study": {
       "bytes": 9690284,
@@ -23,8 +23,8 @@
     }
   },
   "commonCharacters": {
-    "files": 18,
-    "bytes": 37691596
+    "files": 20,
+    "bytes": 40928592
   },
   "pending": [
     "character.bear.sit",
@@ -42,7 +42,9 @@
     "character.rose.sit",
     "character.rose.rest",
     "character.ivory.sit",
-    "character.ivory.rest"
+    "character.ivory.rest",
+    "character.dusk.sit",
+    "character.dusk.rest"
   ],
   "inventory": [
     {
@@ -376,6 +378,16 @@
       "classification": "excluded-unused-or-documentation"
     },
     {
+      "path": "public/models/studio-visitor-dusk-standing-v5.glb",
+      "bytes": 1618468,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/studio-visitor-dusk-v3.glb",
+      "bytes": 1618528,
+      "classification": "catalogued-production"
+    },
+    {
       "path": "public/models/studio-visitor-fox-standing-v5.glb",
       "bytes": 3666740,
       "classification": "catalogued-production"
@@ -428,6 +440,11 @@
     {
       "path": "public/models/studio-visitor.glb",
       "bytes": 1477064,
+      "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/visitor-dusk.json",
+      "bytes": 1202,
       "classification": "excluded-unused-or-documentation"
     },
     {

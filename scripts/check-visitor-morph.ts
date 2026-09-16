@@ -50,7 +50,15 @@ function read(character: string, pose: 'sit' | 'rest') {
       },
     );
 }
-for (const character of ['bear', 'cat', 'fox', 'noir', 'rose', 'ivory']) {
+for (const character of [
+  'bear',
+  'cat',
+  'fox',
+  'noir',
+  'rose',
+  'ivory',
+  'dusk',
+]) {
   const parts = [...read(character, 'sit'), ...read(character, 'rest')],
     start = performance.now();
   await prepareStandingMorph(parts);

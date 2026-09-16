@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { Matrix4, Vector3, Quaternion, Box3 } from 'three';
 import seats from '../app/seat-catalog.json' with { type: 'json' };
 import appearances from '../app/visitor-appearance.json' with { type: 'json' };
+import { humanScale } from '../app/character-scale.mjs';
 const results = [];
 for (const { id: character } of appearances.characters) {
   const buffer = readFileSync(
@@ -85,8 +86,9 @@ for (const { id: character } of appearances.characters) {
   assert(buffer.length < 5_000_000, 'Local web asset size budget');
   assert(
     triangles >
-      (['noir', 'rose', 'ivory'].includes(character) ? 47_000 : 80_000) &&
-      triangles < 110_000,
+      (['noir', 'rose', 'ivory', 'dusk'].includes(character)
+        ? 47_000
+        : 80_000) && triangles < 110_000,
     'Detailed silhouette within rendering budget',
   );
   assert(
@@ -95,7 +97,7 @@ for (const { id: character } of appearances.characters) {
   );
   assert(contact > 20, 'A continuous seat contact patch is required');
   assert(
-    !feet.isEmpty() && feet.max.z > (character === 'fox' ? 0.4 : 0.45),
+    !feet.isEmpty() && feet.max.z * humanScale(character) > 0.45,
     'Boots extend forward as in the sitting reference',
   );
   for (const seat of seats)

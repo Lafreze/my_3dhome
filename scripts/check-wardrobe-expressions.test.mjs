@@ -2,57 +2,59 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPresenceStore } from './seat-presence.mjs';
 import expressions from '../app/visitor-expressions.json' with { type: 'json' };
+import appearances from '../app/visitor-appearance.json' with { type: 'json' };
 
-test('wardrobe changes only the owner appearance, preserving seat and resting posture', () => {
-  const store = createPresenceStore({ now: () => 1000 });
-  store.mutate('me', {
-    action: 'rest',
-    seatId: 'bedroom-bed-left',
-    name: '栗栗',
+for (const { id: character, label } of appearances.characters)
+  test(`wardrobe selects ${character} while preserving the owner seat, rest and other visitors`, () => {
+    const store = createPresenceStore({ now: () => 1000 });
+    store.mutate('me', {
+      action: 'rest',
+      seatId: 'bedroom-bed-left',
+      name: '栗栗',
+    });
+    store.mutate('other', {
+      action: 'sit',
+      seatId: 'cafe-chair-1',
+      name: '绯音',
+    });
+    const result = store.mutate('me', {
+      action: 'appearance',
+      name: label,
+      appearance: { character },
+      seatId: 'cafe-chair-1',
+    });
+    const own = result.visitors.find((v) => v.id === result.me),
+      other = result.visitors.find((v) => v.id !== result.me);
+    assert.equal(own.name, label);
+    assert.equal(own.appearance.character, character);
+    assert.equal(own.seatId, 'bedroom-bed-left');
+    assert.equal(own.posture, 'rest');
+    assert(!own.journey);
+    assert.equal(other.name, '绯音');
+    assert.equal(other.seatId, 'cafe-chair-1');
+    assert.throws(
+      () =>
+        store.mutate('me', {
+          action: 'appearance',
+          name: '<x>',
+          appearance: { character: 'bear' },
+        }),
+      /名字/,
+    );
+    assert.throws(
+      () =>
+        store.mutate('me', {
+          action: 'appearance',
+          name: '栗栗',
+          appearance: { character: 'invalid' },
+        }),
+      /外观/,
+    );
+    assert.equal(
+      store.snapshot('me').visitors.find((v) => v.id === result.me).name,
+      label,
+    );
   });
-  store.mutate('other', {
-    action: 'sit',
-    seatId: 'cafe-chair-1',
-    name: '绯音',
-  });
-  const result = store.mutate('me', {
-    action: 'appearance',
-    name: '白凛',
-    appearance: { character: 'ivory' },
-    seatId: 'cafe-chair-1',
-  });
-  const own = result.visitors.find((v) => v.id === result.me),
-    other = result.visitors.find((v) => v.id !== result.me);
-  assert.equal(own.name, '白凛');
-  assert.equal(own.appearance.character, 'ivory');
-  assert.equal(own.seatId, 'bedroom-bed-left');
-  assert.equal(own.posture, 'rest');
-  assert(!own.journey);
-  assert.equal(other.name, '绯音');
-  assert.equal(other.seatId, 'cafe-chair-1');
-  assert.throws(
-    () =>
-      store.mutate('me', {
-        action: 'appearance',
-        name: '<x>',
-        appearance: { character: 'bear' },
-      }),
-    /名字/,
-  );
-  assert.throws(
-    () =>
-      store.mutate('me', {
-        action: 'appearance',
-        name: '栗栗',
-        appearance: { character: 'invalid' },
-      }),
-    /外观/,
-  );
-  assert.equal(
-    store.snapshot('me').visitors.find((v) => v.id === result.me).name,
-    '白凛',
-  );
-});
 test('expressions are shared, rate limited, cannot puppeteer another visitor, and expire', () => {
   let clock = 1000;
   const store = createPresenceStore({ now: () => clock });

@@ -152,8 +152,9 @@ for (const { id: character } of appearances.characters) {
   }
   assert(
     triangles >
-      (['noir', 'rose', 'ivory'].includes(character) ? 47_000 : 95_000) &&
-      triangles < 110_000,
+      (['noir', 'rose', 'ivory', 'dusk'].includes(character)
+        ? 47_000
+        : 95_000) && triangles < 110_000,
   );
   assert(
     resting.min.y >= 0.009 && resting.max.y < 0.8,

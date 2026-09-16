@@ -173,6 +173,11 @@
       "id": "ivory",
       "label": "白凛",
       "labelHeight": 0.94
+    },
+    {
+      "id": "dusk",
+      "label": "夜凛",
+      "labelHeight": 0.98
     }
   ],
   "characterColors": {
@@ -211,6 +216,12 @@
       "eyeColor": "#a87791",
       "topColor": "#38343c",
       "bottomColor": "#333137"
+    },
+    "dusk": {
+      "hairColor": "#3d3a41",
+      "eyeColor": "#b47796",
+      "topColor": "#343137",
+      "bottomColor": "#333139"
     }
   }
 }

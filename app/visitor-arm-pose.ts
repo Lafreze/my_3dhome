@@ -46,13 +46,17 @@ export function visitorArmWeight(
       ? 0.8731751925014212
       : character === 'ivory'
         ? 0.9591046608232041
-        : 1;
+        : character === 'dusk'
+          ? 0.9032441186427257
+          : 1;
   const contact =
     character === 'noir'
       ? 0.40210498347
       : character === 'rose'
         ? 0.44112171454206484
-        : 0.462231048;
+        : character === 'dusk'
+          ? 0.4045870968869326
+          : 0.462231048;
   const height = y / fit + contact;
   return (
     smooth(0.14, 0.21, Math.abs(x / fit)) *

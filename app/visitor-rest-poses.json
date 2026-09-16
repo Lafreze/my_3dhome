@@ -40,5 +40,12 @@
     "lift": 0.1396797,
     "lengthOffset": 0,
     "labelHeight": 0.56
+  },
+  "dusk": {
+    "scale": 1,
+    "pitch": 0.14,
+    "lift": 0.1458707,
+    "lengthOffset": 0,
+    "labelHeight": 0.57
   }
 }

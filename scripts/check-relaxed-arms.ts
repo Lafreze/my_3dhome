@@ -19,6 +19,7 @@ for (const kind of [
   'noir',
   'rose',
   'ivory',
+  'dusk',
 ] as Character[]) {
   const sit = await io.read(`public/models/studio-visitor-${kind}-v3.glb`);
   const stand = await io.read(

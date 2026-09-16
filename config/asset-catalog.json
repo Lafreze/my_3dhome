@@ -1330,6 +1330,44 @@
       "sourceUrl": "",
       "modifications": "User-supplied hi3d-white-boy_1.glb; 48k triangles, 1K original PBR textures; continuous seated derivative and intact standing body for walking/rest",
       "approval": "pending"
+    },
+    {
+      "id": "character.dusk.sit",
+      "source": "public/models/studio-visitor-dusk-v3.glb",
+      "path": "models/characters/dusk/sit.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User-supplied Hi3D-2026-09-16.glb; 48k triangles, 1K original PBR textures; relaxed seated derivative and intact standing body for walking/rest",
+      "approval": "pending"
+    },
+    {
+      "id": "character.dusk.rest",
+      "source": "public/models/studio-visitor-dusk-standing-v5.glb",
+      "path": "models/characters/dusk/rest.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User-supplied Hi3D-2026-09-16.glb; 48k triangles, 1K original PBR textures; relaxed seated derivative and intact standing body for walking/rest",
+      "approval": "pending"
     }
   ]
 }
