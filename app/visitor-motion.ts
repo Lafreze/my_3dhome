@@ -14,6 +14,7 @@ export const motionRig = {
   rose: figures.rose.motionRig,
   ivory: figures.ivory.motionRig,
   dusk: figures.dusk.motionRig,
+  ribbon: figures.ribbon.motionRig,
 } satisfies Record<Character, object>;
 
 const smooth = (a: number, b: number, x: number) => {

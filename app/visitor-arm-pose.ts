@@ -48,7 +48,9 @@ export function visitorArmWeight(
         ? 0.9591046608232041
         : character === 'dusk'
           ? 0.9032441186427257
-          : 1;
+          : character === 'ribbon'
+            ? 0.7291830564122577
+            : 1;
   const contact =
     character === 'noir'
       ? 0.40210498347
@@ -56,12 +58,20 @@ export function visitorArmWeight(
         ? 0.44112171454206484
         : character === 'dusk'
           ? 0.4045870968869326
-          : 0.462231048;
+          : character === 'ribbon'
+            ? 0.43813141642026954
+            : 0.462231048;
   const height = y / fit + contact;
+  // The long twin tails end beside the sleeves, but do not belong to the arms.
+  const hairExclusion =
+    character === 'ribbon'
+      ? 1 - smooth(0.275, 0.315, Math.abs(x / fit)) * smooth(0.61, 0.66, height)
+      : 1;
   return (
     smooth(0.14, 0.21, Math.abs(x / fit)) *
     (1 - smooth(0.78, 0.84, height)) *
-    smooth(0.3, 0.4, height)
+    smooth(0.3, 0.4, height) *
+    hairExclusion
   );
 }
 

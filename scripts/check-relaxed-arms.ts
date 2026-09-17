@@ -20,6 +20,7 @@ for (const kind of [
   'rose',
   'ivory',
   'dusk',
+  'ribbon',
 ] as Character[]) {
   const sit = await io.read(`public/models/studio-visitor-${kind}-v3.glb`);
   const stand = await io.read(
@@ -70,6 +71,7 @@ for (const kind of [
   );
   refineVisitorSeated(parts);
   let relaxed = 0,
+    hangingHair = 0,
     displacement = 0,
     spikes = 0;
   const point = new T.Vector3();
@@ -93,6 +95,22 @@ for (const kind of [
         st.getZ(i),
       );
       assert(limbs.getZ(i) >= 0 && limbs.getZ(i) <= 1);
+      if (kind === 'ribbon') {
+        // Sample the actual twin-tail tips beside the sleeves, below the head.
+        const height = st.getY(i) / 0.7291830564122577 + 0.43813141642026954;
+        const side = Math.abs(st.getX(i) / 0.7291830564122577);
+        if (height > 0.67 && height < 0.8 && side > 0.32) {
+          assert(
+            limbs.getW(i) < 0.001,
+            'Twin tails must not inherit arm swing',
+          );
+          assert(
+            Math.abs(a.getY(i) - before[j][i * 3 + 1]) < 1e-6,
+            'Relaxing the sleeves must not pull the hanging hair',
+          );
+          hangingHair++;
+        }
+      }
       if (weight > 1 - 1e-6) {
         assert(
           limbs.getZ(i) < 0.001,
@@ -163,6 +181,8 @@ for (const kind of [
       }
   }
   assert(relaxed > 50, 'Each visitor needs a relaxed hand/sleeve region');
+  if (kind === 'ribbon')
+    assert(hangingHair > 50, 'Twin-tail checks cover the actual sculpt');
   assert.equal(spikes, 0, `${kind}: arms must remain a connected surface`);
   console.log({ kind, relaxed, displacement, spikes });
   if (process.argv.includes('--export')) {

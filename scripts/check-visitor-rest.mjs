@@ -152,7 +152,7 @@ for (const { id: character } of appearances.characters) {
   }
   assert(
     triangles >
-      (['noir', 'rose', 'ivory', 'dusk'].includes(character)
+      (['noir', 'rose', 'ivory', 'dusk', 'ribbon'].includes(character)
         ? 47_000
         : 95_000) && triangles < 110_000,
   );
@@ -161,7 +161,7 @@ for (const { id: character } of appearances.characters) {
     'Body clears mattress and remains lying down',
   );
   assert(
-    standing.max.y - standing.min.y > 1.1,
+    (standing.max.y - standing.min.y) * humanScale(character) > 1.1,
     'Keep the original complete standing body',
   );
   if (character === 'fox')

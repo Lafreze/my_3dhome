@@ -1,5 +1,5 @@
 """Build seated and intact rest derivatives of user supplied visitors.
-blender --background --factory-startup --python scripts/prepare-guest-figures.py -- noir|rose|ivory|dusk /path/source.glb
+blender --background --factory-startup --python scripts/prepare-guest-figures.py -- noir|rose|ivory|dusk|ribbon /path/source.glb
 Use --prepared only for local iteration from output/visitor-pair's normalized inspection export.
 Source files are never changed. No network assets are downloaded.
 """
@@ -8,7 +8,7 @@ import numpy as np
 from pathlib import Path
 from mathutils import Matrix,Vector
 root=Path(__file__).resolve().parents[1];args=sys.argv[sys.argv.index('--')+1:];kind,source=args[0],Path(args[1]);prepared='--prepared' in args
-if kind not in ['noir','rose','ivory','dusk'] or bpy.data.filepath:raise RuntimeError('Fresh document and known character required')
+if kind not in ['noir','rose','ivory','dusk','ribbon'] or bpy.data.filepath:raise RuntimeError('Fresh document and known character required')
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 bpy.ops.import_scene.gltf(filepath=str(source));objects=[o for o in bpy.context.scene.objects if o.type=='MESH'];original=sum(len(o.data.polygons) for o in objects)
 for o in objects:
@@ -32,10 +32,15 @@ hair=(z>.81)&((z>1.02)|(y>-.09)|(abs(x)>.155))
 if kind=='rose':hair&=(r>.22)&(b>g*.96)
 if kind=='ivory':hair=(z>.91)&((z>1.04)|(y>-.10)|(abs(x)>.145))&(np.minimum.reduce([r,g,b])>.35)
 if kind=='dusk':hair=(z>.94)&((z>1.01)|(y>-.09)|(abs(x)>.145))&(np.maximum.reduce([r,g,b])<.5)
+if kind=='ribbon':hair=(z>.65)&((z>.88)|(abs(x)>.22))&(r>g*1.07)&(b>g*1.03)
 eye=(((abs(x)-.075)/.045)**2+((z-.95)/.035)**2<1)&(y<-.12)&(r<.7)
 if kind=='dusk':eye=((((x+.060)/.034)**2+((z-.983)/.024)**2<1)|(((x-.070)/.034)**2+((z-.985)/.024)**2<1))&(y<-.12)&(r<.75)
+if kind=='ribbon':eye=(((abs(x)-.068)/.043)**2+((z-.989)/.029)**2<1)&(y<-.13)&(r<.8)
 top=(z>.51)&(z<.82)&(np.maximum.reduce([r,g,b])<.48)
 bottom=(z>.15)&(z<(.52 if kind in ['noir','ivory','dusk'] else .64))&(abs(x)<.19)&(np.maximum.reduce([r,g,b])<.5)
+if kind=='ribbon':
+ top=(z>.68)&(z<.86)&(np.maximum.reduce([r,g,b])<.48)
+ bottom=(z>.48)&(z<.68)&(abs(x)<.25)&(np.maximum.reduce([r,g,b])<.5)
 category=np.zeros(len(faces),np.int32)
 for i,mask in enumerate([hair,eye,top,bottom],1):category[mask]=i
 m.materials.clear()
@@ -53,11 +58,18 @@ s=np.maximum(0,top-v[:,2]);grid=np.linspace(0,top+.02,4097);angle=np.radians(78)
 ds=grid[1]-grid[0];cy=-np.cumsum(np.sin(angle))*ds;cz=top-np.cumsum(np.cos(angle))*ds;phi=np.interp(s,grid,angle);posed=v.copy();posed[:,1]=np.interp(s,grid,cy)+v[:,1]*np.cos(phi);posed[:,2]=np.interp(s,grid,cz)-v[:,1]*np.sin(phi);posed[v[:,2]>=top]=v[v[:,2]>=top]
 # Legacy figures keep their authored forward bend (relaxed at runtime); new visitors hang their arms naturally.
 arm=smooth(.14,.21,abs(v[:,0]))*(1-smooth(.78,.84,v[:,2]))*smooth(.30,.40,v[:,2]);elbow=.53 if kind in ['noir','ivory','dusk'] else .55
-arms=rotate_x(v,-math.radians(62)*(1-smooth(elbow-.035,elbow+.075,v[:,2])),(0,0,elbow));posed=posed*(1-arm[:,None])+(v if kind=='dusk' else arms)*arm[:,None]
+if kind=='ribbon':arm*=1-smooth(.275,.315,abs(v[:,0]))*smooth(.61,.66,v[:,2])
+arms=rotate_x(v,-math.radians(62)*(1-smooth(elbow-.035,elbow+.075,v[:,2])),(0,0,elbow));posed=posed*(1-arm[:,None])+(v if kind in ['dusk','ribbon'] else arms)*arm[:,None]
 # Keep short skirts draped over the upper thighs with the original surface intact.
 if kind=='rose':
  skirt=(1-smooth(-.12,-.065,v[:,1]))*smooth(.42,.47,v[:,2])*(1-smooth(.61,.66,v[:,2]))*(1-arm)
  posed[:,1]-=.06*skirt;posed[:,2]-=.035*skirt
+if kind=='ribbon':
+ # The flared front hem drapes forward over the lap instead of curling upward with the thighs.
+ skirt=(1-smooth(-.12,-.06,v[:,1]))*smooth(.40,.46,v[:,2])*(1-smooth(.68,.72,v[:,2]))*(1-smooth(.25,.28,abs(v[:,0])))*(1-arm)
+ drop=np.maximum(0,.71-v[:,2])
+ posed[:,1]=posed[:,1]*(1-skirt)+(v[:,1]-.75*drop)*skirt
+ posed[:,2]=posed[:,2]*(1-skirt)+(v[:,2]+.30*drop)*skirt
 rear=(abs(v[:,0])<.15)&(v[:,2]>(.43 if kind in ['noir','ivory','dusk'] else .48))&(v[:,2]<top)&(posed[:,1]>-.06)
 contact=float(np.percentile(posed[rear,2],1))-.006
 # Flatten only a thin continuous rear contact band; feet remain untouched.
@@ -74,7 +86,7 @@ for pose,vertices,suffix in [('sit',posed,'v3'),('rest',standing,'standing-v5')]
 # The original full standing figure reclines as a rigid body; never reverse-deform the sitting mesh.
 upright=np.stack([standing[:,0],standing[:,2],-standing[:,1]],1);pitch=.14;angle=-math.pi/2+pitch;c=math.cos(angle);sn=math.sin(angle);rest=np.stack([upright[:,0],c*upright[:,1]-sn*upright[:,2],sn*upright[:,1]+c*upright[:,2]],1);lift=-float(rest[:,1].min())+.014;rest[:,1]+=lift
 report['restPose']={'scale':1,'pitch':pitch,'lift':round(lift,7),'lengthOffset':0,'labelHeight':round(float(rest[:,1].max())+.14,2)};report['restBounds']=[rest.min(0).tolist(),rest.max(0).tolist()]
-neck=.875 if kind in ['ivory','dusk'] else .815
+neck=.875 if kind in ['ivory','dusk','ribbon'] else .815
 report['motionRig']={'neck':round((neck-contact)*fit,5),'neckZ':.025*fit,'headStart':round((neck-.03-contact)*fit,5),'headEnd':round((neck+.03-contact)*fit,5)}
 (out/f'visitor-{kind}.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report),flush=True)
 # Save both independent derivatives for inspection in a local workshop only.

@@ -86,7 +86,7 @@ for (const { id: character } of appearances.characters) {
   assert(buffer.length < 5_000_000, 'Local web asset size budget');
   assert(
     triangles >
-      (['noir', 'rose', 'ivory', 'dusk'].includes(character)
+      (['noir', 'rose', 'ivory', 'dusk', 'ribbon'].includes(character)
         ? 47_000
         : 80_000) && triangles < 110_000,
     'Detailed silhouette within rendering budget',

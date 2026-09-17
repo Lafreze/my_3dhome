@@ -1368,6 +1368,44 @@
       "sourceUrl": "",
       "modifications": "User-supplied Hi3D-2026-09-16.glb; 48k triangles, 1K original PBR textures; relaxed seated derivative and intact standing body for walking/rest",
       "approval": "pending"
+    },
+    {
+      "id": "character.ribbon.sit",
+      "source": "public/models/studio-visitor-ribbon-v3.glb",
+      "path": "models/characters/ribbon/sit.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User-supplied Hi3D_Untitled_allparts_20260917_231900.glb; 48k triangles, 1K original PBR textures; natural hanging arms and seated skirt, intact standing body for walking/rest",
+      "approval": "pending"
+    },
+    {
+      "id": "character.ribbon.rest",
+      "source": "public/models/studio-visitor-ribbon-standing-v5.glb",
+      "path": "models/characters/ribbon/rest.glb",
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "license": "User-supplied; R2 redistribution pending",
+      "author": "User-supplied; original author unconfirmed",
+      "sourceUrl": "",
+      "modifications": "User-supplied Hi3D_Untitled_allparts_20260917_231900.glb; 48k triangles, 1K original PBR textures; natural hanging arms and seated skirt, intact standing body for walking/rest",
+      "approval": "pending"
     }
   ]
 }

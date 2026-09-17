@@ -58,6 +58,7 @@ for (const character of [
   'rose',
   'ivory',
   'dusk',
+  'ribbon',
 ]) {
   const parts = [...read(character, 'sit'), ...read(character, 'rest')],
     start = performance.now();

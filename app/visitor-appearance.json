@@ -178,6 +178,11 @@
       "id": "dusk",
       "label": "夜凛",
       "labelHeight": 0.98
+    },
+    {
+      "id": "ribbon",
+      "label": "樱铃",
+      "labelHeight": 0.78
     }
   ],
   "characterColors": {
@@ -222,6 +227,12 @@
       "eyeColor": "#b47796",
       "topColor": "#343137",
       "bottomColor": "#333139"
+    },
+    "ribbon": {
+      "hairColor": "#efbdd2",
+      "eyeColor": "#b97795",
+      "topColor": "#353238",
+      "bottomColor": "#363039"
     }
   }
 }

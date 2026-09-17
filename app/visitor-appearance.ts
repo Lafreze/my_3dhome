@@ -6,7 +6,8 @@ export type Character =
   | 'noir'
   | 'rose'
   | 'ivory'
-  | 'dusk';
+  | 'dusk'
+  | 'ribbon';
 export type Appearance = {
   character: Character;
   gender: 'female' | 'male';

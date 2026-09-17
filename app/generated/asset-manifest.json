@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "672befa0e1131320",
+  "version": "174fbec10b3d228d",
   "assets": {
     "art.botanical-study": {
       "type": "image",
@@ -416,6 +416,42 @@
       "logicalPath": "models/characters/resident/hi3d.glb",
       "size": 1677604,
       "sha256": "ee0974d8ad8151aa74d21f1bc2b59b6039c1cabba7802a4b6c9a94ef899568c4",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.ribbon.rest": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/ribbon/rest.9cfe29adef5a7d9f.glb",
+      "logicalPath": "models/characters/ribbon/rest.glb",
+      "size": 1745844,
+      "sha256": "9cfe29adef5a7d9f43f1dd23af195de1f8cef9c292880dec7f0d75d2031ddd88",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "character.ribbon.sit": {
+      "type": "model",
+      "room": "common",
+      "rooms": [
+        "study",
+        "living",
+        "bedroom",
+        "gallery",
+        "cafe"
+      ],
+      "path": "models/characters/ribbon/sit.6127ad6f6ab31ac1.glb",
+      "logicalPath": "models/characters/ribbon/sit.glb",
+      "size": 1745844,
+      "sha256": "6127ad6f6ab31ac13af0b70d9c2c3b1bb76d8a51c7c2d303eefb1f7367327a4f",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false

@@ -9,6 +9,7 @@ export const sourceHeights = {
   rose: 1.135127723217,
   ivory: 1.24683605907,
   dusk: 1.174217354236,
+  ribbon: 0.947937973336,
   resident: 1.649999976158,
 };
 export const humanScale = (character) => humanHeight / sourceHeights[character];

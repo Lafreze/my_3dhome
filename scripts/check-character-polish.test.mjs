@@ -118,7 +118,16 @@ void test('resident tailored sit retains the complete upper body and round leg s
   assert(ankle.z < knee.z);
 });
 void test('static seat tailoring preserves upper silhouette and finite normals without a standing morph', () => {
-  for (const kind of ['bear', 'cat', 'fox', 'noir', 'rose', 'ivory', 'dusk']) {
+  for (const kind of [
+    'bear',
+    'cat',
+    'fox',
+    'noir',
+    'rose',
+    'ivory',
+    'dusk',
+    'ribbon',
+  ]) {
     const geometries = meshes('studio-visitor-' + kind + '-v3');
     const before = geometries.map((g) =>
       g.getAttribute('position').array.slice(),

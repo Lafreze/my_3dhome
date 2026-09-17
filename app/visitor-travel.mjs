@@ -10,6 +10,7 @@ export const footLift = {
   rose: 0.38518,
   ivory: 0.443327953,
   dusk: 0.365440916,
+  ribbon: 0.319478005,
 };
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 const blend = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);

@@ -47,5 +47,12 @@
     "lift": 0.1458707,
     "lengthOffset": 0,
     "labelHeight": 0.57
+  },
+  "ribbon": {
+    "scale": 1,
+    "pitch": 0.14,
+    "lift": 0.1445649,
+    "lengthOffset": 0,
+    "labelHeight": 0.5
   }
 }
