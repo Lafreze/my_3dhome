@@ -1,3 +1,4 @@
+import { createAmbientVisitors } from './ambient-visitors';
 import { createRoamScene, type RoamTarget } from './roam-scene';
 import { trackVisit } from './visit-tracker';
 import { furnitureSuite, refinedTabletop } from './furniture-suite';
@@ -1966,6 +1967,19 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     assets,
     (room) => house.isRoomVisible(room),
   );
+  const ambient = createAmbientVisitors();
+  let ambientPeople: Visitor[] = [],
+    visitorMe = '';
+  const publishVisitors = () => {
+    const people = [...lifeVisitors, ...ambientPeople];
+    life?.setVisitors(people);
+    visitors.setVisitors(people, visitorMe);
+    const ids = people.map((p) => p.seatId);
+    house.setOccupied(ids);
+    atmosphere.setOccupied(ids);
+    occupiedStudySeats.clear();
+    ids.forEach((id) => occupiedStudySeats.add(id));
+  };
   let roamPaused = false;
   const roaming = createRoamScene(scene, groups, seatAnchors, {
     room: (room) => api.setView(room),
@@ -2492,6 +2506,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
           ? studyCurtainsOpen
           : house.curtainsOpen(activeView)),
     );
+    const guests = ambient.update(
+      Date.now(),
+      activeView,
+      lifeVisitors,
+      life?.occupiedSeat(),
+      lifePaused,
+    );
+    if (guests) {
+      ambientPeople = guests;
+      publishVisitors();
+    }
     life?.setView(activeView);
     life?.setReduced(motionPreference.matches);
     life?.update(dt, environment);
@@ -2599,6 +2624,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       tween = null;
       roaming.follow(camera, controls.target, dt, motionPreference.matches);
     }
+    life?.updateSpeech();
     occlusion.update(camera, controls.target, t, focusedObject);
     landscape.update(camera, t);
     tvScreen.update(camera);
@@ -2682,13 +2708,17 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     setVisitors: (people, me) => {
       lifeVisitors = people;
-      life?.setVisitors(people);
-      visitors.setVisitors(people, me);
-      const ids = people.map((p) => p.seatId);
-      house.setOccupied(ids);
-      atmosphere.setOccupied(ids);
-      occupiedStudySeats.clear();
-      ids.forEach((id) => occupiedStudySeats.add(id));
+      visitorMe = me;
+      ambientPeople =
+        ambient.update(
+          Date.now(),
+          activeView,
+          people,
+          life?.occupiedSeat(),
+          false,
+          true,
+        ) ?? ambientPeople;
+      publishVisitors();
     },
     focusSeat(id) {
       const seat = seatById.get(id),
@@ -3218,11 +3248,12 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         );
         life.setPaused(lifePaused);
         life.setAudio(lifeAudio);
-        life.setVisitors(lifeVisitors);
+        publishVisitors();
       })
-      .catch(() =>
-        options.onLifeBubble('小屋伙伴暂时在休息，其余空间仍可探索。'),
-      );
+      .catch((error) => {
+        console.error('小屋伙伴初始化失败', error);
+        options.onLifeBubble('小屋伙伴暂时在休息，其余空间仍可探索。');
+      });
   }, 700);
   return api;
 }

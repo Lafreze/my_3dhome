@@ -1,4 +1,4 @@
-import catalog from './visitor-appearance.json';
+import catalog from './visitor-appearance.json' with { type: 'json' };
 export type Character =
   | 'bear'
   | 'cat'

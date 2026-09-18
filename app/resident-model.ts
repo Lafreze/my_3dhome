@@ -174,16 +174,19 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     });
     walkBlend += ((state === 'walk' && !reduced ? 1 : 0) - walkBlend) * blend;
     if (state === 'walk')
-      walkPhase = ((motion?.travelDistance ?? t * 0.62) / 0.68) * Math.PI * 2;
+      walkPhase = ((motion?.travelDistance ?? t * 0.62) / 0.9) * Math.PI * 2;
     const walk = reduced
       ? 0
-      : Math.sin(walkPhase) * walkBlend * (1 - sitBlend) * 0.08;
+      : Math.sin(walkPhase) * walkBlend * (1 - sitBlend) * 0.16;
     legs.forEach((leg, i) => {
       const stride = walk * (i ? 1 : -1);
       leg.thigh.rotation.x = 0.6 * crouchBlend + stride;
       leg.shin.rotation.x = -1.05 * crouchBlend - Math.max(0, stride) * 0.45;
       leg.foot.rotation.x = 0.35 * crouchBlend - stride * 0.2;
     });
+    avatar.position.y +=
+      (1 - Math.cos(walkPhase * 2)) * 0.006 * walkBlend * (1 - sitBlend);
+    spine.rotation.z = Math.sin(walkPhase) * 0.012 * walkBlend * (1 - sitBlend);
     spine.rotation.x = 0.2 * crouchBlend;
     // This supplied model has a neutral neck: never apply the old model's roll correction.
     const nod =
@@ -208,7 +211,9 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
           ? Math.sin(Math.min(1, gestureTime / 8) * Math.PI) * (i ? -0.1 : 0.1)
           : 0;
       shoulder.rotation.x =
-        !reduced && state === 'type' ? Math.sin(t * 2 + i) * 0.02 : 0;
+        !reduced && state === 'type'
+          ? Math.sin(t * 2 + i) * 0.02
+          : -walk * (i ? 1 : -1) * 0.65;
     });
     if (state === 'think')
       spine.rotation.x =

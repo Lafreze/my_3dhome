@@ -150,14 +150,21 @@ export async function createHouseHandler({
   secureCookies = process.env.NODE_ENV === 'production',
   trustRailwayProxy = false,
   modelOptions = {},
+  database = /** @type {Awaited<ReturnType<typeof import('./studio-database.mjs').createStudioDatabase>>} */ (
+    null
+  ),
   analytics = /** @type {Awaited<ReturnType<typeof import('./visitor-analytics.mjs').createVisitStore>> | null} */ (
     null
   ),
   now = Date.now,
 } = {}) {
   const file = resolve(dataDir, 'house-settings.json');
-  const roomNotes = await createRoomNotes(dataDir, now);
-  const modelLibrary = await createModelLibrary(dataDir, now, modelOptions);
+  const document = await database?.document('house-settings.json');
+  const roomNotes = await createRoomNotes(dataDir, now, database);
+  const modelLibrary = await createModelLibrary(dataDir, now, {
+    ...modelOptions,
+    database,
+  });
   const modelUploads = await createModelUploads(dataDir, modelLibrary, now);
   const noteAttempts = new Map();
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
@@ -168,7 +175,9 @@ export async function createHouseHandler({
     settings: structuredClone(defaults),
   };
   try {
-    const saved = JSON.parse(await readFile(file, 'utf8'));
+    const saved = document
+      ? await document.read()
+      : JSON.parse(await readFile(file, 'utf8'));
     if (
       saved.version !== 1 ||
       !Number.isSafeInteger(saved.revision) ||
@@ -255,7 +264,7 @@ export async function createHouseHandler({
         if (req.method !== 'POST') throw fail(405, '请求方法不支持。');
         sameOrigin(req);
         if (!analytics) throw fail(503, '访问记录暂不可用。');
-        analytics.event(
+        await analytics.event(
           req,
           res,
           await body(req, 2048),
@@ -271,7 +280,7 @@ export async function createHouseHandler({
         send(
           res,
           200,
-          analytics.report({
+          await analytics.report({
             days: params.get('days') ?? 30,
             page: params.get('page') ?? 0,
           }),
@@ -518,19 +527,22 @@ export async function createHouseHandler({
           updatedAt: new Date(now()).toISOString(),
           settings,
         };
-        const temp = `${file}.${randomBytes(8).toString('hex')}.tmp`;
-        try {
-          const handle = await open(temp, 'wx', 0o600);
+        if (document) await document.write(next);
+        else {
+          const temp = `${file}.${randomBytes(8).toString('hex')}.tmp`;
           try {
-            await handle.writeFile(JSON.stringify(next));
-            await handle.sync();
-          } finally {
-            await handle.close();
+            const handle = await open(temp, 'wx', 0o600);
+            try {
+              await handle.writeFile(JSON.stringify(next));
+              await handle.sync();
+            } finally {
+              await handle.close();
+            }
+            await rename(temp, file);
+          } catch (error) {
+            await unlink(temp).catch(() => {});
+            throw error;
           }
-          await rename(temp, file);
-        } catch (error) {
-          await unlink(temp).catch(() => {});
-          throw error;
         }
         state = next;
         send(res, 200, state);

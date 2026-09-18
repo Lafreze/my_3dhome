@@ -1,6 +1,7 @@
 import routes from '../config/visitor-routes.json' with { type: 'json' };
 import { humanScale } from './character-scale.mjs';
 import { sampleSeatTransfer } from './seat-transfer.mjs';
+export const walkingCycleDistance = 0.9;
 export const visitorTravelNodes = routes.nodes;
 export const footLift = {
   bear: 0.46098,
@@ -143,7 +144,7 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
       phase: 'exit',
       position: blend(start, a, v),
       yaw: angle(from.yaw, exitYaw, Math.min(1, v * 3)),
-      gait: ((t * approachSpeed) / 0.36) * Math.PI * 2,
+      gait: ((t * approachSpeed) / walkingCycleDistance) * Math.PI * 2,
     };
   }
   t -= j.exit;
@@ -168,7 +169,10 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
           phase: 'walk',
           position: p,
           yaw: angle(prev, yaw, Math.min(1, remaining / 0.16)),
-          gait: ((j.exit * approachSpeed + t * walkSpeed) / 0.36) * Math.PI * 2,
+          gait:
+            ((j.exit * approachSpeed + t * walkSpeed) / walkingCycleDistance) *
+            Math.PI *
+            2,
         };
       }
       remaining -= length;
@@ -197,7 +201,7 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
       yaw: angle(entryYaw, to.yaw, v),
       gait:
         ((j.exit * approachSpeed + j.walk * walkSpeed + t * approachSpeed) /
-          0.36) *
+          walkingCycleDistance) *
         Math.PI *
         2,
     };

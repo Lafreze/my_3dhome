@@ -1,3 +1,4 @@
+import { createActorSpeech } from './actor-speech';
 import { sampleVisitorJourney } from './visitor-travel.mjs';
 import { createWindowMotes } from './life-moments';
 import * as T from 'three';
@@ -43,6 +44,8 @@ type Options = {
   collections: (data: CollectionData, message: string) => void;
 };
 export function createLifeScene(k: Options, session: LifeSession) {
+  const speech = createActorSpeech(k.renderer.domElement, k.camera);
+  let speakingActor: ActorId = 'resident';
   const motes = createWindowMotes();
   k.scene.add(motes.root);
   const models = new Map<ActorId, ActorModel>();
@@ -173,7 +176,10 @@ export function createLifeScene(k: Options, session: LifeSession) {
         else motes.start(room, seed);
       },
       collect: (...args) => collections.collect(...args),
-      bubble: (_actor, text) => k.bubble(text),
+      bubble: (actor, text) => {
+        speakingActor = actor;
+        speech.show(text);
+      },
       sound,
       coffee: (atPickup) => {
         if (atPickup) {
@@ -502,6 +508,22 @@ export function createLifeScene(k: Options, session: LifeSession) {
     Object.assign(window, { __kuroLife: debug });
   return {
     update,
+    updateSpeech() {
+      if (!speech.active || paused) {
+        speech.update(null, false);
+        return;
+      }
+      const model =
+        speakingActor === 'cat' ? k.cat.cat : models.get(speakingActor)?.root;
+      if (!model) {
+        speech.update(null, false);
+        return;
+      }
+      const box = new T.Box3().setFromObject(model);
+      const head = box.getCenter(new T.Vector3());
+      head.y = box.max.y + 0.1;
+      speech.update(head, model.visible && !paused);
+    },
     click,
     setAudio,
     setPaused(value: boolean) {
@@ -554,6 +576,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
         ? engine.node(engine.actors.resident.node).seatId
         : undefined,
     dispose() {
+      speech.dispose();
       motes.dispose();
       disposed = true;
       stopHum();

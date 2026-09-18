@@ -3235,6 +3235,7 @@ a {
   bottom: 180px;
 }
 .roaming .life-bubble {
+  top: auto;
   bottom: 185px;
 }
 .roaming .object-card {
@@ -3459,3 +3460,58 @@ a {
 }
 .admin-panel, .admin-panel > *, .visitor-analytics, .visitor-analytics details { min-width:0; }
 .visitor-analytics, .analytics-table { width:100%; }
+
+/* Content-sized speech follows a companion's head; never stretches between viewport edges. */
+.actor-speech {
+  position: fixed;
+  z-index: 44;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 24px));
+  height: auto;
+  padding: 12px 14px;
+  border: 1px solid #d0ccbc;
+  border-radius: 18px;
+  background: #fffaf0f5;
+  color: #415344;
+  box-shadow: 0 5px 20px #25392318;
+  font-size: 13px;
+  line-height: 1.65;
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+}
+.actor-speech[hidden] {
+  display: none;
+}
+.actor-speech::after {
+  content: '';
+  position: absolute;
+  left: var(--speech-tail, 50%);
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  background: #fffaf0;
+  border-right: 1px solid #d0ccbc;
+  border-bottom: 1px solid #d0ccbc;
+}
+.actor-speech-close {
+  flex: none;
+  border: 0;
+  background: none;
+  color: #61715c;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  padding: 4px;
+  margin: -2px -4px 0 0;
+}
+@media (max-width: 600px) {
+  .actor-speech {
+    max-width: min(250px, calc(100vw - 24px));
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+}

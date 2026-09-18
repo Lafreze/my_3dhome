@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { rooms, type RoomId } from './house-data';
 import { objects, type ObjectId } from './room-data';
 type Report = {
+  storage: string;
   views: number;
   visitors: number;
   sessions: number;
@@ -19,6 +20,8 @@ type Report = {
     at: number;
     page: string;
     source: string;
+    ip: string | null;
+    location: string | null;
     device: string;
     browser: string;
     visits: number;
@@ -204,12 +207,20 @@ export default function VisitorAnalytics() {
             </div>
           </details>
           <h4>全部访问记录</h4>
+          <p className="analytics-note">
+            保存于 {report.storage}。IP 归属地是网络位置估算；旧记录未采集的 IP
+            无法补回。{' '}
+            <a href="https://db-ip.com" target="_blank" rel="noreferrer">
+              IP Geolocation by DB-IP
+            </a>
+          </p>
           <div className="analytics-table">
             <table>
               <thead>
                 <tr>
                   <th>访问时间</th>
                   <th>访客 / 累计来访</th>
+                  <th>IP / 归属地</th>
                   <th>页面</th>
                   <th>设备</th>
                   <th>来源</th>
@@ -222,6 +233,10 @@ export default function VisitorAnalytics() {
                     <td>
                       {v.visitor}
                       <small>累计 {v.visits} 次来访</small>
+                    </td>
+                    <td>
+                      {v.ip || '未采集'}
+                      <small>{v.location || (v.ip ? '归属地未知' : '—')}</small>
                     </td>
                     <td>{v.page}</td>
                     <td>

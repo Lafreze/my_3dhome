@@ -1,3 +1,4 @@
+import { createStudioDatabase } from './scripts/studio-database.mjs';
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
@@ -20,20 +21,27 @@ export default defineConfig({
       async configureServer(server) {
         const dataDir =
           process.env.STUDIO_DATA_DIR || resolve('output/server-data');
-        const analytics = await createVisitStore(dataDir);
+        const database = await createStudioDatabase(dataDir);
+        const analytics = await createVisitStore(dataDir, Date.now, {
+          database,
+        });
         const handleHouse = await createHouseHandler({
           dataDir,
           analytics,
+          database,
           secureCookies: false,
         });
-        server.httpServer?.on('close', () => analytics.close());
+        server.httpServer?.on('close', () => {
+          void analytics.close();
+          void database?.close();
+        });
         const handlePresence = createPresenceHandler();
         server.middlewares.use((req, res, next) => {
           void (async () => {
             if (await handleHouse(req, res)) return;
             if (await handlePresence(req, res)) return;
             const path = new URL(req.url || '/', 'http://localhost').pathname;
-            analytics.page(req, res, path);
+            await analytics.page(req, res, path);
             next();
           })().catch(next);
         });

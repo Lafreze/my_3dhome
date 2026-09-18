@@ -39,6 +39,10 @@ COPY --from=build --chown=node:node /app/app/visitor-travel.mjs ./app/visitor-tr
 COPY --from=build --chown=node:node /app/app/seat-transfer.mjs ./app/seat-transfer.mjs
 COPY --from=build --chown=node:node /app/app/character-scale.mjs ./app/character-scale.mjs
 COPY --from=build --chown=node:node /app/config/visitor-routes.json ./config/visitor-routes.json
+COPY --from=build --chown=node:node /app/scripts/studio-database.mjs ./scripts/studio-database.mjs
+COPY --from=build --chown=node:node /app/scripts/visitor-geolocation.mjs ./scripts/visitor-geolocation.mjs
+COPY --from=build --chown=node:node /app/output/geoip/city.mmdb ./output/geoip/city.mmdb
+ENV STUDIO_GEOIP_FILE=/app/output/geoip/city.mmdb
 ENV STUDIO_DATA_DIR=/data
 RUN command -v runuser
 EXPOSE 3000

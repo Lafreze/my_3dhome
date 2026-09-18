@@ -7,7 +7,7 @@ import {
   visitorShadowMaterials,
 } from './visitor-motion';
 import { humanScale } from './character-scale.mjs';
-import { footLift } from './visitor-travel.mjs';
+import { footLift, walkingCycleDistance } from './visitor-travel.mjs';
 import { adjustRoamZoom, defaultRoamZoom } from './roam-camera';
 import { easeRoamInput, moveRoamer, roamSpawn } from './roam-movement';
 import { roomAt, roomForObject, type RoomId } from './house-data';
@@ -346,7 +346,7 @@ export function createRoamScene(
             Math.cos(yaw - root.rotation.y),
           ) *
           (1 - Math.exp(-dt * 14));
-        gait += (distance / 0.36) * Math.PI * 2;
+        gait += (distance / walkingCycleDistance) * Math.PI * 2;
       }
       root.position.set(
         position[0],
@@ -357,7 +357,7 @@ export function createRoamScene(
       sampleVisitorMotion(time, 731, reduced, state.value);
       // Settle at the current step instead of snapping both feet to phase zero.
       const moving = distance > 0.0001 && !reduced && !paused;
-      stride = reduced ? 0 : T.MathUtils.damp(stride, moving ? 1 : 0, 12, dt);
+      stride = reduced ? 0 : T.MathUtils.damp(stride, moving ? 1 : 0, 8, dt);
       for (const a of animated) {
         a.motion.setXYZW(
           0,

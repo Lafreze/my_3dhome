@@ -1,4 +1,6 @@
 import * as T from 'three';
+import { humanScale } from './character-scale.mjs';
+import { footLift, walkingCycleDistance } from './visitor-travel.mjs';
 import type { Character } from './visitor-appearance';
 import { visitorRestMatrix } from './visitor-rest.ts';
 import figures from './visitor-figure-profiles.json' with { type: 'json' };
@@ -150,7 +152,7 @@ export function configureVisitorMotion(
   const rig = motionRig[character];
   const restTransform = { value: visitorRestMatrix(character) };
   material.customProgramCacheKey = () =>
-    `${previousKey}/puppet-v6/${character}/${instanced}/${eyelid}`;
+    `${previousKey}/puppet-v7/${character}/${instanced}/${eyelid}`;
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
     shader.uniforms.visitorMotion = state;
@@ -170,8 +172,8 @@ export function configureVisitorMotion(
       }
       mat3 visitorArmTurn() {
         vec4 action = visitorAction();
-        float angle = sin(action.y + (visitorStandPosition.x < 0. ? 3.14159265 : 0.))
-          * .13 * visitorWeights.w * visitorStride() * step(.5, -action.z);
+        float angle = cos(action.y + (visitorStandPosition.x < 0. ? 3.14159265 : 0.))
+          * .10 * visitorWeights.w * visitorStride() * step(.5, -action.z);
         float c = cos(angle), s = sin(angle);
         return mat3(1.,0.,0., 0.,c,s, 0.,-s,c);
       }
@@ -180,12 +182,22 @@ export function configureVisitorMotion(
         float weight = visitorWeights.z;
         float phase=fract(action.y / 6.2831853 + (p.x < 0. ? .5 : 0.));
         float swing=max(0.,(phase-.6)/.4);
-        float stepZ=phase<.6 ? .108-.36*phase : -.108+.216*(swing*swing*(3.-2.*swing));
+        float strideLength = ${((walkingCycleDistance * 0.6) / humanScale(character)).toFixed(6)};
+        // Match the ground speed during stance; the swing curve has matching endpoint velocity.
+        float travel = swing*swing*(3.-2.*swing) - (2./3.)*swing*(1.-swing)*(1.-2.*swing);
+        float stepZ = phase<.6 ? strideLength*(.5-phase/.6) : strideLength*(travel-.5);
         float enabled=visitorStride();
-        // Negative activity identifies free walking; shared seated activities keep their gentle gait.
         float walking = step(.5, -action.z);
-        p.z += stepZ*mix(.12, 1., walking)*weight*enabled;
-        p.y += sin(swing*3.14159265)*mix(.008, .045, walking)*weight*enabled;
+        float depth = clamp(-visitorStandPosition.y / ${footLift[character].toFixed(6)}, 0., 1.);
+        float lift = sin(swing*3.14159265);
+        lift *= lift;
+        // Hips lead the stride, knees soften on recovery, feet lift only during the swing.
+        p.z += stepZ*mix(.10, 1., walking)*weight*(.24+.76*depth)*enabled;
+        p.y += lift*mix(.006, ${(0.06 / humanScale(character)).toFixed(6)}, walking)*weight*enabled;
+        p.z += lift*.025*(1.-depth)*weight*enabled*walking;
+        float body = (1.-weight*depth)*enabled*walking;
+        p.x += sin(action.y)*${(0.008 / humanScale(character)).toFixed(6)}*body;
+        p.y += (1.-cos(action.y*2.))*${(0.003 / humanScale(character)).toFixed(6)}*body;
         vec3 shoulder = vec3(p.x, .22, .015);
         p = shoulder + visitorArmTurn() * (p - shoulder);
         return p;

@@ -120,13 +120,18 @@ export async function createModelLibrary(
 ) {
   const directory = resolve(dataDir, 'model-library'),
     catalog = resolve(directory, 'catalog.json');
+  const document = await options.database?.document(
+    'model-library/catalog.json',
+  );
   const storage =
     options.storage === undefined ? createModelStorage() : options.storage;
   const compress = options.compress || compressModel;
   await mkdir(directory, { recursive: true, mode: 0o700 });
   let items = [];
   try {
-    const saved = JSON.parse(await readFile(catalog, 'utf8'));
+    const saved = document
+      ? await document.read()
+      : JSON.parse(await readFile(catalog, 'utf8'));
     if (![1, 2].includes(saved.version) || !Array.isArray(saved.items))
       throw Error('Invalid model library');
     items = saved.items;
@@ -134,6 +139,11 @@ export async function createModelLibrary(
     if (error.code !== 'ENOENT') throw error;
   }
   const persist = async (next) => {
+    if (document) {
+      await document.write({ version: 2, items: next });
+      items = next;
+      return;
+    }
     const temp = `${catalog}.${randomUUID()}.tmp`;
     try {
       const handle = await open(temp, 'wx', 0o600);

@@ -1,3 +1,4 @@
+import { createStudioDatabase } from './studio-database.mjs';
 import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
@@ -52,11 +53,17 @@ const handlePresence = createPresenceHandler({
     process.env.RAILWAY_PROJECT_ID && process.env.RAILWAY_ENVIRONMENT_ID
   ),
 });
-const analytics = await createVisitStore(
-  process.env.STUDIO_DATA_DIR || resolve('output/server-data'),
-);
+const dataDir = process.env.STUDIO_DATA_DIR || resolve('output/server-data');
+const database = await createStudioDatabase(dataDir);
+const analytics = await createVisitStore(dataDir, Date.now, {
+  database,
+  trustRailwayProxy: !!(
+    process.env.RAILWAY_PROJECT_ID && process.env.RAILWAY_ENVIRONMENT_ID
+  ),
+});
 const handleHouse = await createHouseHandler({
   analytics,
+  database,
   trustRailwayProxy: !!(
     process.env.RAILWAY_PROJECT_ID && process.env.RAILWAY_ENVIRONMENT_ID
   ),
@@ -128,7 +135,7 @@ const server = createServer(async (req, res) => {
     if ((await stat(file)).isDirectory()) file = resolve(file, 'index.html');
     const info = await stat(file);
     if (!info.isFile()) throw new Error('Not a file');
-    if (extname(file) === '.html') analytics.page(req, res, path);
+    if (extname(file) === '.html') await analytics.page(req, res, path);
     const headers = {
       'Content-Type': types[extname(file)] || 'application/octet-stream',
       'Cache-Control': 'no-cache',
@@ -222,7 +229,11 @@ server.listen(port, host, () =>
 );
 for (const signal of ['SIGTERM', 'SIGINT']) {
   process.on(signal, () => {
-    server.close(() => process.exit(0));
+    server.close(async () => {
+      await analytics.close();
+      await database?.close();
+      process.exit(0);
+    });
     setTimeout(() => process.exit(0), 10000).unref();
   });
 }

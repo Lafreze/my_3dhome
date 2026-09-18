@@ -43,7 +43,7 @@ export function moveRoamer(
   if (!length || !Number.isFinite(length) || !Number.isFinite(dt))
     return [...position];
   const speed =
-    1.35 * (Number.isFinite(pace) ? Math.max(1, Math.min(1.7, pace)) : 1);
+    1.1 * (Number.isFinite(pace) ? Math.max(1, Math.min(1.7, pace)) : 1);
   const scale = (speed * Math.max(0, Math.min(dt, 0.05))) / Math.max(1, length);
   const dx = input[0] * scale,
     dz = input[1] * scale;

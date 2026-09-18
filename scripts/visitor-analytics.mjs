@@ -1,6 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdir, chmod } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { analyticsSchema } from './studio-database.mjs';
+import { visitorIP } from './seat-presence.mjs';
+import { createGeolocation } from './visitor-geolocation.mjs';
 import { randomBytes } from 'node:crypto';
 
 const roomIds = new Set([
@@ -34,20 +37,75 @@ const pageName = (path) =>
       : path === '/models' || path === '/models/' || path === '/models.html'
         ? '模型展览'
         : null;
-export async function createVisitStore(dataDir, now = Date.now) {
+export async function createVisitStore(
+  dataDir,
+  now = Date.now,
+  {
+    database = /** @type {Awaited<ReturnType<typeof import('./studio-database.mjs').createStudioDatabase>>} */ (
+      null
+    ),
+    trustRailwayProxy = false,
+    locate = null,
+  } = {},
+) {
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   const file = resolve(dataDir, 'visitor-analytics.sqlite');
-  const db = new DatabaseSync(file);
-  await chmod(file, 0o600);
-  db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=3000;
-    CREATE TABLE IF NOT EXISTS page_views (id INTEGER PRIMARY KEY, visitor TEXT NOT NULL, at INTEGER NOT NULL, page TEXT NOT NULL, source TEXT NOT NULL, device TEXT NOT NULL, browser TEXT NOT NULL);
-    CREATE INDEX IF NOT EXISTS views_at ON page_views(at);
-    CREATE INDEX IF NOT EXISTS views_visitor ON page_views(visitor);
-    CREATE TABLE IF NOT EXISTS visits (id TEXT PRIMARY KEY, visitor TEXT NOT NULL, started INTEGER NOT NULL, seen INTEGER NOT NULL, active REAL NOT NULL DEFAULT 0, room TEXT NOT NULL, mode TEXT NOT NULL, seq INTEGER NOT NULL DEFAULT -1);
-    CREATE INDEX IF NOT EXISTS visits_started ON visits(started);
-    CREATE TABLE IF NOT EXISTS visit_events (id INTEGER PRIMARY KEY, session TEXT NOT NULL, at INTEGER NOT NULL, kind TEXT NOT NULL, room TEXT NOT NULL, target TEXT NOT NULL);
-    CREATE INDEX IF NOT EXISTS events_session ON visit_events(session, at);
-    CREATE INDEX IF NOT EXISTS events_at ON visit_events(at);`);
+  const sqlite = database ? null : new DatabaseSync(file);
+  if (sqlite) {
+    await chmod(file, 0o600);
+    sqlite.exec(
+      'PRAGMA journal_mode=WAL; PRAGMA busy_timeout=3000;' + analyticsSchema,
+    );
+    const cols = sqlite
+      .prepare('PRAGMA table_info(page_views)')
+      .all()
+      .map((c) => c.name);
+    for (const column of ['ip', 'location'])
+      if (!cols.includes(column))
+        sqlite.exec(`ALTER TABLE page_views ADD COLUMN ${column} TEXT`);
+  }
+  const geolocate = locate || (await createGeolocation());
+  const sql = (source) => {
+    if (!database) return source;
+    let index = 0;
+    return source
+      .replaceAll('?', () => '$' + ++index)
+      .replace('activeSeconds', '"activeSeconds"')
+      .replace(
+        "strftime('%Y-%m-%d',at/1000,'unixepoch','+9 hours')",
+        "to_char(to_timestamp(at/1000.0) AT TIME ZONE 'Asia/Tokyo','YYYY-MM-DD')",
+      );
+  };
+  const query = async (source, params = [], client = null) =>
+    database
+      ? client
+        ? (await client.query(sql(source), params)).rows
+        : database.query(sql(source), params)
+      : sqlite.prepare(source).all(...params);
+  const run = async (source, params = [], client = null) =>
+    database
+      ? client
+        ? client.query(sql(source), params)
+        : database.query(sql(source), params)
+      : sqlite.prepare(source).run(...params);
+  // Serialize SQLite transactions; PostgreSQL uses a connection and row lock per session.
+  let writes = Promise.resolve();
+  const transaction = (fn) => {
+    if (database) return database.transaction(fn);
+    const pending = writes.then(async () => {
+      sqlite.exec('BEGIN IMMEDIATE');
+      try {
+        const result = await fn(null);
+        sqlite.exec('COMMIT');
+        return result;
+      } catch (error) {
+        sqlite.exec('ROLLBACK');
+        throw error;
+      }
+    });
+    writes = pending.catch(() => {});
+    return pending;
+  };
   const identity = (req, res) => {
     const saved = /(?:^|;\s*)studio_visitor=([a-f0-9]{32})(?:;|$)/.exec(
       req.headers.cookie || '',
@@ -75,7 +133,7 @@ export async function createVisitStore(dataDir, now = Date.now) {
     }
   }
   return {
-    page(req, res, path) {
+    async page(req, res, path) {
       const page = pageName(path);
       if (
         !page ||
@@ -108,11 +166,25 @@ export async function createVisitStore(dataDir, now = Date.now) {
             : /safari/i.test(ua)
               ? 'Safari'
               : '其他';
-      db.prepare(
-        'INSERT INTO page_views(visitor,at,page,source,device,browser) VALUES (?,?,?,?,?,?)',
-      ).run(visitor, now(), page, source, device, browser);
+      const ip = visitorIP(req, trustRailwayProxy) || null;
+      await transaction((client) =>
+        run(
+          'INSERT INTO page_views(visitor,at,page,source,device,browser,ip,location) VALUES (?,?,?,?,?,?,?,?)',
+          [
+            visitor,
+            now(),
+            page,
+            source,
+            device,
+            browser,
+            ip,
+            ip ? geolocate(ip) : null,
+          ],
+          client,
+        ),
+      );
     },
-    event(req, res, value, rateKey) {
+    async event(req, res, value, rateKey) {
       limit(rateKey);
       if (
         !value ||
@@ -136,102 +208,107 @@ export async function createVisitStore(dataDir, now = Date.now) {
         /^[a-zA-Z0-9._-]{1,64}$/.test(value.target)
           ? value.target
           : '';
-      db.prepare(
-        'INSERT OR IGNORE INTO visits(id,visitor,started,seen,room,mode) VALUES (?,?,?,?,?,?)',
-      ).run(value.session, visitor, t, t, room, mode);
-      const previous = db
-        .prepare('SELECT * FROM visits WHERE id=?')
-        .get(value.session);
-      if (previous.visitor !== visitor)
-        throw Object.assign(Error('访问会话不匹配。'), { status: 403 });
-      if (value.seq <= previous.seq) return;
-      const active = Math.max(
-        previous.active,
-        Math.min(
-          value.active,
-          previous.active + Math.min(35, (t - previous.seen) / 1000 + 1),
-        ),
-      );
-      db.exec('BEGIN');
-      try {
-        db.prepare(
+      await transaction(async (client) => {
+        await run(
+          'INSERT INTO visits(id,visitor,started,seen,room,mode) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING',
+          [value.session, visitor, t, t, room, mode],
+          client,
+        );
+        const previous = (
+          await query(
+            'SELECT * FROM visits WHERE id=?' + (database ? ' FOR UPDATE' : ''),
+            [value.session],
+            client,
+          )
+        )[0];
+        if (previous.visitor !== visitor)
+          throw Object.assign(Error('访问会话不匹配。'), { status: 403 });
+        if (value.seq <= previous.seq) return;
+        const active = Math.max(
+          previous.active,
+          Math.min(
+            value.active,
+            previous.active + Math.min(35, (t - previous.seen) / 1000 + 1),
+          ),
+        );
+        await run(
           'UPDATE visits SET seen=?,active=?,room=?,mode=?,seq=? WHERE id=?',
-        ).run(t, active, room, mode, value.seq, value.session);
+          [t, active, room, mode, value.seq, value.session],
+          client,
+        );
         if (value.kind !== 'heartbeat')
-          db.prepare(
+          await run(
             'INSERT INTO visit_events(session,at,kind,room,target) VALUES (?,?,?,?,?)',
-          ).run(value.session, t, value.kind, room, target);
-        db.exec('COMMIT');
-      } catch (error) {
-        db.exec('ROLLBACK');
-        throw error;
-      }
+            [value.session, t, value.kind, room, target],
+            client,
+          );
+      });
     },
-    report({ days = 30, page = 0 } = {}) {
+    async report({ days = 30, page = 0 } = {}) {
       days = [7, 30, 90, 0].includes(Number(days)) ? Number(days) : 30;
       page = Math.max(
         0,
         Math.min(100000, Number.isSafeInteger(Number(page)) ? Number(page) : 0),
       );
       const since = days ? now() - days * 86400000 : 0;
-      const counts = db
-        .prepare(
+      const counts = (
+        await query(
           'SELECT COUNT(*) views, COUNT(DISTINCT visitor) visitors FROM page_views WHERE at>=?',
+          [since],
         )
-        .get(since);
-      const sessions = db
-        .prepare(
+      )[0];
+      const sessions = (
+        await query(
           'SELECT COUNT(*) sessions, COALESCE(SUM(active),0) activeSeconds FROM visits WHERE started>=?',
+          [since],
         )
-        .get(since);
-      const total = db
-        .prepare('SELECT COUNT(*) total FROM page_views WHERE at>=?')
-        .get(since).total;
+      )[0];
       return {
         days,
         page,
-        total,
+        total: counts.views,
         generatedAt: now(),
         ...counts,
         ...sessions,
-        online: db
-          .prepare(
+        storage: database ? 'PostgreSQL' : '本地 SQLite',
+        online: (
+          await query(
             'SELECT COUNT(DISTINCT visitor) count FROM visits WHERE seen>=?',
+            [now() - 45000],
           )
-          .get(now() - 45000).count,
-        daily: db
-          .prepare(
-            "SELECT strftime('%Y-%m-%d',at/1000,'unixepoch','+9 hours') day,COUNT(*) views,COUNT(DISTINCT visitor) visitors FROM page_views WHERE at>=? GROUP BY day ORDER BY day DESC LIMIT 90",
+        )[0].count,
+        daily: (
+          await query(
+            "SELECT strftime('%Y-%m-%d',at/1000,'unixepoch','+9 hours') AS day,COUNT(*) views,COUNT(DISTINCT visitor) visitors FROM page_views WHERE at>=? GROUP BY day ORDER BY day DESC LIMIT 90",
+            [since],
           )
-          .all(since)
-          .reverse(),
-        rooms: db
-          .prepare(
-            "SELECT room, COUNT(*) count FROM visit_events WHERE kind='room' AND at>=? GROUP BY room ORDER BY count DESC",
-          )
-          .all(since),
-        interactions: db
-          .prepare(
-            "SELECT target,COUNT(*) count FROM visit_events WHERE kind='interact' AND at>=? GROUP BY target ORDER BY count DESC LIMIT 15",
-          )
-          .all(since),
-        devices: db
-          .prepare(
-            'SELECT device,COUNT(*) count FROM page_views WHERE at>=? GROUP BY device ORDER BY count DESC',
-          )
-          .all(since),
-        recent: db
-          .prepare(`SELECT p.id, substr(p.visitor,1,10) visitor, p.at, p.page, p.source, p.device, p.browser,
-          (SELECT COUNT(*) FROM page_views h WHERE h.visitor=p.visitor) visits
-          FROM page_views p WHERE p.at>=? ORDER BY p.at DESC,p.id DESC LIMIT 30 OFFSET ?`)
-          .all(since, page * 30),
-        activity: db
-          .prepare(
-            "SELECT substr(v.visitor,1,10) visitor,v.started,v.seen,v.active,v.room,v.mode, (SELECT COUNT(*) FROM visit_events e WHERE e.session=v.id AND e.kind='interact') interactions FROM visits v WHERE started>=? ORDER BY started DESC LIMIT 30",
-          )
-          .all(since),
+        ).reverse(),
+        rooms: await query(
+          "SELECT room,COUNT(*) count FROM visit_events WHERE kind='room' AND at>=? GROUP BY room ORDER BY count DESC",
+          [since],
+        ),
+        interactions: await query(
+          "SELECT target,COUNT(*) count FROM visit_events WHERE kind='interact' AND at>=? GROUP BY target ORDER BY count DESC LIMIT 15",
+          [since],
+        ),
+        devices: await query(
+          'SELECT device,COUNT(*) count FROM page_views WHERE at>=? GROUP BY device ORDER BY count DESC',
+          [since],
+        ),
+        recent: await query(
+          `SELECT p.id, substr(p.visitor,1,10) visitor,p.at,p.page,p.source,p.device,p.browser,p.ip,p.location,
+          (SELECT COUNT(*) FROM page_views h WHERE h.visitor=p.visitor) visits FROM page_views p WHERE p.at>=? ORDER BY p.at DESC,p.id DESC LIMIT 30 OFFSET ?`,
+          [since, page * 30],
+        ),
+        activity: await query(
+          "SELECT substr(v.visitor,1,10) visitor,v.started,v.seen,v.active,v.room,v.mode,(SELECT COUNT(*) FROM visit_events e WHERE e.session=v.id AND e.kind='interact') interactions FROM visits v WHERE started>=? ORDER BY started DESC LIMIT 30",
+          [since],
+        ),
       };
     },
-    close: () => db.close(),
+    close: async () => {
+      await writes;
+      sqlite?.close();
+    },
   };
 }

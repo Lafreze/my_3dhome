@@ -9,17 +9,26 @@ const rooms = new Set([
   'gallery',
   'cafe',
   'gaming',
-  'bar', 'library', 'garden',
+  'bar',
+  'library',
+  'garden',
   'corridor',
 ]);
 const fail = (status, message) => Object.assign(new Error(message), { status });
-export async function createRoomNotes(dataDir, now = Date.now) {
+export async function createRoomNotes(
+  dataDir,
+  now = Date.now,
+  database = null,
+) {
   const file = resolve(dataDir, 'room-notes.json');
+  const document = await database?.document('room-notes.json');
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   let state = { version: 1, revision: 0, notes: [] },
     queue = Promise.resolve();
   try {
-    const saved = JSON.parse(await readFile(file, 'utf8'));
+    const saved = document
+      ? await document.read()
+      : JSON.parse(await readFile(file, 'utf8'));
     if (saved.version !== 1 || !Array.isArray(saved.notes))
       throw Error('Invalid room notes');
     state = saved;
@@ -33,19 +42,22 @@ export async function createRoomNotes(dataDir, now = Date.now) {
         revision: state.revision + 1,
         notes: transform(state.notes),
       };
-      const temp = `${file}.${randomUUID()}.tmp`;
-      try {
-        const handle = await open(temp, 'wx', 0o600);
+      if (document) await document.write(next);
+      else {
+        const temp = `${file}.${randomUUID()}.tmp`;
         try {
-          await handle.writeFile(JSON.stringify(next));
-          await handle.sync();
-        } finally {
-          await handle.close();
+          const handle = await open(temp, 'wx', 0o600);
+          try {
+            await handle.writeFile(JSON.stringify(next));
+            await handle.sync();
+          } finally {
+            await handle.close();
+          }
+          await rename(temp, file);
+        } catch (error) {
+          await unlink(temp).catch(() => {});
+          throw error;
         }
-        await rename(temp, file);
-      } catch (error) {
-        await unlink(temp).catch(() => {});
-        throw error;
       }
       state = next;
       return structuredClone(state);

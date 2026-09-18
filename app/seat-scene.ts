@@ -419,6 +419,7 @@ export function createSeatScene(
       let stand = 0,
         rest = visitor.posture === 'rest' ? 1 : 0,
         gait = 0,
+        walkAmount = 0,
         moving = false;
       const j = visitor.journey;
       if (j && now < j.at + j.duration) {
@@ -455,6 +456,12 @@ export function createSeatScene(
           ),
         );
         const age = (now - j.at) / 1000;
+        if (!reduced && sample.phase === 'walk') {
+          const walkingAge = age - j.rise - j.exit;
+          walkAmount =
+            T.MathUtils.smoothstep(walkingAge, 0, 0.22) *
+            T.MathUtils.smoothstep(j.walk - walkingAge, 0, 0.22);
+        }
         if (!j.path.length) {
           const f = T.MathUtils.smoothstep(age, 0, j.duration / 1000);
           p.addScaledVector(fromDelta, 1 - f).addScaledVector(toDelta, f);
@@ -561,6 +568,7 @@ export function createSeatScene(
           rest,
           gait,
           moving,
+          walkAmount,
           activity,
         },
       ];
@@ -590,8 +598,8 @@ export function createSeatScene(
           index,
           record.stand,
           record.gait,
-          record.activity.kind,
-          record.activity.amount,
+          record.walkAmount > 0 ? -1 : record.activity.kind,
+          record.walkAmount > 0 ? record.walkAmount : record.activity.amount,
         );
         if (part.tint) mesh.setColorAt(index, tint.set(appearance[part.tint]));
       }

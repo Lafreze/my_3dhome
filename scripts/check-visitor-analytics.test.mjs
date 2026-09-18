@@ -22,7 +22,7 @@ void test('visit records persist; only a valid unexpired administrator session c
   const server = createServer(async (req, res) => {
     if (await handler(req, res)) return;
     try {
-      analytics.page(req, res, new URL(req.url, 'http://local').pathname);
+      await analytics.page(req, res, new URL(req.url, 'http://local').pathname);
     } catch {
       res.statusCode = 500;
     }
@@ -138,16 +138,17 @@ void test('visit records persist; only a valid unexpired administrator session c
     assert.equal(report.activity[0].mode, 'roam');
     assert.equal(report.recent[0].source, 'example.test');
     assert(!JSON.stringify(report).includes('token'));
-    assert(!JSON.stringify(report).includes('127.0.0.1'));
+    assert.equal(report.recent[0].ip, '127.0.0.1');
+    assert.equal(report.recent[0].location, '本地 / 内网');
     for (let i = 0; i < 34; i++)
       await fetch(origin + '/', { headers: { Cookie: visitorCookie } });
-    assert.equal(analytics.report({ page: 1 }).recent.length, 5);
-    assert.equal(analytics.report({ page: 0 }).visitors, 1);
-    assert.equal(analytics.report({ page: 'bad' }).recent.length, 30);
-    const before = analytics.report();
-    analytics.close();
+    assert.equal((await analytics.report({ page: 1 })).recent.length, 5);
+    assert.equal((await analytics.report({ page: 0 })).visitors, 1);
+    assert.equal((await analytics.report({ page: 'bad' })).recent.length, 30);
+    const before = await analytics.report();
+    await analytics.close();
     analytics = await createVisitStore(dir, () => clock);
-    assert.deepEqual(analytics.report(), before);
+    assert.deepEqual(await analytics.report(), before);
     const raw = (
       await readFile(join(dir, 'visitor-analytics.sqlite'))
     ).toString('utf8');
@@ -165,7 +166,7 @@ void test('visit records persist; only a valid unexpired administrator session c
   } finally {
     server.closeAllConnections();
     await new Promise((r) => server.close(r));
-    analytics.close();
+    await analytics.close();
     await rm(dir, { recursive: true, force: true });
   }
 });
