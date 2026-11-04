@@ -1,3 +1,4 @@
+import { visibleInterval } from './visibility-scheduler';
 import { barRecords } from './bar-state';
 // Small original arrangements, synthesized locally after a listener presses play.
 export async function playBarRecord(index: number) {
@@ -55,7 +56,7 @@ export async function playBarRecord(index: number) {
     }
   };
   schedule();
-  const timer = setInterval(schedule, 75);
+  const stop = visibleInterval(schedule, 75);
   const visibility = () => {
     if (document.hidden) void ctx.suspend();
     else if (ctx.state === 'suspended') void ctx.resume();
@@ -63,7 +64,7 @@ export async function playBarRecord(index: number) {
   document.addEventListener('visibilitychange', visibility);
   return {
     close() {
-      clearInterval(timer);
+      stop();
       document.removeEventListener('visibilitychange', visibility);
       void ctx.close();
     },

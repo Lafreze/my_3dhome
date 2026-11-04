@@ -1,4 +1,5 @@
 'use client';
+import { visibleInterval } from './visibility-scheduler';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Environment } from './environment-data';
 import {
@@ -80,8 +81,7 @@ export function useLiveEnvironment() {
     mounted.current = true;
     const tick = () => setNow(new Date());
     tick();
-    const timer = setInterval(tick, 30000);
-    document.addEventListener('visibilitychange', tick);
+    const stopClock = visibleInterval(tick, 30000);
     let permission: PermissionStatus | undefined;
     navigator.permissions
       ?.query({ name: 'geolocation' })
@@ -104,8 +104,7 @@ export function useLiveEnvironment() {
       .catch(() => {});
     return () => {
       mounted.current = false;
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', tick);
+      stopClock();
       if (permission) permission.onchange = null;
     };
   }, [locate]);
@@ -141,20 +140,18 @@ export function useLiveEnvironment() {
         clearTimeout(timeout);
       }
     };
-    void fetchWeather();
-    const timer = setInterval(() => {
-      if (!document.hidden) void fetchWeather();
-    }, 15 * 60000);
-    const visible = () => {
-      if (!document.hidden && Date.now() - lastFetch > 10 * 60000)
-        void fetchWeather();
-    };
-    document.addEventListener('visibilitychange', visible);
+    const stopWeather = visibleInterval(
+      (waking) => {
+        if (!waking || Date.now() - lastFetch > 10 * 60000)
+          return fetchWeather();
+      },
+      15 * 60000,
+      { immediate: true },
+    );
     return () => {
       dead = true;
       controller?.abort();
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', visible);
+      stopWeather();
     };
   }, [location, mode, refreshKey]);
   const environment = useMemo<Environment>(() => {

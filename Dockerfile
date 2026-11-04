@@ -11,6 +11,7 @@ RUN npm prune --omit=dev --ignore-scripts --no-audit --no-fund
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV STUDIO_HOST=0.0.0.0
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist/client ./dist/client
@@ -42,6 +43,7 @@ COPY --from=build --chown=node:node /app/config/visitor-routes.json ./config/vis
 COPY --from=build --chown=node:node /app/scripts/studio-database.mjs ./scripts/studio-database.mjs
 COPY --from=build --chown=node:node /app/scripts/visitor-geolocation.mjs ./scripts/visitor-geolocation.mjs
 COPY --from=build --chown=node:node /app/output/geoip/city.mmdb ./output/geoip/city.mmdb
+COPY --from=build --chown=node:node /app/scripts/visitor-geolocation-reader.mjs ./scripts/visitor-geolocation-reader.mjs
 ENV STUDIO_GEOIP_FILE=/app/output/geoip/city.mmdb
 ENV STUDIO_DATA_DIR=/data
 RUN command -v runuser

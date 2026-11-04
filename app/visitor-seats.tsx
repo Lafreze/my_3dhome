@@ -1,4 +1,5 @@
 'use client';
+import { visibleInterval } from './visibility-scheduler';
 // The selection bridge intentionally reads the latest render, including its async submit.
 /* oxlint-disable react/react-compiler */
 import { useEffect, useRef, useState } from 'react';
@@ -82,8 +83,7 @@ export default function VisitorSeats({
     const update = () =>
       setActivity(api.current?.visitorStatus(id) || '坐着歇一会儿');
     update();
-    const timer = setInterval(update, 350);
-    return () => clearInterval(timer);
+    return visibleInterval(update, 350);
   }, [open, wardrobe, occupant?.id, mine?.id, api]);
   function accept(next: Presence, seq: number) {
     if (!mounted.current || seq < request.current) return;
@@ -114,10 +114,11 @@ export default function VisitorSeats({
     mounted.current = true;
     if (!ready) return;
     let stopped = false,
-      polling = false;
+      polling = false,
+      lastHeartbeat = 0;
     const controllers = new Set<AbortController>();
     async function refresh(heartbeat = false) {
-      if (stopped || polling || mutating.current) return;
+      if (stopped || document.hidden || polling || mutating.current) return;
       polling = true;
       const controller = new AbortController();
       controllers.add(controller);
@@ -137,6 +138,7 @@ export default function VisitorSeats({
         });
         if (!response.ok) throw new Error('连接中断');
         const next = (await response.json()) as Presence;
+        if (heartbeat) lastHeartbeat = Date.now();
         if (!stopped) accept(next, seq);
       } catch {
         if (!stopped && seq === request.current) setConnected(false);
@@ -146,24 +148,16 @@ export default function VisitorSeats({
         polling = false;
       }
     }
-    void refresh(true);
-    const poll = setInterval(() => {
-      if (!document.hidden) void refresh();
-    }, 4000);
-    const heartbeat = setInterval(() => {
-      void refresh(true);
-    }, 25000);
-    const wake = () => {
-      if (!document.hidden) void refresh(true);
-    };
-    document.addEventListener('visibilitychange', wake);
+    const stopPoll = visibleInterval(
+      (waking) => refresh(waking || Date.now() - lastHeartbeat >= 25000),
+      5000,
+      { immediate: true, onHide: () => controllers.forEach((c) => c.abort()) },
+    );
     return () => {
       stopped = true;
       mounted.current = false;
-      clearInterval(poll);
-      clearInterval(heartbeat);
+      stopPoll();
       controllers.forEach((c) => c.abort());
-      document.removeEventListener('visibilitychange', wake);
     };
   }, [ready]);
   useEffect(() => {

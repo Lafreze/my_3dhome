@@ -1,3 +1,4 @@
+import { visibleFrames } from './visibility-scheduler';
 import * as T from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -104,15 +105,21 @@ export function createModelViewer(
   }
   let active: T.Group | undefined,
     disposed = false,
-    frame = 0,
     revision = 0,
     dirty = true,
     auto = false,
     lastTime = performance.now(),
     abort: AbortController | undefined;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const loop = visibleFrames(animate, {
+    onWake: () => {
+      lastTime = performance.now();
+      dirty = true;
+    },
+  });
   const mark = () => {
     dirty = true;
+    loop?.invalidate();
   };
   controls.addEventListener('change', mark);
   function fit() {
@@ -132,7 +139,7 @@ export function createModelViewer(
     controls.target.copy(target);
     controls.update();
     controls.saveState();
-    dirty = true;
+    mark();
   }
   const resize = () => {
     const w = host.clientWidth,
@@ -153,18 +160,17 @@ export function createModelViewer(
   renderer.domElement.addEventListener('webglcontextlost', lost);
   function animate(time: number) {
     if (disposed) return;
-    frame = requestAnimationFrame(animate);
     const dt = Math.min((time - lastTime) / 1000, 0.05);
     lastTime = time;
-    if (document.hidden) return;
     controls.autoRotate = auto && !reduced.matches;
     const moving = controls.update(dt);
     if (dirty || moving || controls.autoRotate) {
       renderer.render(scene, camera);
       dirty = false;
     }
+    return moving || controls.autoRotate;
   }
-  frame = requestAnimationFrame(animate);
+  loop.invalidate();
   async function uploaded(item: Exhibit, signal: AbortSignal) {
     if (
       !item.url ||
@@ -229,7 +235,7 @@ export function createModelViewer(
         disposeModel(active);
         active = undefined;
       }
-      dirty = true;
+      mark();
       try {
         const gltf = item.assetId
           ? await loadAssetGltf(item.assetId)
@@ -276,7 +282,7 @@ export function createModelViewer(
           error: '',
           triangles: Math.round(triangles),
         });
-        dirty = true;
+        mark();
       } catch (error) {
         if (!disposed && current === revision)
           changed({
@@ -293,7 +299,7 @@ export function createModelViewer(
       offset.applyAxisAngle(new T.Vector3(0, 1, 0), angle);
       camera.position.copy(controls.target).add(offset);
       controls.update();
-      dirty = true;
+      mark();
     },
     zoom(factor: number) {
       const offset = camera.position.clone().sub(controls.target);
@@ -306,12 +312,12 @@ export function createModelViewer(
       );
       camera.position.copy(controls.target).add(offset);
       controls.update();
-      dirty = true;
+      mark();
     },
     reset: fit,
     auto(value: boolean) {
       auto = value;
-      dirty = true;
+      mark();
     },
     capture() {
       renderer.render(scene, camera);
@@ -323,7 +329,7 @@ export function createModelViewer(
         .__kuroModelViewer;
       revision++;
       abort?.abort();
-      cancelAnimationFrame(frame);
+      loop?.dispose();
       observer.disconnect();
       controls.dispose();
       renderer.domElement.removeEventListener('webglcontextlost', lost);

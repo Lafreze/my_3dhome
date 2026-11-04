@@ -1,4 +1,5 @@
 'use client';
+import { visibleInterval } from './visibility-scheduler';
 import { useCallback, useEffect, useState } from 'react';
 import { rooms, type RoomId } from './house-data';
 import { useStudio } from './studio-settings';
@@ -30,13 +31,7 @@ export default function RoomNotes({ initialRoom }: { initialRoom: RoomId }) {
     const update = () => {
       if (!document.hidden) void refresh().catch((e) => setError(e.message));
     };
-    update();
-    const timer = setInterval(update, 15000);
-    document.addEventListener('visibilitychange', update);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', update);
-    };
+    return visibleInterval(update, 30000, { immediate: true });
   }, [refresh]);
   return (
     <div className="room-notes">

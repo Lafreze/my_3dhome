@@ -1,4 +1,5 @@
 'use client';
+import { visibleInterval } from './visibility-scheduler';
 import { uploadModelFile } from './model-upload-client';
 import {
   createContext,
@@ -127,14 +128,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => {});
-    const timer = setInterval(update, 15000);
+    const stop = visibleInterval(update, 30000);
     window.addEventListener('focus', update);
-    document.addEventListener('visibilitychange', update);
     return () => {
       live = false;
-      clearInterval(timer);
+      stop();
       window.removeEventListener('focus', update);
-      document.removeEventListener('visibilitychange', update);
     };
   }, [refresh]);
   const request = async (

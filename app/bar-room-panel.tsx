@@ -1,4 +1,5 @@
 'use client';
+import { visibleFrames, visibleInterval } from './visibility-scheduler';
 /* oxlint-disable react/react-compiler */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -98,11 +99,11 @@ export default function BarRoomPanel({
     if (!selection) return;
     setSnapshot(api.current?.barSnapshot() || initial);
     setBest(readDartBest());
-    const t = setInterval(
+    const stop = visibleInterval(
       () => setSnapshot(api.current?.barSnapshot() || initial),
       100,
     );
-    return () => clearInterval(t);
+    return stop;
   }, [selection, api]);
   async function play(index: number) {
     stop();
@@ -163,8 +164,7 @@ export default function BarRoomPanel({
   }, [api]);
   useEffect(() => {
     if (selection !== 'darts') return;
-    let frame = 0,
-      previous = performance.now();
+    let previous = performance.now();
     function paint(t: number) {
       const dt = Math.min(t - previous, 50);
       previous = t;
@@ -211,9 +211,13 @@ export default function BarRoomPanel({
           c.stroke();
         }
       }
-      frame = requestAnimationFrame(paint);
     }
-    frame = requestAnimationFrame(paint);
+    const loop = visibleFrames(paint, {
+      onWake: () => {
+        previous = performance.now();
+      },
+    });
+    loop.invalidate();
     const key = (event: KeyboardEvent) => {
       if (
         (event.code === 'Space' || event.code === 'Enter') &&
@@ -226,7 +230,7 @@ export default function BarRoomPanel({
     };
     window.addEventListener('keydown', key);
     return () => {
-      cancelAnimationFrame(frame);
+      loop.dispose();
       window.removeEventListener('keydown', key);
     };
   }, [selection, throwDart]);

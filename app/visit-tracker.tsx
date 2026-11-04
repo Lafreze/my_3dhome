@@ -1,4 +1,5 @@
 'use client';
+import { visibleInterval } from './visibility-scheduler';
 import { useEffect } from 'react';
 let record: ((kind: string, target?: string) => void) | undefined;
 let room = 'study',
@@ -51,17 +52,17 @@ export default function VisitTracker() {
     record = send;
     send('start');
     if (inHouse) send('room', room);
-    const timer = setInterval(() => {
-      if (!document.hidden) send('heartbeat');
-    }, 25000);
-    const visibility = () => send(document.hidden ? 'end' : 'heartbeat');
+    const stop = visibleInterval(() => send('heartbeat'), 25000);
+    const visibility = () => {
+      if (document.hidden) send('end');
+    };
     const end = () => send('end');
     document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pagehide', end);
     return () => {
       end();
       record = undefined;
-      clearInterval(timer);
+      stop();
       document.removeEventListener('visibilitychange', visibility);
       window.removeEventListener('pagehide', end);
     };

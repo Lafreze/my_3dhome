@@ -167,19 +167,11 @@ export async function createVisitStore(
               ? 'Safari'
               : '其他';
       const ip = visitorIP(req, trustRailwayProxy) || null;
+      const location = ip ? await geolocate(ip) : null;
       await transaction((client) =>
         run(
           'INSERT INTO page_views(visitor,at,page,source,device,browser,ip,location) VALUES (?,?,?,?,?,?,?,?)',
-          [
-            visitor,
-            now(),
-            page,
-            source,
-            device,
-            browser,
-            ip,
-            ip ? geolocate(ip) : null,
-          ],
+          [visitor, now(), page, source, device, browser, ip, location],
           client,
         ),
       );
@@ -309,6 +301,7 @@ export async function createVisitStore(
     close: async () => {
       await writes;
       sqlite?.close();
+      await geolocate.close?.();
     },
   };
 }

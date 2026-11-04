@@ -1,3 +1,4 @@
+import { visibleFrames } from './visibility-scheduler';
 import { createAmbientVisitors } from './ambient-visitors';
 import { createRoamScene, type RoamTarget } from './roam-scene';
 import { trackVisit } from './visit-tracker';
@@ -2399,7 +2400,20 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   const observer = new ResizeObserver(resize);
   observer.observe(host);
   resize();
-  let frameId = 0;
+  let lastInput = performance.now();
+  const inputActivity = () => {
+    lastInput = performance.now();
+    renderLoop?.invalidate();
+  };
+  const inputEvents = [
+    'pointerdown',
+    'pointermove',
+    'wheel',
+    'keydown',
+  ] as const;
+  inputEvents.forEach((event) =>
+    window.addEventListener(event, inputActivity, { passive: true }),
+  );
   let shadowsUntil = 0,
     lastShadow = -Infinity;
   function refreshShadows(duration = 1400) {
@@ -2412,7 +2426,6 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   let mapOpen = false;
   let last = performance.now();
   function animate(now: number) {
-    frameId = requestAnimationFrame(animate);
     if (document.hidden || mapOpen) {
       last = now;
       return;
@@ -2664,6 +2677,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     },
     setMapOpen(open) {
       mapOpen = open;
+      renderLoop.refresh();
       if (!open) refreshShadows();
     },
     enterDoor(id) {
@@ -3177,7 +3191,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       assets.dispose();
       designerChairs.dispose();
       setAssetRenderer(undefined);
-      cancelAnimationFrame(frameId);
+      renderLoop.dispose();
+      inputEvents.forEach((event) =>
+        window.removeEventListener(event, inputActivity),
+      );
       observer.disconnect();
       controls.dispose();
       motionPreference.removeEventListener('change', motionChanged);
@@ -3213,7 +3230,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   };
   controls.update();
   renderer.render(scene, camera);
-  frameId = requestAnimationFrame(animate);
+  const renderLoop = visibleFrames(animate, {
+    enabled: () => !mapOpen,
+    fps: () => (performance.now() - lastInput > 60000 ? 20 : 60),
+    onWake: () => {
+      last = performance.now();
+      lastInput = last;
+    },
+  });
+  renderLoop.invalidate();
   assets.activate('study');
   options.onReady();
   // Let the basic room render first. This optional module never gates the house loading state.

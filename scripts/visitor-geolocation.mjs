@@ -1,4 +1,5 @@
-import { open } from 'maxmind';
+import { fork } from 'node:child_process';
+import { access } from 'node:fs/promises';
 import { BlockList, isIP } from 'node:net';
 import { resolve } from 'node:path';
 
@@ -23,36 +24,115 @@ for (const [address, prefix] of [
   ['ff00::', 8],
 ])
   local.addSubnet(address, prefix, 'ipv6');
-let loaded;
 export async function createGeolocation(
   file = process.env.STUDIO_GEOIP_FILE || resolve('output/geoip/city.mmdb'),
+  { idleMs = 60000, timeoutMs = 10000 } = {},
 ) {
-  if (!loaded)
-    loaded = open(file).catch((error) => {
-      if (process.env.STUDIO_GEOIP_FILE || error.code !== 'ENOENT') throw error;
-      return null; // Local development can run without the optional city database.
+  let available = true;
+  try {
+    await access(file);
+  } catch (error) {
+    if (process.env.STUDIO_GEOIP_FILE || error.code !== 'ENOENT') throw error;
+    available = false;
+  }
+  let worker,
+    idleTimer,
+    serial = 0,
+    closed = false;
+  const cache = new Map(),
+    pending = new Map();
+  const stop = () => {
+    clearTimeout(idleTimer);
+    const previous = worker;
+    worker = undefined;
+    for (const task of pending.values()) {
+      clearTimeout(task.timer);
+      task.resolve('归属地未知');
+    }
+    pending.clear();
+    if (!previous || previous.exitCode !== null || previous.signalCode !== null)
+      return;
+    return new Promise((resolve) => {
+      previous.once('exit', resolve);
+      previous.kill();
     });
-  const reader = await loaded;
-  const name = (value) => value?.names?.['zh-CN'] || value?.names?.en || '';
-  const cache = new Map();
-  return (ip) => {
+  };
+  const idle = () => {
+    if (pending.size) return;
+    worker?.unref();
+    worker?.channel?.unref();
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(stop, idleMs);
+    idleTimer.unref();
+  };
+  const start = () => {
+    if (worker) return;
+    const current = fork(
+      new URL('./visitor-geolocation-reader.mjs', import.meta.url),
+      [file],
+      { execArgv: [], stdio: ['ignore', 'ignore', 'ignore', 'ipc'] },
+    );
+    worker = current;
+    current.on('message', ({ id, location }) => {
+      if (worker !== current) return;
+      const task = pending.get(id);
+      if (!task) return;
+      clearTimeout(task.timer);
+      pending.delete(id);
+      task.resolve(location);
+      idle();
+    });
+    current.on('error', () => {
+      if (worker !== current) return;
+      console.error(
+        'IP location reader unavailable; IP recording remains active.',
+      );
+      void stop();
+    });
+    current.on('exit', () => {
+      if (worker === current) void stop();
+    });
+  };
+  const locate = async (ip) => {
     const family = isIP(ip);
     if (!family) return '归属地未知';
     if (local.check(ip, family === 6 ? 'ipv6' : 'ipv4')) return '本地 / 内网';
+    if (!available || closed) return '归属地未知';
     if (cache.has(ip)) return cache.get(ip);
-    const record = reader?.get(ip);
-    const value =
-      [
-        ...new Set(
-          [
-            name(record?.country),
-            ...(record?.subdivisions || []).map(name),
-            name(record?.city),
-          ].filter(Boolean),
-        ),
-      ].join(' · ') || '归属地未知';
-    if (cache.size >= 4096) cache.delete(cache.keys().next().value);
-    cache.set(ip, value);
-    return value;
+    // Share concurrent lookups for the same address as well as completed results.
+    const result = (async () => {
+      clearTimeout(idleTimer);
+      start();
+      worker.ref();
+      worker.channel?.ref();
+      const location = await new Promise((resolve) => {
+        const id = ++serial;
+        const timer = setTimeout(() => {
+          void stop();
+        }, timeoutMs);
+        pending.set(id, { resolve, timer });
+        const current = worker;
+        current.send({ id, ip }, (error) => {
+          if (error && worker === current) void stop();
+        });
+      });
+      if (location === '归属地未知') cache.delete(ip);
+      return location;
+    })();
+    if (cache.size >= 1024) cache.delete(cache.keys().next().value);
+    cache.set(ip, result);
+    return result;
   };
+  locate.close = async () => {
+    closed = true;
+    cache.clear();
+    await stop();
+  };
+  locate.snapshot = () => ({
+    loaded: !!worker,
+    pid: worker?.pid ?? null,
+    pending: pending.size,
+    cached: cache.size,
+  });
+  return locate;
 }

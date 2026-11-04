@@ -1,4 +1,5 @@
 'use client';
+import { visibleInterval } from './visibility-scheduler';
 import RoamControls from './roam-controls';
 import type { RoamTarget } from './roam-scene';
 import { trackVisit } from './visit-tracker';
@@ -289,7 +290,7 @@ function StudioHome() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
     audio = useRef<{
       ctx: AudioContext;
-      timer: ReturnType<typeof setInterval>;
+      stop: () => void;
     } | null>(null);
   useEffect(() => {
     if (!lifeBubble) return;
@@ -502,16 +503,26 @@ function StudioHome() {
   useEffect(
     () => () => {
       if (audio.current) {
-        clearInterval(audio.current.timer);
+        audio.current.stop();
         void audio.current.ctx.close();
       }
     },
     [],
   );
+  useEffect(() => {
+    const visibility = () => {
+      const ctx = audio.current?.ctx;
+      if (!ctx) return;
+      if (document.hidden) void ctx.suspend().catch(() => {});
+      else if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', visibility);
+    return () => document.removeEventListener('visibilitychange', visibility);
+  }, []);
   const toggleMusic = async () => {
     if (audio.current) {
       api.current?.setLifeAudio(null);
-      clearInterval(audio.current.timer);
+      audio.current.stop();
       void audio.current.ctx.close();
       audio.current = null;
       setMusic(false);
@@ -525,6 +536,7 @@ function StudioHome() {
       master.connect(ctx.destination);
       let step = 0;
       const play = () => {
+        if (document.hidden || ctx.state !== 'running') return;
         const notes = [130.81, 164.81, 196, 246.94, 220, 196, 164.81, 146.83];
         for (const ratio of [1, 2, 3]) {
           const osc = ctx.createOscillator(),
@@ -547,7 +559,7 @@ function StudioHome() {
         step++;
       };
       play();
-      audio.current = { ctx, timer: setInterval(play, 1150) };
+      audio.current = { ctx, stop: visibleInterval(play, 1150) };
       api.current?.setLifeAudio(ctx);
       setMusic(true);
     } catch {

@@ -1,4 +1,5 @@
 'use client';
+import { visibleInterval } from './visibility-scheduler';
 /* oxlint-disable react/react-compiler */
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -88,11 +89,11 @@ export default function LibraryPanel({
     if (selection === 'desk')
       borrow(api.current?.librarySnapshot().book || 'forest');
     setSnapshot(api.current?.librarySnapshot() || initial);
-    const timer = setInterval(
+    const stop = visibleInterval(
       () => setSnapshot(api.current?.librarySnapshot() || initial),
       80,
     );
-    return () => clearInterval(timer);
+    return stop;
   }, [selection, api, borrow]);
   useEffect(() => {
     if (snapshot.phase !== 'reading') return;

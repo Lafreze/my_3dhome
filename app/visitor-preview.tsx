@@ -1,4 +1,5 @@
 'use client';
+import { visibleFrames } from './visibility-scheduler';
 import { useEffect, useRef, useState } from 'react';
 import * as T from 'three';
 import { humanScale } from './character-scale.mjs';
@@ -44,7 +45,7 @@ export default function VisitorPreview({
     let renderedPosture: 'sit' | 'rest' | undefined;
     let stopped = false,
       release: (() => void) | undefined,
-      frame = 0;
+      loop: ReturnType<typeof visibleFrames> | undefined;
     const scene = new T.Scene();
     const meshes: { mesh: T.Mesh; part: VisitorPart }[] = [];
     const ownedMaterials: T.Material[] = [];
@@ -121,7 +122,7 @@ export default function VisitorPreview({
     }
     function animate(now: number) {
       if (stopped) return;
-      frame = requestAnimationFrame(animate);
+
       if (document.hidden) return;
       sampleVisitorMotion(
         (now - started) / 1000,
@@ -224,7 +225,8 @@ export default function VisitorPreview({
         setStatus('');
         // Render once more after the canvas has received its final dialog dimensions.
         resize();
-        frame = requestAnimationFrame(animate);
+        loop = visibleFrames(animate);
+        loop.invalidate();
       })
       .catch(() => {
         if (!stopped) setStatus('人物加载失败，请关闭后重试');
@@ -232,7 +234,7 @@ export default function VisitorPreview({
     return () => {
       stopped = true;
       apply.current = null;
-      cancelAnimationFrame(frame);
+      loop?.dispose();
       observer.disconnect();
       controls.dispose();
       ownedMaterials.forEach((m) => m.dispose());

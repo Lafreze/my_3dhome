@@ -178,13 +178,16 @@ export async function createModelLibrary(
     writes = result.catch(() => {});
     return result;
   };
-  let cleanupTimer;
+  let cleanupTimer,
+    cleanupDelay = 15 * 60000;
   const scheduleCleanup = () => {
+    // Durable tombstones already hide deleted models. Long backoff lets an idle service sleep during storage outages.
     if (cleanupTimer) return;
     cleanupTimer = setTimeout(() => {
       cleanupTimer = undefined;
       void mutate(cleanupDeleted).catch(scheduleCleanup);
-    }, 60000);
+    }, cleanupDelay);
+    cleanupDelay = Math.min(cleanupDelay * 2, 60 * 60000);
     cleanupTimer.unref();
   };
   const cleanupDeleted = async () => {

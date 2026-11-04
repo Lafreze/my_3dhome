@@ -26,9 +26,11 @@ export async function createStudioDatabase(
   if (!connectionString) return null;
   const pool = new pg.Pool({
     connectionString,
-    max: 5,
+    max: 3,
+    min: 0,
+    allowExitOnIdle: true,
     connectionTimeoutMillis: 15000,
-    idleTimeoutMillis: 30000,
+    idleTimeoutMillis: 10000,
     types,
   });
   pool.on('error', () =>
