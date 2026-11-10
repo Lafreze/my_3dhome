@@ -1,3 +1,4 @@
+import { installHi3dFurniture } from './hi3d-furniture';
 import { visibleFrames } from './visibility-scheduler';
 import { createAmbientVisitors } from './ambient-visitors';
 import { createRoamScene, type RoamTarget } from './roam-scene';
@@ -1898,6 +1899,9 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     charcoal,
     textile,
   });
+  const hi3dFurniture = installHi3dFurniture(scene, assets, () =>
+    refreshShadows(),
+  );
   const designerChairs = installDesignerChairs({
     seats: seatAnchors,
     assets,
@@ -2009,6 +2013,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       __kuroVisitors: {
         roam: roaming.snapshot,
         chairs: () => designerChairs.snapshot(),
+        hi3d: hi3dFurniture.snapshot,
         games: () => house.gameSnapshot(),
         bar: () => house.barSnapshot(),
         library: () => house.librarySnapshot(),
@@ -2379,7 +2384,16 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   const resize = () => {
     const w = host.clientWidth,
       h = host.clientHeight;
-    renderer.setSize(w, h);
+    if (w <= 0 || h <= 0) return;
+    // CSS follows the visual viewport, including browser pinch zoom. Keep
+    // drawing-buffer dimensions separate from the canvas's displayed size.
+    renderer.setPixelRatio(
+      Math.min(
+        window.devicePixelRatio,
+        window.matchMedia('(pointer: coarse)').matches ? 1.5 : 2,
+      ),
+    );
+    renderer.setSize(w, h, false);
     tvScreen.resize(w, h);
     computerScreen.resize(w, h);
     camera.aspect = w / h;
@@ -2390,6 +2404,10 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
         ),
     );
     camera.updateProjectionMatrix();
+    // Resize also needs a fresh frame when the idle renderer is sleeping.
+    queueMicrotask(() => {
+      if (!disposed) renderLoop.invalidate();
+    });
     if (focusedObject === 'television') frameTelevision();
     if (focusedObject && isCuriosity(focusedObject))
       queueMicrotask(() => {
@@ -3190,6 +3208,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       life?.dispose();
       assets.dispose();
       designerChairs.dispose();
+      hi3dFurniture.dispose();
       setAssetRenderer(undefined);
       renderLoop.dispose();
       inputEvents.forEach((event) =>

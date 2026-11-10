@@ -1,3 +1,4 @@
+import { markHi3dReplacement } from './hi3d-furniture';
 import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { bedroomMaterials, fitPlasterGrain } from './bedroom-materials';
 import { paintingTexture } from './painting-textures';
@@ -720,6 +721,7 @@ export function buildHouse(k: Kit) {
   });
   refinedTabletop(table, 1.75, 0.83, 0.68, suite, false, true);
   b(table, 1.45, 0.055, 0.58, 0, 0.29, 0, suite.timber, 0.025);
+  markHi3dReplacement(table, 'living-coffee-table');
   book(table, 0.42, 0.32, -0.43, 0.736, 0.05, green);
   book(table, 0.38, 0.3, -0.41, 0.83, 0.04, terracotta);
   const cupGlaze = k.ceramic,
@@ -1657,6 +1659,7 @@ export function buildHouse(k: Kit) {
   feet(bench, 1.98, 0.39, 0.37);
   b(bench, 2.28, 0.08, 0.56, 0, 0.47, 0, oak, 0.04);
   cushion(bench, 2.24, 0.12, 0.55, 0, 0.57, 0, benchLeather);
+  markHi3dReplacement(bench, 'bedroom-bench');
   const lounge = group(
     'bedroom',
     undefined,
@@ -1964,6 +1967,7 @@ export function buildHouse(k: Kit) {
   feet(galleryBench, 1.98, 0.47, 0.39);
   b(galleryBench, 2.25, 0.09, 0.67, 0, 0.49, 0, oak, 0.04);
   cushion(galleryBench, 2.19, 0.13, 0.63, 0, 0.59, 0, ivoryCloth);
+  markHi3dReplacement(galleryBench, 'gallery-bench');
   plant(roots.gallery, -3.1, 0.08, 2.78, 1.65);
 
   // Shared partitions contain real 1.4-unit door openings, aligned with each room's aisles.

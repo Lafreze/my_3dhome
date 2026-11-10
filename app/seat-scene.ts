@@ -456,12 +456,7 @@ export function createSeatScene(
           ),
         );
         const age = (now - j.at) / 1000;
-        if (!reduced && sample.phase === 'walk') {
-          const walkingAge = age - j.rise - j.exit;
-          walkAmount =
-            T.MathUtils.smoothstep(walkingAge, 0, 0.22) *
-            T.MathUtils.smoothstep(j.walk - walkingAge, 0, 0.22);
-        }
+        walkAmount = reduced ? 0 : sample.walkAmount;
         if (!j.path.length) {
           const f = T.MathUtils.smoothstep(age, 0, j.duration / 1000);
           p.addScaledVector(fromDelta, 1 - f).addScaledVector(toDelta, f);

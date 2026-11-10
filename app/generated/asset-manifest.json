@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "174fbec10b3d228d",
+  "version": "783328b5a417e232",
   "assets": {
     "art.botanical-study": {
       "type": "image",
@@ -684,6 +684,146 @@
       "logicalPath": "models/furniture/tufted-dining.glb",
       "size": 1050820,
       "sha256": "f1bea9361ba99658fb0faa5d1a775581053f32277938305f459724328d718f97",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.bar-citrus-board": {
+      "type": "model",
+      "room": "bar",
+      "rooms": [
+        "bar"
+      ],
+      "path": "models/hi3d-furniture/bar-citrus-board.6a2bdd363726f55c.glb",
+      "logicalPath": "models/hi3d-furniture/bar-citrus-board.glb",
+      "size": 702016,
+      "sha256": "6a2bdd363726f55ca13dcc434bed95af933a407bb540c7808b33fcf39f862515",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.bedroom-bench": {
+      "type": "model",
+      "room": "bedroom",
+      "rooms": [
+        "bedroom"
+      ],
+      "path": "models/hi3d-furniture/bedroom-bench.dd115d4b79be00c3.glb",
+      "logicalPath": "models/hi3d-furniture/bedroom-bench.glb",
+      "size": 779296,
+      "sha256": "dd115d4b79be00c3565edd639b2b5cfae51a7853929c8a6eca2b2b5b09c95ced",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.cafe-communal-table": {
+      "type": "model",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "path": "models/hi3d-furniture/cafe-communal-table.f8352b64e1ab546b.glb",
+      "logicalPath": "models/hi3d-furniture/cafe-communal-table.glb",
+      "size": 690816,
+      "sha256": "f8352b64e1ab546b9a7c1b48b01764dc62bd3fd8272cf783bfeb2a4c3b40f6f5",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.corridor-letter-rack": {
+      "type": "model",
+      "room": "corridor",
+      "rooms": [
+        "corridor"
+      ],
+      "path": "models/hi3d-furniture/corridor-letter-rack.f7d1c5bd84df1053.glb",
+      "logicalPath": "models/hi3d-furniture/corridor-letter-rack.glb",
+      "size": 872240,
+      "sha256": "f7d1c5bd84df1053d5e4c62fe71a87731f0d9462fd3d17ae68ebd60371fea226",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.gallery-bench": {
+      "type": "model",
+      "room": "gallery",
+      "rooms": [
+        "gallery"
+      ],
+      "path": "models/hi3d-furniture/gallery-bench.7dcbbdc487fabf15.glb",
+      "logicalPath": "models/hi3d-furniture/gallery-bench.glb",
+      "size": 722460,
+      "sha256": "7dcbbdc487fabf15b27d555914b715f89493dc1e83c086919db79edbd409e131",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.gaming-travel-kit": {
+      "type": "model",
+      "room": "gaming",
+      "rooms": [
+        "gaming"
+      ],
+      "path": "models/hi3d-furniture/gaming-travel-kit.445c9433f5c5dea7.glb",
+      "logicalPath": "models/hi3d-furniture/gaming-travel-kit.glb",
+      "size": 815216,
+      "sha256": "445c9433f5c5dea73ac5eb5301bcdecf24a09453d0e818204ffb9d579b99adb0",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.garden-drinks-cart": {
+      "type": "model",
+      "room": "garden",
+      "rooms": [
+        "garden"
+      ],
+      "path": "models/hi3d-furniture/garden-drinks-cart.7bdc1ebd5c40b185.glb",
+      "logicalPath": "models/hi3d-furniture/garden-drinks-cart.glb",
+      "size": 817536,
+      "sha256": "7bdc1ebd5c40b185e7b567a1aa3395139eeb657dd2f3ca69a89cfd394f65aff7",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.library-book-cart": {
+      "type": "model",
+      "room": "library",
+      "rooms": [
+        "library"
+      ],
+      "path": "models/hi3d-furniture/library-book-cart.6311d8ab582dbd7a.glb",
+      "logicalPath": "models/hi3d-furniture/library-book-cart.glb",
+      "size": 646940,
+      "sha256": "6311d8ab582dbd7a946f8e626b54e141ef4d4fddfbc52796451bcfb2b93ef2d6",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.living-coffee-table": {
+      "type": "model",
+      "room": "living",
+      "rooms": [
+        "living"
+      ],
+      "path": "models/hi3d-furniture/living-coffee-table.a67b88cc13e4f83b.glb",
+      "logicalPath": "models/hi3d-furniture/living-coffee-table.glb",
+      "size": 782068,
+      "sha256": "a67b88cc13e4f83b32ff0a353fd451187b198e22c9324353cc574971ac23846d",
+      "contentType": "model/gltf-binary",
+      "dependencies": [],
+      "publish": false
+    },
+    "furniture.hi3d.study-sailboat": {
+      "type": "model",
+      "room": "study",
+      "rooms": [
+        "study"
+      ],
+      "path": "models/hi3d-furniture/study-sailboat.053f96da0f42dc78.glb",
+      "logicalPath": "models/hi3d-furniture/study-sailboat.glb",
+      "size": 776228,
+      "sha256": "053f96da0f42dc78c7e5ca63ea89a179201d5c502b59d7ca217ddc10eb198855",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false

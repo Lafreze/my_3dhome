@@ -1,0 +1,118 @@
+{
+  "generatedOn": "2026-11-10",
+  "referencePoints": 40,
+  "modelPoints": 450,
+  "license": "private",
+  "assets": [
+    {
+      "id": "study-sailboat",
+      "room": "study",
+      "name": "书房木帆船摆件",
+      "version": "v2.1",
+      "design": "One small elegant handcrafted wooden sailboat display sculpture, curved pale oak hull on two tiny integrated supports, two ivory linen sails with stitched hems, a slender brass mast, restrained rigging, no water. Approximately width 55 cm height 40 cm depth 20 cm.",
+      "referenceTaskId": "331dc25c8b5c4e5394e74e1c121519d3",
+      "taskId": "5256dbf6072a4f80b8ea09cb79663780",
+      "modelPage": "https://www.hi3d.ai/3d-model/5256dbf6072a4f80b8ea09cb79663780",
+      "points": 45
+    },
+    {
+      "id": "living-coffee-table",
+      "room": "living",
+      "name": "客厅洞石橡木茶几",
+      "version": "v3.0",
+      "design": "One low rectangular coffee table, width 175 cm depth 83 cm height 59.5 cm. Flat thin ivory travertine top with rounded corners and subtle pores, four sculpted pale white-oak legs, an open lower oak shelf 24 cm above floor, refined mortise joints. Empty top and empty shelf, no decor.",
+      "referenceTaskId": "f5b82884e76e487bb914b7dea0dbbb81",
+      "taskId": "3f5325f57df942778504a159085aace0",
+      "modelPage": "https://www.hi3d.ai/3d-model/3f5325f57df942778504a159085aace0",
+      "points": 45
+    },
+    {
+      "id": "bedroom-bench",
+      "room": "bedroom",
+      "name": "卧室软包床尾凳",
+      "version": "v3.0",
+      "design": "One long backless bedroom bench, width 228 cm depth 56 cm height 54.5 cm. Flat continuous ivory woven linen upholstered seat with subtle piped edges and shallow seam at center, pale white-oak frame and four short tapered legs, fine joinery. No back, no arms, no pillows, no decor.",
+      "referenceTaskId": "7750a524570449779e3e5370c9591611",
+      "taskId": "5395efb061474df2b5ad2738b86c9385",
+      "modelPage": "https://www.hi3d.ai/3d-model/5395efb061474df2b5ad2738b86c9385",
+      "points": 45
+    },
+    {
+      "id": "gallery-bench",
+      "room": "gallery",
+      "name": "展厅雕塑感长凳",
+      "version": "v3.0",
+      "design": "One museum gallery backless upholstered bench, width 225 cm depth 67 cm height 57 cm. Flat elongated creamy ivory boucle cushion, softly rounded corners, two substantial sculptural pale oak sled pedestal supports linked below, inset timber trim, gallery quality. No back or arms, no loose pillows, empty.",
+      "referenceTaskId": "343a5e8e2eb0437c9d50d5d53dc43b72",
+      "taskId": "ac6de062a8764b06a51c0d447ebe1cb7",
+      "modelPage": "https://www.hi3d.ai/3d-model/ac6de062a8764b06a51c0d447ebe1cb7",
+      "points": 45
+    },
+    {
+      "id": "cafe-communal-table",
+      "room": "cafe",
+      "name": "咖啡厅共享长桌",
+      "version": "v3.0",
+      "design": "One inviting cafe communal dining table, width 265 cm depth 125 cm height 114 cm. Flat pale oak tabletop with rounded corners and fine endgrain, two sculpted trestle supports well inset at the short ends, central low stretcher leaving knee space on long sides, delicate brass joining pins. No chairs, no decor, empty tabletop.",
+      "referenceTaskId": "0f2247d8c9ef436fb0b48cf3949bb5b1",
+      "taskId": "584664c2b872448e8e7b609a4dcb1769",
+      "modelPage": "https://www.hi3d.ai/3d-model/584664c2b872448e8e7b609a4dcb1769",
+      "points": 45
+    },
+    {
+      "id": "gaming-travel-kit",
+      "room": "gaming",
+      "name": "游戏房掌机收纳套装",
+      "version": "v2.1",
+      "design": "One compact still-life prop of a warm ivory fabric portable game console zippered pouch, two small muted sage and terracotta game cartridges resting on its top, short neatly coiled charcoal charging cable. Main case width 47 cm depth 25 cm, total height 11 cm. Rounded sewn case, visible zipper pulls and seams, tasteful fictional generic design, no logos or words. All objects touching in one coherent asset.",
+      "referenceTaskId": "2b9233ef5be447bc8deba387579a88c6",
+      "taskId": "986cc80dc1cb4731b89c5567a7c427e3",
+      "modelPage": "https://www.hi3d.ai/3d-model/986cc80dc1cb4731b89c5567a7c427e3",
+      "points": 45
+    },
+    {
+      "id": "bar-citrus-board",
+      "room": "bar",
+      "name": "酒吧柑橘备料盘",
+      "version": "v2.1",
+      "design": "One small rectangular pale oak cocktail garnish board 48 cm wide 39 cm deep, with two natural detailed orange half slices, one curled orange peel, and a tiny brass cocktail garnish pick resting flat. Total height under 9 cm. Subtle woodgrain, visible citrus segments, warm cozy miniature realism. All items sit on board. No drinks, no knife, no words.",
+      "referenceTaskId": "6f3ac880dbb748829b31a74f4c346fb3",
+      "taskId": "c80a65785a0f4844bb371b01a291d56c",
+      "modelPage": "https://www.hi3d.ai/3d-model/c80a65785a0f4844bb371b01a291d56c",
+      "points": 45
+    },
+    {
+      "id": "library-book-cart",
+      "room": "library",
+      "name": "藏书室橡木书车",
+      "version": "v3.0",
+      "design": "One compact rolling library book trolley, width 112 cm depth 63 cm total height 121 cm. Three pale white-oak shelves with upturned lips at heights about 20,60,104 cm, rounded uprights and integrated arched push handles at both ends, four small dark casters in brass forks. Empty shelves, no books or decorations. Fine joinery, restrained Japanese Scandinavian furniture.",
+      "referenceTaskId": "1af0d1c2096e4b2f8356eb037396056e",
+      "taskId": "3f2d7658e80b42e6ae768396a280f8f4",
+      "modelPage": "https://www.hi3d.ai/3d-model/3f2d7658e80b42e6ae768396a280f8f4",
+      "points": 45
+    },
+    {
+      "id": "corridor-letter-rack",
+      "room": "corridor",
+      "name": "连廊信件钥匙架",
+      "version": "v2.1",
+      "design": "One shallow wall-mounted mail and key organizer, width 67 cm height 34 cm depth 12 cm. Pale oak rounded rectangular vertical backplate, shallow letter pocket on left with two ivory envelopes, two small brass hooks on right holding one antique brass key and a simple round keyring. Flat back, fronts face camera. No wall, no screws floating separately, no text.",
+      "referenceTaskId": "1a893df31c18401dbcd066869c0fa2eb",
+      "taskId": "3761c4ed0ce54f13bd9beb799f5e3088",
+      "modelPage": "https://www.hi3d.ai/3d-model/3761c4ed0ce54f13bd9beb799f5e3088",
+      "points": 45
+    },
+    {
+      "id": "garden-drinks-cart",
+      "room": "garden",
+      "name": "植物园藤编饮品车",
+      "version": "v3.0",
+      "design": "One narrow conservatory drinks trolley, width 150 cm depth 89 cm total height 114 cm. Three shelves at heights 18,57,97 cm, warm ivory stone top tray with low pale oak rim, two lower cane-woven trays, four elegant pale oak posts, brushed brass handrails on both short sides, four small dark caster wheels. Empty shelves, no bottles, no dishes, no basket, no decor. Beautiful restrained botanical cafe furniture.",
+      "referenceTaskId": "3af2d6538ded4f8bb39fecd7a4787f86",
+      "taskId": "e0113849b1c04a79b9b65cab239356a5",
+      "modelPage": "https://www.hi3d.ai/3d-model/e0113849b1c04a79b9b65cab239356a5",
+      "points": 45
+    }
+  ]
+}

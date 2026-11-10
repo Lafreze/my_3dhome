@@ -1,3 +1,4 @@
+import { markHi3dReplacement } from './hi3d-furniture';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -575,4 +576,8 @@ export function addRoomLifeDetails(k: {
       }
     }
   }
+  markHi3dReplacement(model, 'study-sailboat');
+  markHi3dReplacement(games, 'gaming-travel-kit');
+  markHi3dReplacement(citrus, 'bar-citrus-board');
+  markHi3dReplacement(post, 'corridor-letter-rack');
 }

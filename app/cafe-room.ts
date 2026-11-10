@@ -1,3 +1,4 @@
+import { markHi3dReplacement } from './hi3d-furniture';
 import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
@@ -1394,6 +1395,7 @@ export function buildCafe(k: Kit) {
     2.65,
     1.25,
   );
+  markHi3dReplacement(communal, 'cafe-communal-table');
   cup(communal, -0.82, 1.238, 0.1, 0.12, true);
   cup(communal, 0.7, 1.238, -0.3, 0.1);
   box(communal, 0.41, 0.025, 0.55, 0.51, 1.24, 0.2, tan, 0.007);

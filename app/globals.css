@@ -223,8 +223,11 @@ a {
 .scene {
   z-index: 0;
   isolation: isolate;
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  left: var(--ui-left, 0px);
+  top: var(--ui-top, 0px);
+  width: var(--ui-width, 100vw);
+  height: var(--ui-height, 100dvh);
   touch-action: none;
 }
 .scene canvas {

@@ -37,6 +37,7 @@ COPY --from=build --chown=node:node /app/app/visitor-expressions.json ./app/visi
 COPY --from=build --chown=node:node /app/app/visitor-social.json ./app/visitor-social.json
 COPY --from=build --chown=node:node /app/app/visitor-activities.json ./app/visitor-activities.json
 COPY --from=build --chown=node:node /app/app/visitor-travel.mjs ./app/visitor-travel.mjs
+COPY --from=build --chown=node:node /app/app/walking-path.mjs ./app/walking-path.mjs
 COPY --from=build --chown=node:node /app/app/seat-transfer.mjs ./app/seat-transfer.mjs
 COPY --from=build --chown=node:node /app/app/character-scale.mjs ./app/character-scale.mjs
 COPY --from=build --chown=node:node /app/config/visitor-routes.json ./config/visitor-routes.json

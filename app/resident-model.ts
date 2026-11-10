@@ -5,6 +5,7 @@ import { configureCharacterSurface } from './character-surface';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
 import { assetManifest } from './asset-url';
 import type { ActorModel } from './life-models';
+import { sampleResidentGait, residentCycleDistance } from './resident-gait';
 
 export const residentAssetId = 'character.resident';
 const smooth = (a: number, b: number, x: number) =>
@@ -63,7 +64,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
   const legs = [-1, 1].map((side) => {
     const thigh = add(`resident.thigh.${side}`, [side * 0.13, 0, 0], pelvis);
     const shin = add(`resident.shin.${side}`, [0, -0.22, 0], thigh);
-    const foot = add(`resident.foot.${side}`, [0, -0.16, -0.025], shin);
+    const foot = add(`resident.foot.${side}`, [0, -0.16, 0], shin);
     return { thigh, shin, foot };
   });
   const shoulders = [-1, 1].map((side) =>
@@ -145,6 +146,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     sitBlend = 0,
     walkBlend = 0,
     walkPhase = 0,
+    walkDistance = 0,
     crouchBlend = 0,
     headPitch = 0,
     headYaw = 0,
@@ -173,19 +175,24 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
       mesh.morphTargetInfluences![0] = sitBlend;
     });
     walkBlend += ((state === 'walk' && !reduced ? 1 : 0) - walkBlend) * blend;
-    if (state === 'walk')
-      walkPhase = ((motion?.travelDistance ?? t * 0.62) / 0.9) * Math.PI * 2;
+    if (state === 'walk') {
+      walkDistance = motion?.travelDistance ?? t * 0.62;
+      walkPhase = (walkDistance / residentCycleDistance) * Math.PI * 2;
+    }
     const walk = reduced
       ? 0
       : Math.sin(walkPhase) * walkBlend * (1 - sitBlend) * 0.16;
     legs.forEach((leg, i) => {
-      const stride = walk * (i ? 1 : -1);
-      leg.thigh.rotation.x = 0.6 * crouchBlend + stride;
-      leg.shin.rotation.x = -1.05 * crouchBlend - Math.max(0, stride) * 0.45;
-      leg.foot.rotation.x = 0.35 * crouchBlend - stride * 0.2;
+      const gait = sampleResidentGait(
+        walkDistance,
+        walkBlend * (1 - sitBlend),
+        i,
+      );
+      leg.thigh.rotation.x = 0.6 * crouchBlend + gait.hip;
+      leg.shin.rotation.x = -1.05 * crouchBlend + gait.knee;
+      leg.foot.rotation.x = 0.35 * crouchBlend + gait.ankle;
     });
-    avatar.position.y +=
-      (1 - Math.cos(walkPhase * 2)) * 0.006 * walkBlend * (1 - sitBlend);
+    avatar.position.y -= 0.065 * walkBlend * (1 - sitBlend);
     spine.rotation.z = Math.sin(walkPhase) * 0.012 * walkBlend * (1 - sitBlend);
     spine.rotation.x = 0.2 * crouchBlend;
     // This supplied model has a neutral neck: never apply the old model's roll correction.

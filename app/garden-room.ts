@@ -1,3 +1,4 @@
+import { markHi3dReplacement } from './hi3d-furniture';
 import { gardenDetails as detail } from './garden-detail-layout';
 import { edgeDrapeGeometry, gardenBasinGeometry } from './garden-joinery';
 import { gardenCraftFinishes, trowelGeometry } from './garden-surfaces';
@@ -1459,9 +1460,12 @@ export function buildGarden(k: Kit) {
     }
   for (const x of [-0.65, 0.65])
     rod(cart, [x, 1.2, -0.34], [x, 1.2, 0.34], 0.03, brass);
+  markHi3dReplacement(cart, 'garden-drinks-cart');
+  const cartDrinks = group(cart, 0, 0, 0, 'Drinks trolley / top shelf');
+  cartDrinks.userData.hi3dSupportY = 1.054;
   for (let i = 0; i < 4; i++) {
     const b = bottle(
-      cart,
+      cartDrinks,
       -0.47 + i * 0.24,
       1.054,
       -0.16,
@@ -1471,10 +1475,15 @@ export function buildGarden(k: Kit) {
     );
     cyl(b, 0.03, 0.03, 0.055, 0, 0.34, 0, cane);
   }
-  for (let i = 0; i < 3; i++) cup(cart, -0.4 + i * 0.29, 1.054, 0.2, true);
+  for (let i = 0; i < 3; i++)
+    cup(cartDrinks, -0.4 + i * 0.29, 1.054, 0.2, true);
   const cartBasket = group(cart, 0, 0.294, 0);
+  cartBasket.name = 'Drinks trolley / lower basket';
+  cartBasket.userData.hi3dSupportY = 0.294;
   wovenBasket(cartBasket, 0.95, 0.57, 0.27);
-  volume(cart, 0.6, 0.14, 0.45, 0.05, 0.674, 0, linen, 0.04);
+  const cartLinen = group(cart, 0, 0, 0, 'Drinks trolley / folded linen');
+  cartLinen.userData.hi3dSupportY = 0.674;
+  volume(cartLinen, 0.6, 0.14, 0.45, 0.05, 0.674, 0, linen, 0.04);
   const basket = group(
     root,
     f.picnicBasket.x,

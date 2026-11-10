@@ -1406,6 +1406,186 @@
       "sourceUrl": "",
       "modifications": "User-supplied Hi3D_Untitled_allparts_20260917_231900.glb; 48k triangles, 1K original PBR textures; natural hanging arms and seated skirt, intact standing body for walking/rest",
       "approval": "pending"
+    },
+    {
+      "id": "furniture.hi3d.living-coffee-table",
+      "name": "客厅洞石橡木茶几",
+      "source": "public/models/hi3d-furniture/living-coffee-table.glb",
+      "path": "models/hi3d-furniture/living-coffee-table.glb",
+      "type": "model",
+      "room": "living",
+      "rooms": [
+        "living"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/3f5325f57df942778504a159085aace0",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "a67b88cc13e4f83b32ff0a353fd451187b198e22c9324353cc574971ac23846d"
+    },
+    {
+      "id": "furniture.hi3d.gallery-bench",
+      "name": "展厅雕塑感长凳",
+      "source": "public/models/hi3d-furniture/gallery-bench.glb",
+      "path": "models/hi3d-furniture/gallery-bench.glb",
+      "type": "model",
+      "room": "gallery",
+      "rooms": [
+        "gallery"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/ac6de062a8764b06a51c0d447ebe1cb7",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "7dcbbdc487fabf15b27d555914b715f89493dc1e83c086919db79edbd409e131"
+    },
+    {
+      "id": "furniture.hi3d.cafe-communal-table",
+      "name": "咖啡厅共享长桌",
+      "source": "public/models/hi3d-furniture/cafe-communal-table.glb",
+      "path": "models/hi3d-furniture/cafe-communal-table.glb",
+      "type": "model",
+      "room": "cafe",
+      "rooms": [
+        "cafe"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/584664c2b872448e8e7b609a4dcb1769",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "f8352b64e1ab546b9a7c1b48b01764dc62bd3fd8272cf783bfeb2a4c3b40f6f5"
+    },
+    {
+      "id": "furniture.hi3d.bedroom-bench",
+      "name": "卧室软包床尾凳",
+      "source": "public/models/hi3d-furniture/bedroom-bench.glb",
+      "path": "models/hi3d-furniture/bedroom-bench.glb",
+      "type": "model",
+      "room": "bedroom",
+      "rooms": [
+        "bedroom"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/5395efb061474df2b5ad2738b86c9385",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "dd115d4b79be00c3565edd639b2b5cfae51a7853929c8a6eca2b2b5b09c95ced"
+    },
+    {
+      "id": "furniture.hi3d.library-book-cart",
+      "name": "藏书室橡木书车",
+      "source": "public/models/hi3d-furniture/library-book-cart.glb",
+      "path": "models/hi3d-furniture/library-book-cart.glb",
+      "type": "model",
+      "room": "library",
+      "rooms": [
+        "library"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/3f2d7658e80b42e6ae768396a280f8f4",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "6311d8ab582dbd7a946f8e626b54e141ef4d4fddfbc52796451bcfb2b93ef2d6"
+    },
+    {
+      "id": "furniture.hi3d.garden-drinks-cart",
+      "name": "植物园藤编饮品车",
+      "source": "public/models/hi3d-furniture/garden-drinks-cart.glb",
+      "path": "models/hi3d-furniture/garden-drinks-cart.glb",
+      "type": "model",
+      "room": "garden",
+      "rooms": [
+        "garden"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/e0113849b1c04a79b9b65cab239356a5",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "7bdc1ebd5c40b185e7b567a1aa3395139eeb657dd2f3ca69a89cfd394f65aff7"
+    },
+    {
+      "id": "furniture.hi3d.study-sailboat",
+      "name": "书房木帆船摆件",
+      "source": "public/models/hi3d-furniture/study-sailboat.glb",
+      "path": "models/hi3d-furniture/study-sailboat.glb",
+      "type": "model",
+      "room": "study",
+      "rooms": [
+        "study"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/5256dbf6072a4f80b8ea09cb79663780",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "053f96da0f42dc78c7e5ca63ea89a179201d5c502b59d7ca217ddc10eb198855"
+    },
+    {
+      "id": "furniture.hi3d.bar-citrus-board",
+      "name": "酒吧柑橘备料盘",
+      "source": "public/models/hi3d-furniture/bar-citrus-board.glb",
+      "path": "models/hi3d-furniture/bar-citrus-board.glb",
+      "type": "model",
+      "room": "bar",
+      "rooms": [
+        "bar"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/c80a65785a0f4844bb371b01a291d56c",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "6a2bdd363726f55ca13dcc434bed95af933a407bb540c7808b33fcf39f862515"
+    },
+    {
+      "id": "furniture.hi3d.gaming-travel-kit",
+      "name": "游戏房掌机收纳套装",
+      "source": "public/models/hi3d-furniture/gaming-travel-kit.glb",
+      "path": "models/hi3d-furniture/gaming-travel-kit.glb",
+      "type": "model",
+      "room": "gaming",
+      "rooms": [
+        "gaming"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/986cc80dc1cb4731b89c5567a7c427e3",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "445c9433f5c5dea73ac5eb5301bcdecf24a09453d0e818204ffb9d579b99adb0"
+    },
+    {
+      "id": "furniture.hi3d.corridor-letter-rack",
+      "name": "连廊信件钥匙架",
+      "source": "public/models/hi3d-furniture/corridor-letter-rack.glb",
+      "path": "models/hi3d-furniture/corridor-letter-rack.glb",
+      "type": "model",
+      "room": "corridor",
+      "rooms": [
+        "corridor"
+      ],
+      "license": "Hi3D private generation; owner-authorized use in this project",
+      "author": "SATORI / Hi3D",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/3761c4ed0ce54f13bd9beb799f5e3088",
+      "modifications": "Original design reference; mesh simplification with bounded error, 1K PBR textures, Draco compression, fitted to original furniture footprint at runtime",
+      "approval": "approved",
+      "delivery": "origin",
+      "sourceSha256": "f7d1c5bd84df1053d5e4c62fe71a87731f0d9462fd3d17ae68ebd60371fea226"
     }
   ]
 }

@@ -1,25 +1,25 @@
 {
-  "version": "174fbec10b3d228d",
+  "version": "783328b5a417e232",
   "roomSizes": {
     "study": {
-      "bytes": 9690284,
-      "files": 20
+      "bytes": 10466512,
+      "files": 21
     },
     "living": {
-      "bytes": 7956778,
-      "files": 17
+      "bytes": 8738846,
+      "files": 18
     },
     "bedroom": {
-      "bytes": 6203502,
-      "files": 14
+      "bytes": 6982798,
+      "files": 15
     },
     "gallery": {
-      "bytes": 14849308,
-      "files": 22
+      "bytes": 15571768,
+      "files": 23
     },
     "cafe": {
-      "bytes": 9963816,
-      "files": 25
+      "bytes": 10654632,
+      "files": 26
     }
   },
   "commonCharacters": {
@@ -328,6 +328,56 @@
       "path": "public/models/gallery-figure.json",
       "bytes": 444,
       "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/hi3d-furniture/bar-citrus-board.glb",
+      "bytes": 702016,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/bedroom-bench.glb",
+      "bytes": 779296,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/cafe-communal-table.glb",
+      "bytes": 690816,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/corridor-letter-rack.glb",
+      "bytes": 872240,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/gallery-bench.glb",
+      "bytes": 722460,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/gaming-travel-kit.glb",
+      "bytes": 815216,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/garden-drinks-cart.glb",
+      "bytes": 817536,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/library-book-cart.glb",
+      "bytes": 646940,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/living-coffee-table.glb",
+      "bytes": 782068,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/hi3d-furniture/study-sailboat.glb",
+      "bytes": 776228,
+      "classification": "catalogued-production"
     },
     {
       "path": "public/models/rabbit-hi3d.glb",

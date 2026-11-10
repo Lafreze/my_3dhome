@@ -205,6 +205,24 @@ export function segmentClear(a: Point, b: Point, actor: ActorId): boolean {
       return false;
   return true;
 }
+/** Fine samples for physical steps use the body radius, not the planner's wider corridor. */
+export function walkingStepClear(a: Point, b: Point, actor: ActorId) {
+  const steps = Math.max(1, Math.ceil(distance(a, b) / 0.01));
+  for (let i = 1; i <= steps; i++)
+    if (
+      !floorClear(
+        [
+          a[0] + ((b[0] - a[0]) * i) / steps,
+          0.085,
+          a[2] + ((b[2] - a[2]) * i) / steps,
+        ],
+        actor,
+        actorSpecs[actor].radius + 0.005,
+      )
+    )
+      return false;
+  return true;
+}
 export class OccupancyManager {
   reservations = new Map<string, ActorId>();
   visitors = new Map<string, { seatId: string; position: Point }>();
@@ -250,6 +268,25 @@ export class OccupancyManager {
         id !== actor &&
         a.active &&
         distance(p, a.position) < radius + a.radius + 0.05
+      )
+        return false;
+    return true;
+  }
+  /** If another actor moves into our clearance, allow only a step that separates us. */
+  clearMovement(from: Point, to: Point, actor: ActorId, extra = 0) {
+    const radius = actorSpecs[actor].radius + extra;
+    const separates = (position: Point, limit: number) => {
+      const before = distance(from, position),
+        after = distance(to, position);
+      return after >= limit || (before < limit && after > before + 0.0000001);
+    };
+    for (const v of this.visitors.values())
+      if (!separates(v.position, radius + 0.34)) return false;
+    for (const [id, a] of this.actors)
+      if (
+        id !== actor &&
+        a.active &&
+        !separates(a.position, radius + a.radius + 0.05)
       )
         return false;
     return true;

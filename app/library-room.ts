@@ -1,3 +1,4 @@
+import { markHi3dReplacement } from './hi3d-furniture';
 import { furnitureSuite, refinedTabletop } from './furniture-suite';
 import { fitTimberGrain, interiorMaterial } from './house-finishes';
 import { interiorPalette as palette } from './interior-palette';
@@ -906,10 +907,24 @@ export function buildLibrary(k: Kit) {
       oak,
     );
   }
+  markHi3dReplacement(cart, 'library-book-cart');
+  const cartBooks = [0.33, 0.75, 1.15].map((height, i) => {
+    const shelf = group(cart, 0, 0, 0, `Book trolley / shelf ${i + 1} books`);
+    shelf.userData.hi3dSupportY = height;
+    return shelf;
+  });
   for (let i = 0; i < 6; i++) {
-    book(cart, -0.38 + i * 0.145, 0.33, 0.03, 0.1, 0.3 + (i % 3) * 0.035, i);
     book(
-      cart,
+      cartBooks[0],
+      -0.38 + i * 0.145,
+      0.33,
+      0.03,
+      0.1,
+      0.3 + (i % 3) * 0.035,
+      i,
+    );
+    book(
+      cartBooks[1],
       -0.38 + i * 0.145,
       0.75,
       0.03,
@@ -918,7 +933,7 @@ export function buildLibrary(k: Kit) {
       i + 2,
     );
   }
-  stack(cart, -0.13, 1.15, 0.02, 3);
+  stack(cartBooks[2], -0.13, 1.15, 0.02, 3);
   // A rail-mounted leaning ladder: the complete swept footprint is reserved for navigation.
   const ladder = object('libraryLadder', root, 3.72, 0, -0.85);
   ladder.rotation.y = -Math.PI / 2;

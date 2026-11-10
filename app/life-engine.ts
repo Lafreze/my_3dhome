@@ -25,6 +25,7 @@ import {
   distance,
   floorClear,
   segmentClear,
+  walkingStepClear,
   worldPoint,
 } from './life-navigation.ts';
 import { visitorTravelNodes } from './visitor-travel.mjs';
@@ -117,6 +118,7 @@ export type LifeActor = {
   battery: number;
   actionUntil: number;
   travelDistance: number;
+  moveSpeed: number;
   turnDistance: number;
   hopTime: number;
 };
@@ -257,6 +259,7 @@ export class LifeEngine {
         battery: id === 'robot' ? this.random.between(45, 95) : 100,
         actionUntil: 0,
         travelDistance: 0,
+        moveSpeed: 0,
         turnDistance: 0,
         hopTime: 0,
       };
@@ -506,9 +509,13 @@ export class LifeEngine {
       this.events.start('residentAction', 'resident', this.clock, 12, 12);
   }
   private move(a: LifeActor, dt: number) {
+    if (a.id === 'resident') {
+      this.moveResident(a, dt);
+      return;
+    }
     const next = a.path[0];
     if (!next) return;
-    if (a.id === 'cat' || a.id === 'rabbit' || a.id === 'resident') {
+    if (a.id === 'cat' || a.id === 'rabbit') {
       // Rise on the spot before taking a step. Face a corner before advancing.
       if (a.fsm.state === 'rise' && a.fsm.elapsed < catRiseTime) return;
       const heading = Math.atan2(
@@ -591,6 +598,104 @@ export class LifeEngine {
     a.room = roomAt(p[0], p[2]) ?? a.room;
     if (step >= d - 0.001) a.path.shift();
     if (!a.path.length) this.arrive(a);
+  }
+  private moveResident(a: LifeActor, dt: number) {
+    if (a.fsm.state === 'rise' && a.fsm.elapsed < catRiseTime) {
+      a.moveSpeed = 0;
+      return;
+    }
+    while (a.path[0] && distance(a.position, a.path[0]) < 0.00001)
+      a.path.shift();
+    if (!a.path.length) {
+      a.moveSpeed = 0;
+      this.arrive(a);
+      return;
+    }
+    // Remove redundant grid points only when the full corridor is still clear.
+    while (
+      a.path.length > 1 &&
+      segmentClear(a.position, a.path[1], a.id) &&
+      this.navigation.segmentFree(a.position, a.path[1], a.id, this.occupancy)
+    )
+      a.path.shift();
+    const heading = Math.atan2(
+      -(a.path[0][0] - a.position[0]),
+      -(a.path[0][2] - a.position[2]),
+    );
+    const angle = Math.atan2(
+      Math.sin(heading - a.rotation),
+      Math.cos(heading - a.rotation),
+    );
+    const turn = Math.sign(angle) * Math.min(Math.abs(angle), dt * 4.5);
+    a.rotation += turn;
+    a.turnDistance += Math.abs(turn) * 0.1;
+    const remaining = a.path.reduce(
+      (sum, p, i) => sum + distance(i ? a.path[i - 1] : a.position, p),
+      0,
+    );
+    const facing = Math.max(0, Math.cos(angle - turn));
+    const targetSpeed =
+      actorSpecs.resident.speed *
+      facing *
+      Math.min(1, Math.sqrt(remaining / 0.3));
+    a.moveSpeed += (targetSpeed - a.moveSpeed) * (1 - Math.exp(-dt * 10));
+    let budget = Math.abs(angle - turn) > Math.PI / 2 ? 0 : a.moveSpeed * dt;
+    const before = [...a.position] as Point;
+    let blocked = false;
+    while (budget > 0.000001 && a.path.length) {
+      const next = a.path[0],
+        d = distance(a.position, next),
+        step = Math.min(d, budget);
+      const k = d ? step / d : 1;
+      const p: Point = [
+        a.position[0] + (next[0] - a.position[0]) * k,
+        0.085,
+        a.position[2] + (next[2] - a.position[2]) * k,
+      ];
+      if (
+        !walkingStepClear(a.position, p, a.id) ||
+        !this.occupancy.clearMovement(a.position, p, a.id, 0.015)
+      ) {
+        blocked = true;
+        a.moveSpeed = 0;
+        break;
+      }
+      a.travelDistance += step;
+      a.position = p;
+      budget -= step;
+      if (step >= d - 0.000001) a.path.shift();
+    }
+    a.room = roomAt(a.position[0], a.position[2]) ?? a.room;
+    if (blocked) {
+      a.blockedFor += dt;
+      a.fsm.set('idle');
+      if (a.blockedFor > 2.5) {
+        const target = a.target && this.node(a.target);
+        a.path =
+          (target &&
+            this.navigation.path(
+              a.position,
+              worldPoint(target),
+              a.id,
+              this.occupancy,
+            )) ||
+          [];
+        a.blockedFor = 0;
+        if (!a.path.length) {
+          a.target = null;
+          this.occupancy.release(a.id);
+          this.events.end(a.id);
+          a.stayUntil = this.clock + 8;
+        }
+      }
+    } else {
+      a.blockedFor = 0;
+      a.fsm.set(distance(before, a.position) > 0.000001 ? 'walk' : 'turn');
+      if (!a.path.length) {
+        a.moveSpeed = 0;
+        this.arrive(a);
+      }
+    }
   }
   interact(id: ActorId, camera: Point) {
     const a = this.actors[id];

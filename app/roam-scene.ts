@@ -54,6 +54,8 @@ export function createRoamScene(
     reloadRequested = false;
   let velocity: [number, number] = [0, 0],
     running = false,
+    pace = 1,
+    actualSpeed = 0,
     zoom = defaultRoamZoom;
   try {
     const saved = localStorage.getItem('kuro-roam-zoom');
@@ -268,6 +270,8 @@ export function createRoamScene(
       stride = 0;
       input = velocity = [0, 0];
       running = false;
+      pace = 1;
+      actualSpeed = 0;
       root.visible = value;
       if (value) {
         room = nextRoom;
@@ -318,7 +322,9 @@ export function createRoamScene(
     update(dt: number, time: number, paused: boolean, reduced: boolean) {
       if (!enabled) return;
       root.visible = loaded;
+      dt = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 0.05)) : 0;
       const before = position;
+      pace = T.MathUtils.damp(pace, running ? 1.7 : 1, 7, dt);
       velocity = easeRoamInput(
         velocity,
         paused || !loaded ? [0, 0] : input,
@@ -332,14 +338,18 @@ export function createRoamScene(
           Object.values(hooks.actors())
             .filter((a) => a.active)
             .map((a) => a.position),
-          running ? 1.7 : 1,
+          pace,
         );
       const dx = position[0] - before[0],
         dz = position[2] - before[2],
         distance = Math.hypot(dx, dz);
-      if (Math.hypot(...velocity) > 0.01) {
-        // Face the intended direction even when furniture prevents another step.
-        const yaw = Math.atan2(velocity[0], velocity[1]);
+      actualSpeed = dt > 0 ? distance / dt : 0;
+      if (distance > 0.00001 || Math.hypot(...velocity) > 0.01) {
+        // Sliding along an obstacle faces the actual safe displacement.
+        const yaw =
+          distance > 0.00001
+            ? Math.atan2(dx, dz)
+            : Math.atan2(velocity[0], velocity[1]);
         root.rotation.y +=
           Math.atan2(
             Math.sin(yaw - root.rotation.y),
@@ -357,7 +367,13 @@ export function createRoamScene(
       sampleVisitorMotion(time, 731, reduced, state.value);
       // Settle at the current step instead of snapping both feet to phase zero.
       const moving = distance > 0.0001 && !reduced && !paused;
-      stride = reduced ? 0 : T.MathUtils.damp(stride, moving ? 1 : 0, 8, dt);
+      const strideTarget = moving
+        ? T.MathUtils.smoothstep(actualSpeed, 0, 0.85)
+        : 0;
+      stride = reduced
+        ? 0
+        : T.MathUtils.damp(stride, strideTarget, moving ? 14 : 12, dt);
+      if (stride < 0.0001) stride = 0;
       for (const a of animated) {
         a.motion.setXYZW(
           0,
@@ -409,6 +425,11 @@ export function createRoamScene(
       room,
       position: [...position],
       target,
+      yaw: root.rotation.y,
+      gait,
+      stride,
+      speed: actualSpeed,
+      pace,
     }),
     dispose() {
       disposed = true;

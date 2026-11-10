@@ -152,7 +152,7 @@ export function configureVisitorMotion(
   const rig = motionRig[character];
   const restTransform = { value: visitorRestMatrix(character) };
   material.customProgramCacheKey = () =>
-    `${previousKey}/puppet-v7/${character}/${instanced}/${eyelid}`;
+    `${previousKey}/puppet-v8/${character}/${instanced}/${eyelid}`;
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
     shader.uniforms.visitorMotion = state;
@@ -173,7 +173,7 @@ export function configureVisitorMotion(
       mat3 visitorArmTurn() {
         vec4 action = visitorAction();
         float angle = cos(action.y + (visitorStandPosition.x < 0. ? 3.14159265 : 0.))
-          * .10 * visitorWeights.w * visitorStride() * step(.5, -action.z);
+          * .18 * visitorWeights.w * visitorStride() * step(.5, -action.z);
         float c = cos(angle), s = sin(angle);
         return mat3(1.,0.,0., 0.,c,s, 0.,-s,c);
       }
@@ -193,7 +193,7 @@ export function configureVisitorMotion(
         lift *= lift;
         // Hips lead the stride, knees soften on recovery, feet lift only during the swing.
         p.z += stepZ*mix(.10, 1., walking)*weight*(.24+.76*depth)*enabled;
-        p.y += lift*mix(.006, ${(0.06 / humanScale(character)).toFixed(6)}, walking)*weight*enabled;
+        p.y += lift*mix(.006, ${(0.045 / humanScale(character)).toFixed(6)}, walking)*weight*enabled;
         p.z += lift*.025*(1.-depth)*weight*enabled*walking;
         float body = (1.-weight*depth)*enabled*walking;
         p.x += sin(action.y)*${(0.008 / humanScale(character)).toFixed(6)}*body;

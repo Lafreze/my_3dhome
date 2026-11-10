@@ -1,6 +1,12 @@
 import routes from '../config/visitor-routes.json' with { type: 'json' };
 import { humanScale } from './character-scale.mjs';
 import { sampleSeatTransfer } from './seat-transfer.mjs';
+import {
+  walkingPathLength,
+  walkingPathPoint,
+  walkingProgress,
+  expandWalkingPath,
+} from './walking-path.mjs';
 export const walkingCycleDistance = 0.9;
 export const visitorTravelNodes = routes.nodes;
 export const footLift = {
@@ -28,14 +34,19 @@ export function createVisitorJourney(
   const from = routes.nodes[fromSeat],
     to = routes.nodes[toSeat];
   if (!from || !to) return null;
-  let path = routes.routes[`${fromSeat}|${toSeat}`];
-  if (!path) path = routes.routes[`${toSeat}|${fromSeat}`]?.toReversed();
+  let key = `${fromSeat}|${toSeat}`;
+  const reverse = !routes.routes[key];
+  if (reverse) key = `${toSeat}|${fromSeat}`;
+  let path =
+    routes.routes[key] &&
+    expandWalkingPath(routes.routes[key], routes.cornerCuts?.[key]);
+  if (reverse && path) path.reverse();
   if (fromSeat === toSeat) path = [];
   if (!path) return null;
   const walkSpeed = 0.96,
     approachSpeed = 0.68;
-  const walk =
-    path.slice(1).reduce((sum, p, i) => sum + dist(path[i], p), 0) / walkSpeed;
+  const walkDistance = walkingPathLength(path);
+  const walk = walkDistance / walkSpeed;
   const exit = path.length
     ? fromSeat.includes('sofa')
       ? 0.22
@@ -56,6 +67,7 @@ export function createVisitorJourney(
     at,
     path,
     walkSpeed,
+    walkDistance,
     approachSpeed,
     seatTransfer: 2,
     rise,
@@ -78,12 +90,12 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
     stand: 0,
     rest: 0,
     gait: 0,
+    walkAmount: 0,
     moving: true,
     phase: 'rise',
     seatId: j.fromSeat,
   };
-  const walkSpeed = j.walkSpeed ?? 0.72,
-    approachSpeed = j.approachSpeed ?? 0.46;
+  const walkSpeed = j.walkSpeed ?? 0.72;
   let t = total;
   if (!j.path.length) {
     const v = ease(Math.min(1, total / (j.rise + j.settle)));
@@ -137,46 +149,44 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
     start.splice(0, 3, ...a);
   const exitYaw = Math.atan2(a[0] - from.position[0], a[2] - from.position[2]);
   if (t < j.exit) {
-    const v = ease(t / j.exit);
+    const u = t / j.exit,
+      v = ease(u);
+    const travelled = dist(start, a) * v;
     return {
       ...base,
       stand: 1,
       phase: 'exit',
       position: blend(start, a, v),
       yaw: angle(from.yaw, exitYaw, Math.min(1, v * 3)),
-      gait: ((t * approachSpeed) / walkingCycleDistance) * Math.PI * 2,
+      gait: (travelled / walkingCycleDistance) * Math.PI * 2,
+      walkAmount: Math.min(
+        1,
+        (dist(start, a) * 6 * u * (1 - u)) / j.exit / walkSpeed,
+      ),
     };
   }
   t -= j.exit;
+  const exitDistance = dist(start, a);
+  const walkDistance = j.walkDistance ?? walkingPathLength(j.path);
   if (t < j.walk) {
-    let remaining = t * walkSpeed;
-    for (let i = 1; i < j.path.length; i++) {
-      const a = j.path[i - 1],
-        b = j.path[i],
-        length = dist(a, b);
-      if (remaining <= length) {
-        const v = length ? remaining / length : 1,
-          p = blend(a, b, v);
-        p[1] = floor;
-        const yaw = Math.atan2(b[0] - a[0], b[2] - a[2]);
-        const prev =
-          i > 1
-            ? Math.atan2(a[0] - j.path[i - 2][0], a[2] - j.path[i - 2][2])
-            : exitYaw;
-        return {
-          ...base,
-          stand: 1,
-          phase: 'walk',
-          position: p,
-          yaw: angle(prev, yaw, Math.min(1, remaining / 0.16)),
-          gait:
-            ((j.exit * approachSpeed + t * walkSpeed) / walkingCycleDistance) *
-            Math.PI *
-            2,
-        };
-      }
-      remaining -= length;
-    }
+    const progress = walkingProgress(t, j.walk, walkDistance);
+    const p = walkingPathPoint(j.path, progress.distance);
+    p[1] = floor;
+    const behind = walkingPathPoint(j.path, progress.distance - 0.1);
+    const ahead = walkingPathPoint(j.path, progress.distance + 0.1);
+    const yaw = Math.atan2(ahead[0] - behind[0], ahead[2] - behind[2]);
+    return {
+      ...base,
+      stand: 1,
+      phase: 'walk',
+      position: p,
+      yaw: angle(exitYaw, yaw, ease(Math.min(1, t / 0.24))),
+      gait:
+        ((exitDistance + progress.distance) / walkingCycleDistance) *
+        Math.PI *
+        2,
+      walkAmount: Math.min(1, progress.speed / walkSpeed),
+    };
   }
   t -= j.walk;
   const end = [
@@ -191,19 +201,30 @@ export function sampleVisitorJourney(journey, now, character = 'bear') {
       ? to.yaw
       : Math.atan2(end[0] - b[0], end[2] - b[2]);
   if (t < j.enter) {
-    const v = ease(t / j.enter);
+    const u = t / j.enter,
+      v = ease(u);
+    const behind = walkingPathPoint(j.path, walkDistance - 0.1);
+    const arrivalYaw = Math.atan2(b[0] - behind[0], b[2] - behind[2]);
     return {
       ...base,
       stand: 1,
       phase: 'enter',
       seatId: j.toSeat,
       position: blend(b, end, v),
-      yaw: angle(entryYaw, to.yaw, v),
+      yaw: angle(
+        angle(arrivalYaw, entryYaw, ease(Math.min(1, u * 3))),
+        to.yaw,
+        v,
+      ),
       gait:
-        ((j.exit * approachSpeed + j.walk * walkSpeed + t * approachSpeed) /
+        ((exitDistance + walkDistance + dist(b, end) * v) /
           walkingCycleDistance) *
         Math.PI *
         2,
+      walkAmount: Math.min(
+        1,
+        (dist(b, end) * 6 * u * (1 - u)) / j.enter / walkSpeed,
+      ),
     };
   }
   t -= j.enter;

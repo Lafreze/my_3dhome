@@ -7,6 +7,7 @@ import { gameFurniture } from '../app/game-layout.ts';
 import { layout } from '../app/room-layout.ts';
 import { cafeChairs, cafeLayout } from '../app/cafe-layout.ts';
 import seats from '../app/seat-catalog.json' with { type: 'json' };
+import { walkingCornerCuts } from '../app/walking-path.mjs';
 import {
   NavigationGraph,
   floorClear,
@@ -168,6 +169,7 @@ for (const seat of seats) {
   console.log(seat.id, approach);
 }
 const routes: Record<string, Point[]> = {};
+const cornerCuts: Record<string, number[]> = {};
 for (let a = 0; a < seats.length; a++)
   for (let b = a + 1; b < seats.length; b++) {
     const from = nodes[seats[a].id].approach,
@@ -188,10 +190,14 @@ for (let a = 0; a < seats.length; a++)
       simple.push(raw[next].map((n) => +n.toFixed(4)) as Point);
       i = next;
     }
-    routes[`${seats[a].id}|${seats[b].id}`] = simple;
+    const key = `${seats[a].id}|${seats[b].id}`;
+    routes[key] = simple;
+    cornerCuts[key] = walkingCornerCuts(simple, (a: Point, b: Point) =>
+      segmentClear(a, b, 'resident'),
+    );
   }
 writeFileSync(
   'config/visitor-routes.json',
-  JSON.stringify({ version: 1, nodes, routes }) + '\n',
+  JSON.stringify({ version: 2, nodes, routes, cornerCuts }) + '\n',
 );
 console.log('Generated', Object.keys(routes).length, 'safe transfers');

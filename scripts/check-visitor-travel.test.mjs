@@ -24,6 +24,11 @@ void test('all 55 seats connect through safe sampled floor paths with continuous
         to.includes('bed-left') ? 'rest' : 'sit',
         1000,
       );
+    for (let i = 1; i < j.path.length; i++)
+      assert(
+        segmentClear(j.path[i - 1], j.path[i], 'resident'),
+        `${pair}: rounded path`,
+      );
     let previous = sampleVisitorJourney(j, 1000).position;
     for (let ms = 1016; ms < 1000 + j.duration; ms += 16) {
       const s = sampleVisitorJourney(j, ms),

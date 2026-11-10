@@ -52,7 +52,8 @@ assert(
   !segmentClear([3, 0.085, 0], [5, 0.085, 0], 'resident'),
   'Cannot cross a solid partition',
 );
-assert(lifeObstacles.some((o) => o.id === 'crownedRabbit'));
+for (const id of ['sculpture', 'catalogue', 'case'])
+  assert(lifeObstacles.some((o) => o.room === 'gallery' && o.id === id));
 const occupancy = new OccupancyManager();
 occupancy.setVisitors([
   { id: 'online', seatId: 'study-work', position: [0.93, 0.77, -1.22] },
