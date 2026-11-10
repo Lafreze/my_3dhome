@@ -1,3 +1,4 @@
+import { createCompanions } from './companion-scene';
 import { createActorSpeech } from './actor-speech';
 import { sampleVisitorJourney } from './visitor-travel.mjs';
 import { createWindowMotes } from './life-moments';
@@ -140,8 +141,10 @@ export function createLifeScene(k: Options, session: LifeSession) {
     ),
   );
   let onlinePeople = k.visitors;
-  const visitorFootprints = (people: Visitor[]) =>
-    people.flatMap((p) => {
+  let roamer: Point | null = null;
+  const visitorFootprints = (people: Visitor[]) => [
+    ...(roamer ? [{ id: 'local-roamer', seatId: '', position: roamer }] : []),
+    ...people.flatMap((p) => {
       const anchor = k.seats.get(p.seatId);
       if (!anchor) return [];
       anchor.updateWorldMatrix(true, false);
@@ -167,7 +170,8 @@ export function createLifeScene(k: Options, session: LifeSession) {
         ];
       }
       return [{ id: p.id, seatId: p.seatId, position }];
-    });
+    }),
+  ];
   const engine = new LifeEngine(
     session.seed,
     {
@@ -192,6 +196,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
     session.previous,
     visitorFootprints(k.visitors),
   );
+  const companions = createCompanions(k.scene, engine.occupancy, k.assets);
   rememberLifeStarts(
     Object.fromEntries(Object.values(engine.actors).map((a) => [a.id, a.node])),
   );
@@ -250,6 +255,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
       visitorCheck = 0;
     }
     engine.update(dt, { view, environment, reduced, paused });
+    companions.update(dt, reduced, paused, (room) => engine.visibleRoom(room));
     pickup.visible =
       (view === 'cafe' || view === 'overview') &&
       engine.clock >= pickupAt &&
@@ -374,7 +380,14 @@ export function createLifeScene(k: Options, session: LifeSession) {
       const distant = k.camera.position.distanceTo(model.root.position) > 12;
       if (
         pose.state !== a.fsm.state ||
-        pose.dt >= (distant ? 1 / 20 : mobile ? 1 / 30 : 1 / 60)
+        pose.dt >=
+          (a.path.length > 0 || a.seatTransition
+            ? 1 / 60
+            : distant
+              ? 1 / 20
+              : mobile
+                ? 1 / 30
+                : 1 / 60)
       ) {
         const duck =
           a.id === 'rabbit' &&
@@ -505,7 +518,9 @@ export function createLifeScene(k: Options, session: LifeSession) {
     },
   };
   if (['localhost', '127.0.0.1'].includes(location.hostname))
-    Object.assign(window, { __kuroLife: debug });
+    Object.assign(window, {
+      __kuroLife: { ...debug, companions: companions.snapshot },
+    });
   return {
     update,
     updateSpeech() {
@@ -540,7 +555,16 @@ export function createLifeScene(k: Options, session: LifeSession) {
       engine.setVisitors(visitorFootprints(people));
     },
     eventBusy: () => !!engine.events.active,
+    companionPositions: () =>
+      companions.snapshot().flatMap((p) => (p.position ? [p.position] : [])),
+    setRoamer(position: Point | null) {
+      roamer = position;
+      if (position)
+        engine.occupancy.visitors.set('local-roamer', { seatId: '', position });
+      else engine.occupancy.visitors.delete('local-roamer');
+    },
     hasVisibleTravel: () =>
+      companions.hasVisibleTravel() ||
       Object.values(engine.actors).some(
         (a) =>
           a.active && a.visible && (a.path.length > 0 || !!a.seatTransition),
@@ -581,6 +605,7 @@ export function createLifeScene(k: Options, session: LifeSession) {
         ? engine.node(engine.actors.resident.node).seatId
         : undefined,
     dispose() {
+      companions.dispose();
       speech.dispose();
       motes.dispose();
       disposed = true;

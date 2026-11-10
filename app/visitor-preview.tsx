@@ -2,21 +2,13 @@
 import { visibleFrames } from './visibility-scheduler';
 import { useEffect, useRef, useState } from 'react';
 import * as T from 'three';
-import { humanScale } from './character-scale.mjs';
 import { pillowGeometry } from './bed-linen';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
-  acquireVisitorModel,
-  partVisible,
-  type VisitorPart,
-  configureVisitorTint,
-} from './visitor-model';
+  acquireRiggedCharacter,
+  type RiggedCharacter,
+} from './rigged-character';
 import type { Appearance } from './visitor-appearance';
-import {
-  configureVisitorMotion,
-  sampleVisitorMotion,
-  visitorSeed,
-} from './visitor-motion';
 
 export default function VisitorPreview({
   appearance,
@@ -44,12 +36,9 @@ export default function VisitorPreview({
     queueMicrotask(() => setStatus('正在整理衣橱…'));
     let renderedPosture: 'sit' | 'rest' | undefined;
     let stopped = false,
-      release: (() => void) | undefined,
+      rig: RiggedCharacter | undefined,
       loop: ReturnType<typeof visibleFrames> | undefined;
     const scene = new T.Scene();
-    const meshes: { mesh: T.Mesh; part: VisitorPart }[] = [];
-    const ownedMaterials: T.Material[] = [];
-    const motion = { value: new T.Vector4(0, 0, 0, 0) };
     const resting = { value: 0 };
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const started = performance.now();
@@ -124,12 +113,6 @@ export default function VisitorPreview({
       if (stopped) return;
 
       if (document.hidden) return;
-      sampleVisitorMotion(
-        (now - started) / 1000,
-        visitorSeed(`preview/${latest.current.character}`),
-        reduced.matches,
-        motion.value,
-      );
       resting.value = latestPosture.current === 'rest' ? 1 : 0;
       if (renderedPosture !== latestPosture.current) {
         renderedPosture = latestPosture.current;
@@ -139,13 +122,12 @@ export default function VisitorPreview({
       }
       support.visible = !resting.value;
       bed.visible = !!resting.value;
-      if (resting.value)
-        motion.value.set(
-          1,
-          0,
-          reduced.matches ? 0 : Math.sin((now - started) / 850) * 0.0018,
-          0,
-        );
+      rig?.pose({
+        time: (now - started) / 1000,
+        stand: 0,
+        rest: resting.value,
+        reduced: reduced.matches,
+      });
       if (resting.value) controls.target.set(0, 0.23, 0);
       else controls.target.set(0, 0.42, 0.12);
       controls.update();
@@ -164,63 +146,23 @@ export default function VisitorPreview({
     resize();
     controls.addEventListener('change', render);
     apply.current = (a) => {
-      for (const { mesh, part } of meshes) {
-        mesh.visible = partVisible(part, a, latestPosture.current);
-        const mats = Array.isArray(mesh.material)
-          ? mesh.material
-          : [mesh.material];
-        if (part.tint)
-          for (const m of mats)
-            if (m instanceof T.MeshStandardMaterial) {
-              const source = Array.isArray(part.material)
-                ? part.material[0]
-                : part.material;
-              if (source instanceof T.MeshStandardMaterial)
-                m.color.set(a[part.tint]);
-            }
-      }
+      rig?.setAppearance(a);
       render();
     };
-    void acquireVisitorModel([appearance.character])
-      .then(({ parts, release: free }) => {
+    void acquireRiggedCharacter(appearance.character)
+      .then((model) => {
         if (stopped) {
-          free();
+          model.dispose();
           return;
         }
-        release = free;
-        for (const part of parts) {
-          const material = Array.isArray(part.material)
-            ? part.material.map((m) => m.clone())
-            : part.material.clone();
-          for (const m of Array.isArray(material) ? material : [material]) {
-            if (part.tint) configureVisitorTint(m, part.character, part.tint);
-            configureVisitorMotion(
-              m,
-              part.character,
-              motion,
-              false,
-              part.eyelid,
-              resting,
-            );
-          }
-          ownedMaterials.push(
-            ...(Array.isArray(material) ? material : [material]),
-          );
-          const mesh = new T.Mesh(part.geometry, material);
-          mesh.frustumCulled = false;
-          mesh.matrixAutoUpdate = false;
-          mesh.matrix.copy(part.matrix);
-          mesh.matrix.premultiply(
-            new T.Matrix4().makeScale(
-              humanScale(part.character),
-              humanScale(part.character),
-              humanScale(part.character),
-            ),
-          );
-          mesh.name = part.name;
-          scene.add(mesh);
-          meshes.push({ mesh, part });
-        }
+        rig = model;
+        rig.root.scale.setScalar(1);
+        scene.add(rig.root);
+        rig.pose({
+          time: 0,
+          stand: 0,
+          rest: latestPosture.current === 'rest' ? 1 : 0,
+        });
         apply.current?.(latest.current);
         setStatus('');
         // Render once more after the canvas has received its final dialog dimensions.
@@ -237,8 +179,7 @@ export default function VisitorPreview({
       loop?.dispose();
       observer.disconnect();
       controls.dispose();
-      ownedMaterials.forEach((m) => m.dispose());
-      release?.();
+      rig?.dispose();
       stoolGeometry.dispose();
       legGeometry.dispose();
       stoolMaterial.dispose();

@@ -1992,6 +1992,13 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     bubble: options.onLifeBubble,
     door: (id) => house.openDoor(id),
     actors: () => life?.snapshot().actors || {},
+    occupied: () => [
+      ...visitors
+        .snapshots()
+        .filter((v) => v.id !== visitorMe && v.position)
+        .map((v) => v.position as [number, number, number]),
+      ...(life?.companionPositions() ?? []),
+    ],
     activate: (target) => {
       if (target.kind !== 'object') trackVisit('interact', target.id);
       if (target.kind === 'actor')
@@ -2550,6 +2557,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
     }
     life?.setView(activeView);
     life?.setReduced(motionPreference.matches);
+    life?.setRoamer(roaming.enabled ? roaming.position : null);
     life?.update(dt, environment);
     roaming.update(dt, t, lifePaused || roamPaused, motionPreference.matches);
     atmosphere.setView(activeView);

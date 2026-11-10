@@ -1,3 +1,4 @@
+import rigSpecs from '../config/character-rigs.json' with { type: 'json' };
 import {
   rooms,
   roomAt,
@@ -18,11 +19,19 @@ import {
 } from './cafe-layout.ts';
 import {
   navigationNodes,
-  actorSpecs,
-  type ActorId,
+  actorSpecs as lifeActorSpecs,
+  type ActorId as LifeActorId,
   type Point,
   type NavigationNode,
 } from './life-data.ts';
+
+export type NavigationActorId = LifeActorId | 'shiba' | 'capybara';
+type ActorId = NavigationActorId;
+const actorSpecs = {
+  ...lifeActorSpecs,
+  shiba: { radius: rigSpecs.shiba.radius },
+  capybara: { radius: rigSpecs.capybara.radius },
+};
 
 type Footprint = {
   x: number;

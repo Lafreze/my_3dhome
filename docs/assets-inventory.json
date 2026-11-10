@@ -1,25 +1,25 @@
 {
-  "version": "783328b5a417e232",
+  "version": "d9cea87e0360ac9f",
   "roomSizes": {
     "study": {
-      "bytes": 10466512,
-      "files": 21
+      "bytes": 16181908,
+      "files": 32
     },
     "living": {
-      "bytes": 8738846,
-      "files": 18
+      "bytes": 14454242,
+      "files": 29
     },
     "bedroom": {
-      "bytes": 6982798,
-      "files": 15
+      "bytes": 12698194,
+      "files": 26
     },
     "gallery": {
-      "bytes": 15571768,
-      "files": 23
+      "bytes": 21287164,
+      "files": 34
     },
     "cafe": {
-      "bytes": 10654632,
-      "files": 26
+      "bytes": 16370028,
+      "files": 37
     }
   },
   "commonCharacters": {
@@ -398,6 +398,61 @@
       "path": "public/models/resident-hi3d.json",
       "bytes": 672,
       "classification": "excluded-unused-or-documentation"
+    },
+    {
+      "path": "public/models/rigged/bear.glb",
+      "bytes": 505152,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/capybara.glb",
+      "bytes": 536580,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/cat.glb",
+      "bytes": 436124,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/dusk.glb",
+      "bytes": 530072,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/fox.glb",
+      "bytes": 451648,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/ivory.glb",
+      "bytes": 491460,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/noir.glb",
+      "bytes": 466232,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/resident.glb",
+      "bytes": 509688,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/ribbon.glb",
+      "bytes": 707820,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/rose.glb",
+      "bytes": 604068,
+      "classification": "catalogued-production"
+    },
+    {
+      "path": "public/models/rigged/shiba.glb",
+      "bytes": 476552,
+      "classification": "catalogued-production"
     },
     {
       "path": "public/models/studio-visitor-bear-standing-v5.glb",

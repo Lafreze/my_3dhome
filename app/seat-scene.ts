@@ -15,20 +15,13 @@ import * as T from 'three';
 import type { RoomAssets } from './asset-loading';
 import type { Character } from './visitor-appearance';
 import {
-  acquireVisitorModel,
-  partVisible,
-  configureVisitorTint,
-  type VisitorPart,
-} from './visitor-model';
+  acquireRiggedCharacter,
+  type RiggedCharacter,
+} from './rigged-character';
 import restPoses from './visitor-rest-poses.json';
 import { appearanceOptions, readAppearance } from './visitor-appearance';
 import { seats, seatById, type Visitor } from './seat-data';
-import {
-  configureVisitorMotion,
-  sampleVisitorMotion,
-  visitorSeed,
-  visitorShadowMaterials,
-} from './visitor-motion';
+import { sampleVisitorMotion, visitorSeed } from './visitor-motion';
 
 // An anchor belongs to the actual furniture, so a pulled-out chair carries its visitor.
 export type SeatAnchors = Map<string, T.Group>;
@@ -67,17 +60,15 @@ export function createSeatScene(
   const crowd = new T.Group();
   crowd.name = 'Seated visitors';
   scene.add(crowd);
-  const meshes: {
-    mesh: T.InstancedMesh;
-    part: VisitorPart;
-    slotIds: string[];
-    motion: T.InstancedBufferAttribute;
-    rest: T.InstancedBufferAttribute;
-    activity: T.InstancedBufferAttribute;
-  }[] = [];
   const frames = new Map<
     string,
-    { root: T.Group; props: ReturnType<typeof createVisitorProps> }
+    {
+      root: T.Group;
+      props: ReturnType<typeof createVisitorProps>;
+      rig?: RiggedCharacter;
+      character?: Character;
+      loading?: Character;
+    }
   >();
   function visitorFrame(id: string) {
     let frame = frames.get(id);
@@ -92,10 +83,7 @@ export function createSeatScene(
     }
     return frame;
   }
-  const ownedMaterials: T.Material[] = [];
-  const pickingGeometries: T.BufferGeometry[] = [];
   const states = new Map<string, { seed: number; value: T.Vector4 }>();
-  const releaseModels = new Map<Character, () => void>();
   const loadingModels = new Map<Character, Promise<void>>();
   const characterTasks = new Map<Character, (() => Promise<void>)[]>();
   const labels = new Map<string, { sprite: T.Sprite; signature: string }>();
@@ -159,7 +147,6 @@ export function createSeatScene(
     anchor.add(sprite);
     reactions.set(key, { sprite, event, height });
   }
-  const tint = new T.Color();
   const highlight = new T.Mesh(
     new T.CircleGeometry(0.26, 48),
     new T.MeshBasicMaterial({
@@ -173,115 +160,56 @@ export function createSeatScene(
   highlight.rotation.x = -Math.PI / 2;
   highlight.position.y = 0.012;
   highlight.visible = false;
-  const transform = new T.Matrix4(),
-    local = new T.Matrix4(),
-    position = new T.Vector3();
+  const position = new T.Vector3();
+  function clearRig(frame: ReturnType<typeof visitorFrame>) {
+    if (!frame.rig) return;
+    const index = interactables.indexOf(frame.rig.root);
+    if (index >= 0) interactables.splice(index, 1);
+    frame.rig.dispose();
+    frame.rig = undefined;
+    frame.character = undefined;
+  }
   function ensureCharacter(character: Character): Promise<void> {
-    if (disposed || releaseModels.has(character)) return Promise.resolve();
     const pending = loadingModels.get(character);
     if (pending) return pending;
-    const work = acquireVisitorModel([character])
-      .then(({ parts, release }) => {
-        if (disposed) {
-          release();
-          return;
-        }
-        releaseModels.set(character, release);
-        for (const part of parts) {
-          // The lightweight geometry shell owns instance motion; vertex buffers remain shared.
-          const geometry = new T.BufferGeometry();
-          geometry.index = part.geometry.index;
-          for (const [name, attribute] of Object.entries(
-            part.geometry.attributes,
-          ))
-            geometry.setAttribute(name, attribute);
-          const motion = new T.InstancedBufferAttribute(
-            new Float32Array(seats.length * 4),
-            4,
-          );
-          motion.setUsage(T.DynamicDrawUsage);
-          geometry.setAttribute('visitorInstanceMotion', motion);
-          const rest = new T.InstancedBufferAttribute(
-            new Float32Array(seats.length),
-            1,
-          );
-          rest.setUsage(T.DynamicDrawUsage);
-          geometry.setAttribute('visitorInstanceRest', rest);
-          const activity = new T.InstancedBufferAttribute(
-            new Float32Array(seats.length * 4),
-            4,
-          );
-          activity.setUsage(T.DynamicDrawUsage);
-          geometry.setAttribute('visitorInstanceActivity', activity);
-          const material = Array.isArray(part.material)
-            ? part.material.map((m) => m.clone())
-            : part.material.clone();
-          const state = { value: new T.Vector4() };
-          for (const m of Array.isArray(material) ? material : [material]) {
-            if (part.tint) configureVisitorTint(m, part.character, part.tint);
-            configureVisitorMotion(m, part.character, state, true, part.eyelid);
-            ownedMaterials.push(m);
-          }
-          const mesh = new T.InstancedMesh(geometry, material, seats.length);
-          const shadow = visitorShadowMaterials(
-            part.character,
-            state,
-            true,
-            !!part.eyelid,
-          );
-          mesh.customDepthMaterial = shadow.depth;
-          mesh.customDistanceMaterial = shadow.distance;
-          ownedMaterials.push(shadow.depth, shadow.distance);
-          mesh.name = `Visitors / ${part.name}`;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-          mesh.frustumCulled = false;
-          mesh.boundingSphere = new T.Sphere(new T.Vector3(4, 1, 7.4), 24);
-          mesh.userData.visitorMesh = true;
-          // CPU hit testing must use the same resting silhouette as the GPU pose.
-          // Otherwise the invisible seated body intercepts clicks above the bed.
-          const restingGeometry = new T.BufferGeometry();
-          restingGeometry.index = geometry.index;
-          restingGeometry.setAttribute(
-            'position',
-            geometry.getAttribute('visitorRestPosition'),
-          );
-          if (geometry.hasAttribute('uv'))
-            restingGeometry.setAttribute('uv', geometry.getAttribute('uv'));
-          restingGeometry.computeBoundingSphere();
-          pickingGeometries.push(restingGeometry);
-          const pickingMesh = new T.Mesh(geometry, material);
-          const instanceWorld = new T.Matrix4();
-          mesh.raycast = (raycaster, hits) => {
-            const intersections: T.Intersection[] = [];
-            for (let i = 0; i < mesh.count; i++) {
-              mesh.getMatrixAt(i, instanceWorld);
-              pickingMesh.matrixWorld.multiplyMatrices(
-                mesh.matrixWorld,
-                instanceWorld,
-              );
-              pickingMesh.geometry =
-                rest.getX(i) > 0.5 ? restingGeometry : geometry;
-              pickingMesh.raycast(raycaster, intersections);
-              for (const hit of intersections)
-                hits.push({ ...hit, instanceId: i, object: mesh });
-              intersections.length = 0;
+    const work = Promise.all(
+      current
+        .filter((v) => readAppearance(v.appearance).character === character)
+        .map(async (visitor) => {
+          const frame = visitorFrame(visitor.id);
+          if (frame.character === character || frame.loading === character)
+            return;
+          frame.loading = character;
+          try {
+            const rig = await acquireRiggedCharacter(character);
+            if (
+              disposed ||
+              frames.get(visitor.id) !== frame ||
+              !current.some(
+                (v) =>
+                  v.id === visitor.id &&
+                  readAppearance(v.appearance).character === character,
+              )
+            ) {
+              rig.dispose();
+              return;
             }
-          };
-          const slotIds: string[] = [];
-          mesh.userData.seatSlots = slotIds;
-          mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
-          mesh.count = 0;
-          crowd.add(mesh);
-          interactables.push(mesh);
-          meshes.push({ mesh, part, slotIds, motion, rest, activity });
-        }
+            clearRig(frame);
+            frame.rig = rig;
+            frame.character = character;
+            frame.root.add(rig.root);
+            rig.root.userData.seatId = visitor.seatId;
+            interactables.push(rig.root);
+          } finally {
+            frame.loading = undefined;
+          }
+        }),
+    )
+      .then(() => {
         update(0, true);
         invalidate();
       })
-      .finally(() => {
-        loadingModels.delete(character);
-      });
+      .finally(() => loadingModels.delete(character));
     loadingModels.set(character, work);
     return work;
   }
@@ -306,13 +234,16 @@ export function createSeatScene(
     );
     for (const character of needed) {
       let starters = characterTasks.get(character);
-      if (starters && !retry) continue;
+      if (starters && !retry) {
+        void ensureCharacter(character).catch(() => {});
+        continue;
+      }
       if (!starters) {
-        starters = (['sit', 'rest'] as const).map((pose) =>
-          assets.register('shared', `character.${character}.${pose}`, () =>
+        starters = [
+          assets.register('shared', `character.rigged.${character}`, () =>
             ensureCharacter(character),
           ),
-        );
+        ];
         characterTasks.set(character, starters);
       }
       starters.forEach((start) => {
@@ -569,40 +500,21 @@ export function createSeatScene(
       ];
     });
     gifts.update(current, frames, now, reduced);
-    for (const { mesh, part, slotIds, motion, rest, activity } of meshes) {
-      slotIds.length = 0;
-      for (const record of visibleVisitors) {
-        const { seat, anchor, appearance, visitor } = record;
-        if (
-          !partVisible(
-            part,
-            appearance,
-            record.moving ? 'sit' : visitor.posture || 'sit',
-          )
-        )
-          continue;
-        const index = slotIds.length;
-        slotIds.push(seat.id);
-        local.copy(part.matrix);
-        transform.multiplyMatrices(anchor.matrixWorld, local);
-        mesh.setMatrixAt(index, transform);
-        const pose = states.get(visitor.id)!.value;
-        motion.setXYZW(index, pose.x, pose.y, pose.z, pose.w);
-        rest.setX(index, record.rest);
-        activity.setXYZW(
-          index,
-          record.stand,
-          record.gait,
-          record.walkAmount > 0 ? -1 : record.activity.kind,
-          record.walkAmount > 0 ? record.walkAmount : record.activity.amount,
-        );
-        if (part.tint) mesh.setColorAt(index, tint.set(appearance[part.tint]));
-      }
-      mesh.count = slotIds.length;
-      mesh.instanceMatrix.needsUpdate = true;
-      motion.needsUpdate = rest.needsUpdate = activity.needsUpdate = true;
-      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-      mesh.visible = slotIds.length > 0;
+    for (const record of visibleVisitors) {
+      const frame = frames.get(record.visitor.id)!;
+      if (!frame.rig) continue;
+      frame.rig.root.userData.seatId = record.seat.id;
+      frame.rig.setAppearance(record.appearance);
+      frame.rig.pose({
+        time: t,
+        stand: record.stand,
+        rest: record.rest,
+        distance: (record.gait / (Math.PI * 2)) * 0.9,
+        walk: record.walkAmount,
+        activity: record.activity.kind,
+        amount: record.activity.amount,
+        reduced,
+      });
     }
   }
 
@@ -667,6 +579,8 @@ export function createSeatScene(
         const f = frames.get(visitor.id);
         return {
           id: visitor.id,
+          character: f?.character,
+          bones: f?.rig?.bones.size,
           seatId: visitor.seatId,
           position: f?.root.position.toArray(),
           activity: sampleVisitorActivity(visitor.gesture, Date.now()),
@@ -691,11 +605,12 @@ export function createSeatScene(
     retry: () => refreshVisible(true),
     update,
     hasVisibleVisitors: () =>
-      meshes.some(({ mesh }) => mesh.visible && mesh.count > 0),
+      [...frames.values()].some((f) => f.root.visible && !!f.rig),
     setVisitors(visitors: Visitor[], ownId: string) {
       current = visitors;
       for (const [id, frame] of frames)
         if (!visitors.some((v) => v.id === id)) {
+          clearRig(frame);
           frame.props.dispose();
           frame.root.removeFromParent();
           frames.delete(id);
@@ -795,6 +710,7 @@ export function createSeatScene(
       gifts.dispose();
       disposed = true;
       for (const frame of frames.values()) {
+        clearRig(frame);
         frame.props.dispose();
         frame.root.removeFromParent();
       }
@@ -808,17 +724,7 @@ export function createSeatScene(
         sprite.material.dispose();
         sprite.removeFromParent();
       }
-      for (const { mesh } of meshes) {
-        const i = interactables.indexOf(mesh);
-        if (i >= 0) interactables.splice(i, 1);
-        mesh.dispose();
-        mesh.geometry.dispose();
-      }
-      ownedMaterials.forEach((material) => material.dispose());
-      pickingGeometries.forEach((geometry) => geometry.dispose());
       for (const id of reactions.keys()) clearReaction(id);
-      releaseModels.forEach((release) => release());
-      releaseModels.clear();
     },
   };
 }

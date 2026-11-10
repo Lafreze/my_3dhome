@@ -874,5 +874,247 @@
       "corridor"
     ],
     "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.noir",
+    "name": "noir / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/919bbe14771a498ba4d0c01e635124a8",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.resident",
+    "name": "resident / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/de7e9d88eb8d43a789384c2bcf8682dc",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.bear",
+    "name": "bear / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/20abfd60c50c43498eb881f4a9bbdeed",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.cat",
+    "name": "cat / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/a971927078574e92b4db68c5fae9ef26",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.fox",
+    "name": "fox / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/2e26c7bd8b69467b902d2e6f5e531f46",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.rose",
+    "name": "rose / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/e11b1acdde3f4a0f8973c1894f35be9b",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.ivory",
+    "name": "ivory / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/d1de1e7dd34c4810a62db5297b509d6e",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.dusk",
+    "name": "dusk / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/d7b5e20a86cb4ca6be7ddfbbed07d986",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.ribbon",
+    "name": "ribbon / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/8a902a0066c24cc78151e825a7dcd1a8",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.shiba",
+    "name": "shiba / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/196da83b26d54f53ba21339677ce60f9",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
+  },
+  {
+    "id": "character.rigged.capybara",
+    "name": "capybara / articulated Hi3D",
+    "author": "SATORI / Hi3D",
+    "sourceUrl": "https://www.hi3d.ai/3d-model/7f30cb4c58124233841af44045ac80c6",
+    "license": "Hi3D private generation; owner-authorized use in this project",
+    "licenseUrl": "",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "rooms": [
+      "study",
+      "living",
+      "bedroom",
+      "cafe",
+      "gallery",
+      "gaming",
+      "bar",
+      "library",
+      "garden",
+      "corridor"
+    ],
+    "attributionRequired": false
   }
 ]

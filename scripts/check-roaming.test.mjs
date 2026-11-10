@@ -128,3 +128,24 @@ void test('camera distance is bounded, reversible and stable with invalid saved 
   assert.equal(adjustRoamZoom(close, -1), close);
   assert.equal(adjustRoamZoom(far, 1), far);
 });
+
+void test('incoming visitors separate from the roaming character without crossing furniture', async () => {
+  const { resolveRoamerOverlap } = await import('../app/roam-movement.ts');
+  for (const room of Object.keys(rooms)) {
+    const start = roamSpawn(room),
+      other = [...start];
+    let p = start;
+    for (let i = 0; i < 90; i++) {
+      const next = resolveRoamerOverlap(p, [other], 1 / 60);
+      assert.ok(floorClear(next, 'resident', 0.31));
+      assert.ok(
+        Math.hypot(next[0] - other[0], next[2] - other[2]) >=
+          Math.hypot(p[0] - other[0], p[2] - other[2]) - 1e-8,
+      );
+      assert.ok(Math.hypot(next[0] - p[0], next[2] - p[2]) <= 0.85 / 60 + 1e-8);
+      p = next;
+    }
+    assert.ok(Math.hypot(p[0] - other[0], p[2] - other[2]) > 0.5);
+    assert.deepEqual(resolveRoamerOverlap(start, [], 1 / 60), start);
+  }
+});

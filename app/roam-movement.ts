@@ -75,3 +75,62 @@ export function easeRoamInput(
     (v, i) => v + (input[i] / Math.max(1, length) - v) * amount,
   ) as [number, number];
 }
+
+/** Resolve an incoming visitor's overlap with a short, collision-checked sidestep. */
+export function resolveRoamerOverlap(
+  position: Point,
+  occupied: Point[],
+  dt: number,
+): Point {
+  const score = (p: Point) =>
+    Math.min(
+      Infinity,
+      ...occupied.map((o) => Math.hypot(o[0] - p[0], o[2] - p[2])),
+    );
+  const before = score(position);
+  if (before >= 0.6 || !Number.isFinite(dt) || dt <= 0) return position;
+  const step = Math.min(0.6 - before, 0.85 * Math.min(dt, 0.05));
+  let best = position,
+    bestScore = -Infinity;
+  for (let i = 0; i < 16; i++) {
+    const angle = (i * Math.PI) / 8,
+      p: Point = [
+        position[0] + Math.cos(angle) * step,
+        0.085,
+        position[2] + Math.sin(angle) * step,
+      ];
+    const after = score(p);
+    if (
+      after > before + 0.000001 &&
+      [0.25, 0.5, 0.75, 1].every((f) =>
+        floorClear(
+          [
+            position[0] + (p[0] - position[0]) * f,
+            0.085,
+            position[2] + (p[2] - position[2]) * f,
+          ],
+          'resident',
+          0.31,
+        ),
+      )
+    ) {
+      // Favor an open escape lane so a coincident spawn does not retreat into a pocket.
+      let clearance = after;
+      for (let d = 0.05; d <= 0.6; d += 0.05) {
+        const future: Point = [
+          position[0] + Math.cos(angle) * d,
+          0.085,
+          position[2] + Math.sin(angle) * d,
+        ];
+        if (!floorClear(future, 'resident', 0.335)) break;
+        clearance = Math.max(clearance, Math.min(0.6, score(future)));
+      }
+      const rank = after + clearance * 0.2;
+      if (rank > bestScore) {
+        best = p;
+        bestScore = rank;
+      }
+    }
+  }
+  return best;
+}

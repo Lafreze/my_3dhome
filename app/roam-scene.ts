@@ -1,15 +1,18 @@
 import * as T from 'three';
-import { acquireVisitorModel, configureVisitorTint } from './visitor-model';
-import { appearanceStorageKey, readAppearance } from './visitor-appearance';
 import {
-  configureVisitorMotion,
-  sampleVisitorMotion,
-  visitorShadowMaterials,
-} from './visitor-motion';
+  acquireRiggedCharacter,
+  type RiggedCharacter,
+} from './rigged-character';
+import { appearanceStorageKey, readAppearance } from './visitor-appearance';
 import { humanScale } from './character-scale.mjs';
 import { footLift, walkingCycleDistance } from './visitor-travel.mjs';
 import { adjustRoamZoom, defaultRoamZoom } from './roam-camera';
-import { easeRoamInput, moveRoamer, roamSpawn } from './roam-movement';
+import {
+  easeRoamInput,
+  moveRoamer,
+  resolveRoamerOverlap,
+  roamSpawn,
+} from './roam-movement';
 import { roomAt, roomForObject, type RoomId } from './house-data';
 import { objects, type ObjectId } from './room-data';
 import { houseDoorLayout } from './house-door-layout';
@@ -33,6 +36,7 @@ export function createRoamScene(
     bubble: (text: string) => void;
     door: (id: ObjectId) => void;
     actors: () => Partial<Record<ActorId, Actor>>;
+    occupied: () => Point[];
   },
 ) {
   const root = new T.Group();
@@ -63,22 +67,12 @@ export function createRoamScene(
   } catch {
     /* Storage is optional. */
   }
-  let release: (() => void) | undefined;
-  const materials: T.Material[] = [],
-    geometries: T.BufferGeometry[] = [];
-  const animated: {
-    motion: T.InstancedBufferAttribute;
-    action: T.InstancedBufferAttribute;
-  }[] = [];
+  let rig: RiggedCharacter | undefined;
   let appearance = readAppearance(null);
-  const state = { value: new T.Vector4() };
   function clearModel() {
+    rig?.dispose();
+    rig = undefined;
     root.clear();
-    materials.splice(0).forEach((m) => m.dispose());
-    geometries.splice(0).forEach((g) => g.dispose());
-    animated.length = 0;
-    release?.();
-    release = undefined;
     loaded = false;
   }
   async function load() {
@@ -103,69 +97,14 @@ export function createRoamScene(
     hooks.target(null);
     loading = true;
     try {
-      const model = await acquireVisitorModel([appearance.character]);
+      const model = await acquireRiggedCharacter(appearance.character);
       if (disposed) {
-        model.release();
+        model.dispose();
         return;
       }
-      release = model.release;
-      for (const part of model.parts.filter((p) => p.pose === 'sit')) {
-        const geometry = new T.BufferGeometry();
-        geometry.index = part.geometry.index;
-        geometry.groups = part.geometry.groups.map((group) => ({ ...group }));
-        for (const [name, attribute] of Object.entries(
-          part.geometry.attributes,
-        ))
-          geometry.setAttribute(name, attribute);
-        const motion = new T.InstancedBufferAttribute(new Float32Array(4), 4);
-        const action = new T.InstancedBufferAttribute(
-          new Float32Array([1, 0, -1, 0]),
-          4,
-        );
-        geometry.setAttribute('visitorInstanceMotion', motion);
-        geometry.setAttribute('visitorInstanceActivity', action);
-        geometry.setAttribute(
-          'visitorInstanceRest',
-          new T.InstancedBufferAttribute(new Float32Array(1), 1),
-        );
-        const material = (
-          Array.isArray(part.material) ? part.material : [part.material]
-        ).map((m) => {
-          const clone = m.clone();
-          if (part.tint) configureVisitorTint(clone, part.character, part.tint);
-          configureVisitorMotion(
-            clone,
-            part.character,
-            state,
-            true,
-            part.eyelid,
-          );
-          materials.push(clone);
-          return clone;
-        });
-        const mesh = new T.InstancedMesh(
-          geometry,
-          material.length === 1 ? material[0] : material,
-          1,
-        );
-        mesh.setMatrixAt(0, new T.Matrix4());
-        if (part.tint) mesh.setColorAt(0, new T.Color(appearance[part.tint]));
-        const shadows = visitorShadowMaterials(
-          part.character,
-          state,
-          true,
-          !!part.eyelid,
-        );
-        mesh.customDepthMaterial = shadows.depth;
-        mesh.customDistanceMaterial = shadows.distance;
-        materials.push(shadows.depth, shadows.distance);
-        geometries.push(geometry);
-        mesh.frustumCulled = false;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        root.add(mesh);
-        animated.push({ motion, action });
-      }
+      rig = model;
+      rig.setAppearance(appearance);
+      root.add(model.root);
       root.scale.setScalar(humanScale(appearance.character));
       loaded = true;
     } catch {
@@ -330,16 +269,16 @@ export function createRoamScene(
         paused || !loaded ? [0, 0] : input,
         dt,
       );
-      if (!paused && loaded)
-        position = moveRoamer(
-          position,
-          velocity,
-          dt,
-          Object.values(hooks.actors())
+      if (!paused && loaded) {
+        const occupied = [
+          ...Object.values(hooks.actors())
             .filter((a) => a.active)
             .map((a) => a.position),
-          pace,
-        );
+          ...hooks.occupied(),
+        ];
+        position = resolveRoamerOverlap(position, occupied, dt);
+        position = moveRoamer(position, velocity, dt, occupied, pace);
+      }
       const dx = position[0] - before[0],
         dz = position[2] - before[2],
         distance = Math.hypot(dx, dz);
@@ -364,7 +303,6 @@ export function createRoamScene(
           footLift[appearance.character] * humanScale(appearance.character),
         position[2],
       );
-      sampleVisitorMotion(time, 731, reduced, state.value);
       // Settle at the current step instead of snapping both feet to phase zero.
       const moving = distance > 0.0001 && !reduced && !paused;
       const strideTarget = moving
@@ -374,17 +312,13 @@ export function createRoamScene(
         ? 0
         : T.MathUtils.damp(stride, strideTarget, moving ? 14 : 12, dt);
       if (stride < 0.0001) stride = 0;
-      for (const a of animated) {
-        a.motion.setXYZW(
-          0,
-          state.value.x,
-          state.value.y,
-          state.value.z,
-          state.value.w,
-        );
-        a.action.setXYZW(0, 1, gait, -1, stride);
-        a.motion.needsUpdate = a.action.needsUpdate = true;
-      }
+      rig?.pose({
+        time,
+        stand: 1,
+        distance: (gait / (Math.PI * 2)) * walkingCycleDistance,
+        walk: stride,
+        reduced,
+      });
       const next = roomAt(position[0], position[2]);
       if (next && next !== room) {
         room = next;
@@ -419,6 +353,8 @@ export function createRoamScene(
       camera.lookAt(look);
     },
     snapshot: () => ({
+      character: appearance.character,
+      bones: rig?.bones.size,
       enabled,
       loaded,
       zoom,
