@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Power, Save, X, ArrowUpRight } from 'lucide-react';
 import { websiteURL } from './device-settings';
 import { useStudio } from './studio-settings';
+import defaults from '../config/house-defaults.json';
 export default function Computer({
   active,
   open,
@@ -41,8 +42,9 @@ export default function Computer({
     queueMicrotask(() => {
       if (live) {
         setEnabled(stored.enabled);
-        setSource(stored.url);
-        setUrl(stored.url);
+        const website = stored.url || defaults.devices.computer.url;
+        setSource(website);
+        setUrl(website);
         setLoaded(studio.ready);
       }
     });
@@ -128,7 +130,11 @@ export default function Computer({
             key={source}
             src={source}
             title="工作站网页"
-            sandbox="allow-scripts allow-forms allow-popups"
+            sandbox={
+              source.startsWith('https://www.satoriscarlet.com/')
+                ? 'allow-scripts allow-forms allow-popups allow-same-origin'
+                : 'allow-scripts allow-forms allow-popups'
+            }
             allow="fullscreen"
             referrerPolicy="strict-origin-when-cross-origin"
           />

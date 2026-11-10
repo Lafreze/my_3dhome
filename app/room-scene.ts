@@ -2699,6 +2699,15 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       if (!open) refreshShadows();
     },
     enterDoor(id) {
+      if (id === 'cafeEntranceDoor') {
+        house.openDoor(id);
+        window.open(
+          'https://mycity.up.railway.app/',
+          '_blank',
+          'noopener,noreferrer',
+        );
+        return;
+      }
       const destination = destinationThroughDoor(id, activeView);
       house.openDoor(id);
       if (destination) this.setView(destination);
@@ -3251,7 +3260,14 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
   renderer.render(scene, camera);
   const renderLoop = visibleFrames(animate, {
     enabled: () => !mapOpen,
-    fps: () => (performance.now() - lastInput > 60000 ? 20 : 60),
+    fps: () =>
+      performance.now() - lastInput > 60000 &&
+      !roaming.enabled &&
+      !tween &&
+      !visitors.hasVisibleTravel() &&
+      !life?.hasVisibleTravel()
+        ? 20
+        : 60,
     onWake: () => {
       last = performance.now();
       lastInput = last;

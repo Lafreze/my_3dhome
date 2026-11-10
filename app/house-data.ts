@@ -139,9 +139,9 @@ export const newObjects = {
     action: '进入相邻房间',
   },
   cafeEntranceDoor: {
-    name: '咖啡厅南侧入口门',
+    name: '咖啡厅入口 · 前往 My City',
     kind: 'DOOR',
-    action: '打开入口门',
+    action: '前往 My City（新窗口）',
   },
   libraryGardenDoor: {
     name: '藏书室 → 植物园',

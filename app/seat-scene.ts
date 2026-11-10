@@ -607,6 +607,15 @@ export function createSeatScene(
   }
 
   return {
+    hasVisibleTravel() {
+      const now = Date.now();
+      return current.some(
+        (v) =>
+          !!v.journey &&
+          now < v.journey.at + v.journey.duration &&
+          !!frames.get(v.id)?.root.visible,
+      );
+    },
     status(id: string) {
       const person = current.find((v) => v.id === id);
       if (!person) return '已经离开';

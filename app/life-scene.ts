@@ -540,6 +540,11 @@ export function createLifeScene(k: Options, session: LifeSession) {
       engine.setVisitors(visitorFootprints(people));
     },
     eventBusy: () => !!engine.events.active,
+    hasVisibleTravel: () =>
+      Object.values(engine.actors).some(
+        (a) =>
+          a.active && a.visible && (a.path.length > 0 || !!a.seatTransition),
+      ),
     objectMoment() {
       // User-driven small details defer the next automatic event without interrupting
       // a bird already flying or a coffee already being poured.
