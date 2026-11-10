@@ -1,3 +1,4 @@
+# Match Docker's build inputs before uploading the deployment archive.
 .git
 .openai
 .railway
@@ -15,12 +16,12 @@ coverage
 *.tsbuildinfo
 .DS_Store
 
-# Native authoring assets are unnecessary in the web container
+# Native authoring sources and superseded models are not used in the image.
 assets
 public/models/*-v4.glb
 public/models/studio-visitor.glb
 public/models/studio-visitor-v2.glb
 *.blend*
 
-# Generated from reviewed production inputs during the build
+# Regenerated from the reviewed model sources during the build.
 public/assets
