@@ -63,6 +63,7 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
       distance,
       walk,
       stand: 1 - seatedBlend,
+      seatBack: model.root.userData.seatBack ?? 0,
       activity,
       amount: activity * 0.7,
       reduced,

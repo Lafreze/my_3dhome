@@ -1,3 +1,4 @@
+import { seatedHipHeight, seatedBackOffset } from './seat-support.mjs';
 import { createVisitorGifts } from './visitor-gifts';
 import { activities, sampleVisitorActivity } from './visitor-activities';
 import {
@@ -445,6 +446,13 @@ export function createSeatScene(
         appearance.character,
         reduced ? 0 : explicit.kind ? explicit.age : t,
       );
+      // Props follow the same seated offset as the new articulated body.
+      frame.props.root.position.set(
+        0,
+        (seatedHipHeight[appearance.character] - 0.045) /
+          humanScale(appearance.character),
+        -seatedBackOffset(seat.id) / humanScale(appearance.character),
+      );
       if (rest > 0)
         state.value.set(
           rest,
@@ -509,6 +517,7 @@ export function createSeatScene(
         time: t,
         stand: record.stand,
         rest: record.rest,
+        seatBack: seatedBackOffset(record.seat.id),
         distance: (record.gait / (Math.PI * 2)) * 0.9,
         walk: record.walkAmount,
         activity: record.activity.kind,

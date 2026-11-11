@@ -1,3 +1,4 @@
+import { seatedBackOffset } from './seat-support.mjs';
 import { createCompanions } from './companion-scene';
 import { createActorSpeech } from './actor-speech';
 import { sampleVisitorJourney } from './visitor-travel.mjs';
@@ -396,6 +397,9 @@ export function createLifeScene(k: Options, session: LifeSession) {
           a.position[0] < 9.35 &&
           a.position[2] > 8.3 &&
           a.position[2] < 9.5;
+        model.root.userData.seatBack = seatedBackOffset(
+          a.seatTransition?.seatId ?? engine.node(a.node).seatId ?? '',
+        );
         model.animate(
           a.seatTransition
             ? a.seatTransition.entering

@@ -1,3 +1,4 @@
+import { seatedHipHeight } from './seat-support.mjs';
 import * as T from 'three';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
@@ -29,6 +30,7 @@ export type RigPose = {
   amount?: number;
   reduced?: boolean;
   floorOffset?: number;
+  seatBack?: number;
 };
 export type RiggedCharacter = Awaited<
   ReturnType<typeof acquireRiggedCharacter>
@@ -201,6 +203,7 @@ export async function acquireRiggedCharacter(id: RigId) {
       if (pelvis)
         pelvis.position.y += Math.sin(time * 1.8) * 0.002 * (1 - walk);
     } else {
+      const seatHeight = seatedHipHeight[id as keyof typeof seatedHipHeight];
       const stand = p.stand ?? 1,
         rest = p.rest ?? 0,
         sit = (1 - stand) * (1 - rest),
@@ -209,7 +212,7 @@ export async function acquireRiggedCharacter(id: RigId) {
         p.floorOffset ??
         (id === 'resident' ? 0 : footLift[id as Character] * scale);
       pivot.position.y =
-        -(spec.hip - 0.045) * sit -
+        -(spec.hip - seatHeight) * sit -
         floorOffset * stand * (1 - rest) +
         0.16 * rest -
         sampleRigLeg(
@@ -219,7 +222,7 @@ export async function acquireRiggedCharacter(id: RigId) {
           spec.hip - spec.knee,
           spec.knee - spec.ankle,
         ).drop;
-      pivot.position.z = 0.58 * rest;
+      pivot.position.z = 0.58 * rest - (p.seatBack ?? 0) * sit;
       pivot.rotation.x = (-Math.PI / 2) * rest;
       for (const [i, side] of ['L', 'R'].entries()) {
         const leg = sampleRigLeg(
@@ -230,8 +233,8 @@ export async function acquireRiggedCharacter(id: RigId) {
           spec.knee - spec.ankle,
         );
         rotate(`thigh${side}`, leg.hip - (Math.PI / 2) * sit);
-        rotate(`shin${side}`, leg.knee + (Math.PI / 2) * sit);
-        rotate(`foot${side}`, leg.ankle);
+        rotate(`shin${side}`, leg.knee + 0.06 * sit);
+        rotate(`foot${side}`, leg.ankle + 0.15 * sit);
         const sign = i === 0 ? -1 : 1,
           armSwing =
             Math.sin((distance / 0.52) * Math.PI * 2) * sign * 0.2 * moving;
@@ -260,10 +263,13 @@ export async function acquireRiggedCharacter(id: RigId) {
         Math.sin((distance / 0.52) * Math.PI * 2) * 0.025 * moving,
         Math.sin((distance / 0.52) * Math.PI * 2) * 0.014 * moving,
       );
+      const seatedTail = bones.get('tail');
+      if (seatedTail) seatedTail.rotation.order = 'YXZ';
       rotate(
         'tail',
-        0,
-        (Math.PI / 2) * rest + Math.sin(time * 1.1) * 0.025 * (1 - rest),
+        (Math.PI / 2) * sit,
+        (Math.PI / 2) * (rest + sit) +
+          Math.sin(time * 1.1) * 0.025 * (1 - rest),
         0,
       );
       const tail = bones.get('tail');
