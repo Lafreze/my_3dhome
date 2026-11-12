@@ -992,7 +992,7 @@
     "sourceUrl": "https://www.hi3d.ai/3d-model/e11b1acdde3f4a0f8973c1894f35be9b",
     "license": "Hi3D private generation; owner-authorized use in this project",
     "licenseUrl": "",
-    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
+    "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco; unified skin weights across UV seams",
     "rooms": [
       "study",
       "living",

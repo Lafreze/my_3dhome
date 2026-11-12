@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "d9cea87e0360ac9f",
+  "version": "d92fcd09905def2a",
   "assets": {
     "art.botanical-study": {
       "type": "image",
@@ -678,10 +678,10 @@
         "garden",
         "corridor"
       ],
-      "path": "models/rigged/rose.5666261e674aa0ed.glb",
+      "path": "models/rigged/rose.f8083ef321b15b27.glb",
       "logicalPath": "models/rigged/rose.glb",
-      "size": 604068,
-      "sha256": "5666261e674aa0ed7fd9b9db0fcbf4fbe251667764208175d43c74b40a067ab2",
+      "size": 611452,
+      "sha256": "f8083ef321b15b27427a2133e4db999a7c5c111eed98616dc8fa4795be65b4e3",
       "contentType": "model/gltf-binary",
       "dependencies": [],
       "publish": false

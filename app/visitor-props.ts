@@ -1,9 +1,5 @@
 import { createHobbyProps } from './visitor-hobby-props';
-import {
-  floatingCupPosition,
-  floatingPhonePose,
-  handProfiles,
-} from './visitor-hand-poses';
+import rigs from '../config/character-rigs.json';
 import type { Character } from './visitor-appearance';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -74,18 +70,15 @@ export function createVisitorProps() {
     root,
     update(kind: number, amount: number, character: Character, age = 0) {
       hobbies.update(kind >= 3 ? kind : 0, amount, age);
-      const profile = handProfiles[character];
-      const lapHeight = Math.max(0.17, profile.palm[1] + 0.08);
-      const lapForward = Math.max(0.33, profile.eye[2] + 0.14);
+      const spec = rigs[character];
+      const eyeHeight = spec.neck - spec.hip + 0.045;
+      const lapHeight = 0.245;
+      const lapForward = 0.29;
       hobbies.book.position.set(0, lapHeight, lapForward);
-      hobbies.book.rotation.x = 0.3;
+      hobbies.book.rotation.set(-0.35, Math.PI, 0);
       hobbies.pad.position.copy(hobbies.book.position);
-      hobbies.pad.rotation.x = 0.3;
-      hobbies.flowers.position.set(
-        profile.palm[0],
-        profile.eye[1] - 0.15,
-        profile.eye[2] + 0.2,
-      );
+      hobbies.pad.rotation.set(-0.35, Math.PI, 0);
+      hobbies.flowers.position.set(-0.16, eyeHeight - 0.15, 0.3);
       hobbies.flowers.rotation.z = -0.2;
       phone.visible = kind === 1 && amount > 0.015;
       cup.visible = kind === 2 && amount > 0.015;
@@ -93,10 +86,12 @@ export function createVisitorProps() {
       cup.scale.setScalar(amount);
       if (configuredCharacter === character) return;
       configuredCharacter = character;
-      const pose = floatingPhonePose(character);
-      phone.position.copy(pose.position);
-      phone.quaternion.copy(pose.quaternion);
-      cup.position.copy(floatingCupPosition(character));
+      const eye = new T.Vector3(0, eyeHeight, 0.08);
+      phone.position.set(0, eyeHeight - 0.13, 0.32);
+      phone.quaternion.setFromRotationMatrix(
+        new T.Matrix4().lookAt(eye, phone.position, new T.Vector3(0, 1, 0)),
+      );
+      cup.position.set(-0.18, 0.27, 0.3);
       cup.rotation.set(0, Math.PI, 0);
     },
     dispose() {

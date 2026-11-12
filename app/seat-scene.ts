@@ -440,6 +440,7 @@ export function createSeatScene(
           : explicit.kind
             ? explicit
             : idle.sample(visitor.id);
+      frame.props.root.scale.setScalar(1 / humanScale(appearance.character));
       frame.props.update(
         activity.kind,
         activity.amount,

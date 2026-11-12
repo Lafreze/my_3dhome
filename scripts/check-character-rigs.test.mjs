@@ -32,6 +32,7 @@ for (const [id, s] of Object.entries(specs))
           j = p.getAttribute('JOINTS_0');
         assert.ok(n && w && j);
         vertices += a.getCount();
+        const seams = new Map();
         for (let i = 0; i < a.getCount(); i++) {
           const ws = w.getElement(i, []),
             js = j.getElement(i, []);
@@ -43,6 +44,20 @@ for (const [id, s] of Object.entries(specs))
           assert.ok(
             js.every((v) => Number.isInteger(v) && v >= 0 && v < joints.length),
           );
+          const key = a
+            .getElement(i, [])
+            .map((v) => Math.round(v * 1e5))
+            .join(',');
+          const blend = {};
+          js.forEach((bone, k) => (blend[bone] = (blend[bone] || 0) + ws[k]));
+          const prior = seams.get(key);
+          if (prior)
+            for (const bone of Object.keys({ ...prior, ...blend }))
+              assert.ok(
+                Math.abs((prior[bone] || 0) - (blend[bone] || 0)) < 1 / 4096,
+                'UV seam separates during animation',
+              );
+          seams.set(key, blend);
           const legs = js
             .filter((_, k) => ws[k] > 0.01)
             .map((v) => joints[v].getName())

@@ -1,3 +1,4 @@
+import { unifySkinSeams } from './lib/rig-seams.mjs';
 // Reproducible skin binding for the approved, separated-limb Hi3D A/T poses.
 // Sources remain in ignored output/rig-remodel; deliverables include a real glTF skin.
 import { NodeIO } from '@gltf-transform/core';
@@ -208,6 +209,7 @@ for (const id of ids) {
       doc.createAccessor().setType('VEC4').setArray(weights).setBuffer(buffer),
     );
   }
+  unifySkinSeams(primitives());
   root.setExtras({
     rig: spec,
     cycleDistance: rigCycleDistance,

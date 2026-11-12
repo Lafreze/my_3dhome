@@ -1,3 +1,4 @@
+import { poseArm } from './rig-arm';
 import { seatedHipHeight } from './seat-support.mjs';
 import * as T from 'three';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
@@ -81,6 +82,11 @@ export async function acquireRiggedCharacter(id: RigId) {
     ).map((m) => {
       const owned = m.clone();
       configureCharacterSurface(owned);
+      if (owned instanceof T.MeshStandardMaterial) {
+        owned.metalness = 0;
+        owned.roughness = Math.max(0.75, owned.roughness);
+        owned.normalScale.setScalar(0.25);
+      }
       if ('animal' in spec && owned instanceof T.MeshStandardMaterial) {
         owned.roughness = 1;
         owned.metalness = 0;
@@ -139,17 +145,6 @@ export async function acquireRiggedCharacter(id: RigId) {
       );
     }
   });
-  const elbowAxes = new Map(
-    ['L', 'R'].map((side) => {
-      const hand = bones.get(`hand${side}`),
-        v = hand?.position ?? new T.Vector3(0, -1, 0);
-      return [side, new T.Vector3(v.y, -v.x, 0).normalize()];
-    }),
-  );
-  const bendElbow = (side: string, amount: number) =>
-    bones
-      .get(`forearm${side}`)
-      ?.quaternion.setFromAxisAngle(elbowAxes.get(side)!, amount);
   const rests = new Map([...bones].map(([n, b]) => [n, b.position.clone()]));
   let released = false;
   const animal = 'animal' in spec;
@@ -235,27 +230,33 @@ export async function acquireRiggedCharacter(id: RigId) {
         rotate(`thigh${side}`, leg.hip - (Math.PI / 2) * sit);
         rotate(`shin${side}`, leg.knee + 0.06 * sit);
         rotate(`foot${side}`, leg.ankle + 0.15 * sit);
-        const sign = i === 0 ? -1 : 1,
-          armSwing =
-            Math.sin((distance / 0.52) * Math.PI * 2) * sign * 0.2 * moving;
-        rotate(
-          `upperArm${side}`,
-          armSwing - 0.22 * sit,
-          0,
-          -sign * spec.armDown,
+        const sign = i === 0 ? -1 : 1;
+        const upper = bones.get(`upperArm${side}`)!,
+          forearm = bones.get(`forearm${side}`)!,
+          hand = bones.get(`hand${side}`)!;
+        const shoulder = new T.Vector3().fromArray(
+          spec.joints.find((j) => j[0] === `upperArm${side}`)![2] as number[],
         );
-        bendElbow(side, 0.12 * sit);
-        if (p.activity && !rest && !moving) {
-          const amount = p.amount ?? 1;
-          // Reach from the shoulder and elbow; the hand is never translated off its arm.
-          rotate(
-            `upperArm${side}`,
-            -0.55 * amount,
-            0,
-            -sign * (spec.armDown - 0.16 * amount),
-          );
-          bendElbow(side, 0.65 * amount);
-        }
+        const reach = forearm.position.length() + hand.position.length();
+        const action = p.activity && !rest ? (p.amount ?? 1) * (1 - moving) : 0;
+        const target = new T.Vector3(
+          sign * 0.035,
+          -reach * 0.94,
+          0.035 + 0.05 * sit,
+        );
+        target.z +=
+          Math.sin((distance / 0.52) * Math.PI * 2) * sign * 0.06 * moving;
+        const holding = new T.Vector3(sign * 0.16, spec.hip + 0.24, 0.27).sub(
+          shoulder,
+        );
+        target.lerp(holding, action);
+        poseArm(
+          upper,
+          forearm,
+          hand,
+          target,
+          new T.Vector3(sign * 0.25, -0.12, -0.03),
+        );
       }
       rotate(
         'spine',

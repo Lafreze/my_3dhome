@@ -1,24 +1,24 @@
 {
-  "version": "d9cea87e0360ac9f",
+  "version": "d92fcd09905def2a",
   "roomSizes": {
     "study": {
-      "bytes": 16181908,
+      "bytes": 16189292,
       "files": 32
     },
     "living": {
-      "bytes": 14454242,
+      "bytes": 14461626,
       "files": 29
     },
     "bedroom": {
-      "bytes": 12698194,
+      "bytes": 12705578,
       "files": 26
     },
     "gallery": {
-      "bytes": 21287164,
+      "bytes": 21294548,
       "files": 34
     },
     "cafe": {
-      "bytes": 16370028,
+      "bytes": 16377412,
       "files": 37
     }
   },
@@ -446,7 +446,7 @@
     },
     {
       "path": "public/models/rigged/rose.glb",
-      "bytes": 604068,
+      "bytes": 611452,
       "classification": "catalogued-production"
     },
     {
