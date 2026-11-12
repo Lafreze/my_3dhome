@@ -1,4 +1,5 @@
 'use client';
+import ExternalGames from './external-games';
 import VisitorAnalytics from './visitor-analytics';
 import { useState } from 'react';
 import {
@@ -40,6 +41,7 @@ export default function AdminPanel({
   return (
     <div className="admin-panel">
       <p>已进入管理模式。保存后，所有访客都能看到更新。</p>
+      <ExternalGames edit />
       <div className="admin-links">
         <button onClick={onProfile}>
           个人资料与作品集 <span>名称、介绍、项目、相册</span>

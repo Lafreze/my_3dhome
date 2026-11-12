@@ -19,7 +19,14 @@ export type Appearance = Record<
   number | string
 >;
 export type Device = { url: string; enabled: boolean };
+export type ExternalGame = {
+  id: string;
+  title: string;
+  url: string;
+  description: string;
+};
 export type HouseSettings = {
+  externalGames: ExternalGame[];
   profile: Profile;
   note: string;
   appearance: Appearance;

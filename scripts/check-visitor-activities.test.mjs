@@ -1,13 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Scene, Group } from 'three';
 import { createPresenceStore } from './seat-presence.mjs';
 import {
   activities,
   sampleVisitorActivity,
-  giftFlight,
 } from '../app/visitor-activities.ts';
-import { createVisitorGifts } from '../app/visitor-gifts.ts';
 
 test('reading, sketching and flowers synchronize, expire and cannot control another visitor', () => {
   let now = 1000;
@@ -60,62 +57,26 @@ test('reading, sketching and flowers synchronize, expire and cannot control anot
   );
 });
 
-test('gift trajectory is bounded, ends at the receiver and respects reduced motion', () => {
-  let previous = 0;
-  for (let now = 1000; now < 10000; now += 25) {
-    const p = giftFlight(1000, now, 10000);
-    assert(p.progress >= previous && p.progress <= 1);
-    assert(p.lift >= 0 && p.lift <= 0.55);
-    assert(p.scale >= 0 && p.scale <= 1);
-    previous = p.progress;
+test('social gestures use held props or distinct body poses, and expire without flying geometry', () => {
+  for (const [kind, pose] of Object.entries({
+    shareBook: 3,
+    inviteRead: 3,
+    shareTea: 2,
+    offerCoffee: 2,
+    shareFlowers: 5,
+    waveHello: 6,
+    applaud: 7,
+    agree: 8,
+    thanks: 8,
+    inviteTalk: 9,
+  })) {
+    assert.equal(
+      sampleVisitorActivity({ kind, at: 1000, expiresAt: 10000 }, 3000).kind,
+      pose,
+    );
+    assert.equal(
+      sampleVisitorActivity({ kind, at: 1000, expiresAt: 10000 }, 10000).amount,
+      0,
+    );
   }
-  assert.equal(previous, 1);
-  assert.equal(giftFlight(1000, 999, 10000), null);
-  assert.equal(giftFlight(1000, 10000, 10000), null);
-  assert.deepEqual(giftFlight(1000, 1000, 10000, true), {
-    progress: 1,
-    lift: 0,
-    scale: 1,
-  });
-});
-
-test('physical gifts attach to the recipient and clear on movement, departure and expiry', () => {
-  const scene = new Scene(),
-    sender = new Group(),
-    receiver = new Group();
-  sender.position.set(2, 1, 2);
-  receiver.position.set(4, 1, 2);
-  scene.add(sender, receiver);
-  const frames = new Map([
-    ['a', { root: sender }],
-    ['b', { root: receiver }],
-  ]);
-  const gifts = createVisitorGifts(scene);
-  const pair = (kind) => [
-    {
-      id: 'a',
-      gesture: { id: 'gift', kind, targetId: 'b', at: 1000, expiresAt: 10000 },
-    },
-    { id: 'b', posture: 'sit' },
-  ];
-  for (const kind of ['shareBook', 'shareFlowers', 'shareTea']) {
-    const visitors = pair(kind);
-    gifts.update(visitors, frames, 5000, false);
-    assert.deepEqual(gifts.snapshot(), ['gift']);
-    const root = scene.children.find((o) => o.name.startsWith('Visitor gift'));
-    assert(Math.abs(root.position.x - 3.71) < 0.001);
-    assert.equal(root.children.filter((o) => o.visible).length, 1);
-    gifts.update(visitors, frames, 10000, false);
-    assert.equal(gifts.snapshot().length, 0);
-  }
-  gifts.update(pair('shareFlowers'), frames, 3000, false);
-  receiver.userData.moving = true;
-  gifts.update(pair('shareFlowers'), frames, 3100, false);
-  assert.equal(gifts.snapshot().length, 0);
-  receiver.userData.moving = false;
-  gifts.update(pair('shareBook'), frames, 4000, false);
-  gifts.update([], frames, 4100, false);
-  assert.equal(gifts.snapshot().length, 0);
-  gifts.dispose();
-  assert.equal(scene.children.length, 2);
 });

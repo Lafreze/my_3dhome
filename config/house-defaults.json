@@ -47,5 +47,43 @@
       "enabled": true
     }
   },
-  "wallArt": {}
+  "wallArt": {},
+  "externalGames": [
+    {
+      "id": "my-chess",
+      "title": "弈境 CROWN CHESS",
+      "url": "https://cyberchess.up.railway.app/",
+      "description": "皇家棋厅 · AI 对战、提示与着法历史"
+    },
+    {
+      "id": "rich-man",
+      "title": "Rich Man",
+      "url": "https://myrichman.up.railway.app/",
+      "description": "理财与模拟经营"
+    },
+    {
+      "id": "my-pet",
+      "title": "Petoria World",
+      "url": "https://www.petoria-world.xyz/",
+      "description": "陪伴你的虚拟宠物"
+    },
+    {
+      "id": "fruitscard",
+      "title": "水果卡牌",
+      "url": "https://bigfruits.up.railway.app/",
+      "description": "水果主题卡牌游戏"
+    },
+    {
+      "id": "cyberpunk",
+      "title": "NÉBULEUSE",
+      "url": "https://cyberbar.up.railway.app/",
+      "description": "赛博朋克酒馆 · 未完成感情的避难所"
+    },
+    {
+      "id": "ai-tarot",
+      "title": "AI 塔罗",
+      "url": "https://www.daycard.site/",
+      "description": "每日抽牌与塔罗解读"
+    }
+  ]
 }

@@ -581,6 +581,8 @@ export function createLifeScene(k: Options, session: LifeSession) {
         engine.clock + 25,
       );
     },
+    hostAction: (action: import('./resident-actions').ResidentAction) =>
+      engine.hostAction(action),
     ringBell() {
       const resident = engine.actors.resident;
       if (

@@ -1,3 +1,5 @@
+import { createHeldAction } from './held-action';
+import { createVisitorProps } from './visitor-props';
 import { assetManifest } from './asset-url';
 import * as T from 'three';
 import { acquireRiggedCharacter } from './rigged-character';
@@ -32,6 +34,9 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     seatedBlend = 0,
     initialized = false,
     distance = 0;
+  const action = createHeldAction();
+  const props = createVisitorProps();
+  model.root.add(props.root);
   const previousPosition = new T.Vector3();
   const oldDispose = model.dispose;
   model.animate = (state, t, dt, reduced, seated = false, motion) => {
@@ -53,24 +58,42 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     const speed = dt > 0 && displacement < 0.4 ? displacement / dt : 0;
     const walkTarget = T.MathUtils.smoothstep(speed, 0, 0.48);
     walk += (walkTarget - walk) * blend;
-    const activity = ['type', 'read', 'drinkCoffee', 'wave', 'petCat'].includes(
-      state,
-    )
-      ? 1
-      : 0;
+    const kind =
+      (
+        {
+          type: 11,
+          read: 3,
+          drinkCoffee: 2,
+          brewCoffee: 2,
+          cleanCup: 2,
+          wave: 6,
+          stretch: 10,
+          inspectArtwork: 9,
+          think: 8,
+        } as Record<string, number>
+      )[state] ?? 0;
+    const held = action.sample(
+      walk > 0.3 || state === 'rise' || state === 'settle' ? 0 : kind,
+      1,
+      dt,
+      reduced,
+    );
     rig.pose({
       time: t,
       distance,
       walk,
       stand: 1 - seatedBlend,
       seatBack: model.root.userData.seatBack ?? 0,
-      activity,
-      amount: activity * 0.7,
+      activity: held.kind,
+      amount: held.amount,
       reduced,
       floorOffset: 0,
     });
+    props.update(held.kind, held.amount, 'resident', t);
+    props.follow(rig);
   };
   model.dispose = () => {
+    props.dispose();
     rig.dispose();
     oldDispose();
   };

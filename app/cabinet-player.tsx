@@ -1,4 +1,5 @@
 'use client';
+import ExternalGames from './external-games';
 /* oxlint-disable react/react-compiler */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -117,8 +118,11 @@ export function GameLibrary({
           </button>
         </header>
         <DialogDescription className="play-description">
-          {consoleOnly ? '六张卡带，随时开玩。' : '三台街机，六款主机游戏。'}
+          {consoleOnly
+            ? '小屋里的卡带，与通向其他世界的入口。'
+            : '三台街机，六款主机游戏。'}
         </DialogDescription>
+        <ExternalGames />
         {(consoleOnly
           ? [{ title: 'CONSOLE / 主机', ids: consoleIds }]
           : [

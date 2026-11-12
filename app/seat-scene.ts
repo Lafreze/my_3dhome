@@ -1,5 +1,5 @@
-import { seatedHipHeight, seatedBackOffset } from './seat-support.mjs';
-import { createVisitorGifts } from './visitor-gifts';
+import { createHeldAction } from './held-action';
+import { seatedBackOffset } from './seat-support.mjs';
 import { activities, sampleVisitorActivity } from './visitor-activities';
 import {
   expressions,
@@ -57,7 +57,6 @@ export function createSeatScene(
     me = '',
     hovered: string | null = null;
   const idle = new SeatedIdle(Date.now());
-  const gifts = createVisitorGifts(scene);
   const crowd = new T.Group();
   crowd.name = 'Seated visitors';
   scene.add(crowd);
@@ -66,6 +65,8 @@ export function createSeatScene(
     {
       root: T.Group;
       props: ReturnType<typeof createVisitorProps>;
+      action: ReturnType<typeof createHeldAction>;
+      actionTime: number;
       rig?: RiggedCharacter;
       character?: Character;
       loading?: Character;
@@ -79,7 +80,7 @@ export function createSeatScene(
       const props = createVisitorProps();
       root.add(props.root);
       crowd.add(root);
-      frame = { root, props };
+      frame = { root, props, action: createHeldAction(), actionTime: 0 };
       frames.set(id, frame);
     }
     return frame;
@@ -434,12 +435,41 @@ export function createSeatScene(
       }
       sampleVisitorMotion(t, state.seed, reduced, state.value);
       const explicit = sampleVisitorActivity(visitor.gesture, now, reduced);
-      const activity =
+      const invitation = current.find(
+        (other) =>
+          other.gesture?.targetId === visitor.id &&
+          other.gesture.expiresAt > now,
+      )?.gesture;
+      const response = sampleVisitorActivity(
+        invitation
+          ? {
+              ...invitation,
+              kind:
+                invitation.kind === 'waveHello'
+                  ? 'waveHello'
+                  : invitation.kind === 'inviteRead'
+                    ? 'readBook'
+                    : 'agree',
+            }
+          : undefined,
+        now,
+        reduced,
+      );
+      const desiredActivity =
         moving || rest > 0
           ? { kind: 0, amount: 0 }
           : explicit.kind
             ? explicit
-            : idle.sample(visitor.id);
+            : response.kind
+              ? response
+              : idle.sample(visitor.id);
+      const activity = frame.action.sample(
+        desiredActivity.kind,
+        desiredActivity.amount,
+        frame.actionTime ? Math.min(0.1, t - frame.actionTime) : 0.016,
+        reduced,
+      );
+      frame.actionTime = t;
       frame.props.root.scale.setScalar(1 / humanScale(appearance.character));
       frame.props.update(
         activity.kind,
@@ -447,13 +477,7 @@ export function createSeatScene(
         appearance.character,
         reduced ? 0 : explicit.kind ? explicit.age : t,
       );
-      // Props follow the same seated offset as the new articulated body.
-      frame.props.root.position.set(
-        0,
-        (seatedHipHeight[appearance.character] - 0.045) /
-          humanScale(appearance.character),
-        -seatedBackOffset(seat.id) / humanScale(appearance.character),
-      );
+      if (!frame.rig) frame.props.root.visible = false;
       if (rest > 0)
         state.value.set(
           rest,
@@ -508,7 +532,6 @@ export function createSeatScene(
         },
       ];
     });
-    gifts.update(current, frames, now, reduced);
     for (const record of visibleVisitors) {
       const frame = frames.get(record.visitor.id)!;
       if (!frame.rig) continue;
@@ -525,6 +548,7 @@ export function createSeatScene(
         amount: record.activity.amount,
         reduced,
       });
+      frame.props.follow(frame.rig);
     }
   }
 
@@ -579,7 +603,7 @@ export function createSeatScene(
           ? '捧杯休息'
           : '坐着歇一会儿';
     },
-    gifts: gifts.snapshot,
+    gifts: () => [],
     idleSnapshot: () => idle.snapshot(),
     setActivitySeed: (seed: number) => idle.setSeed(seed),
     shouldFocusSeat: (id: string) =>
@@ -717,7 +741,6 @@ export function createSeatScene(
       return null;
     },
     dispose() {
-      gifts.dispose();
       disposed = true;
       for (const frame of frames.values()) {
         clearRig(frame);

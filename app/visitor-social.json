@@ -2,7 +2,7 @@
   "offerCoffee": {
     "label": "请喝咖啡",
     "sent": "请你喝咖啡",
-    "received": "收到一杯咖啡",
+    "received": "邀你一起喝咖啡",
     "symbol": "☕",
     "color": "#8d6b48"
   },
@@ -14,23 +14,23 @@
     "color": "#b38b49"
   },
   "shareBook": {
-    "label": "递一本书",
-    "sent": "这本书借你读",
-    "received": "收到一本书",
+    "label": "分享一本书",
+    "sent": "这本书想与你分享",
+    "received": "邀你一起读书",
     "symbol": "▤",
     "color": "#718a8a"
   },
   "shareFlowers": {
     "label": "送一束小花",
-    "sent": "送你一束小花",
-    "received": "收到一束花",
+    "sent": "给你看看这束小花",
+    "received": "与你分享一束花",
     "symbol": "❀",
     "color": "#af7891"
   },
   "shareTea": {
     "label": "请喝一杯茶",
-    "sent": "请你喝杯茶",
-    "received": "收到一杯茶",
+    "sent": "举杯邀你喝茶",
+    "received": "邀你喝一杯茶",
     "symbol": "♧",
     "color": "#b59156"
   },
@@ -40,5 +40,33 @@
     "received": "有人向你致谢",
     "symbol": "♡",
     "color": "#b47770"
+  },
+  "waveHello": {
+    "label": "挥手打招呼",
+    "sent": "向你挥了挥手",
+    "received": "有人向你招手",
+    "symbol": "✋",
+    "color": "#718a78"
+  },
+  "agree": {
+    "label": "点头回应",
+    "sent": "轻轻点头回应",
+    "received": "收到了你的回应",
+    "symbol": "✓",
+    "color": "#718a78"
+  },
+  "inviteTalk": {
+    "label": "聊一会儿",
+    "sent": "想和你聊一会儿",
+    "received": "邀你聊聊天",
+    "symbol": "☏",
+    "color": "#718a78"
+  },
+  "inviteRead": {
+    "label": "一起读书",
+    "sent": "邀请你一起读书",
+    "received": "收到共读邀请",
+    "symbol": "▤",
+    "color": "#718a78"
   }
 }

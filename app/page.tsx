@@ -96,6 +96,7 @@ import {
   type Appearance,
 } from './studio-settings';
 import AdminPanel from './admin-panel';
+import { residentActions, type ResidentAction } from './resident-actions';
 import VisitorSeats from './visitor-seats';
 import type { AssetProgress } from './asset-loading';
 import assetCredits from './generated/asset-credits.json';
@@ -122,6 +123,7 @@ type Modal =
   | 'help'
   | 'objects'
   | 'collections'
+  | 'resident'
   | null;
 const safeUrl = (s: string) => {
   try {
@@ -1269,6 +1271,13 @@ function StudioHome() {
               <span>收藏</span>
             </button>
             <button
+              onClick={() => setModal('resident')}
+              aria-label="与主理人互动"
+            >
+              <BookHeart size={17} />
+              <span>主理人</span>
+            </button>
+            <button
               aria-label="定位角色"
               onClick={() => {
                 setSelected(null);
@@ -1490,6 +1499,7 @@ function StudioHome() {
                   help: '随意探索',
                   objects: '屋内物件',
                   collections: '小屋收藏册',
+                  resident: '与主理人待一会儿',
                   admin: '布置小屋',
                 } as Record<string, string>
               )[modal || '']
@@ -1587,6 +1597,30 @@ function StudioHome() {
               >
                 下载照片
               </a>
+            </div>
+          )}
+          {modal === 'resident' && (
+            <div className="admin-links">
+              {Object.entries(residentActions).map(([key, action]) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    if (api.current?.residentAction(key as ResidentAction)) {
+                      setModal(null);
+                      const room = (
+                        api.current.lifeSnapshot() as {
+                          actors?: { resident?: { room?: RoomId } };
+                        }
+                      )?.actors?.resident?.room;
+                      if (room) visit(room);
+                      notify('主理人收到你的邀请了。');
+                    } else notify('主理人正在忙，等他完成手边的事再邀请吧。');
+                  }}
+                >
+                  {action.label}
+                  <span>{action.detail}</span>
+                </button>
+              ))}
             </div>
           )}
           {modal === 'collections' && (

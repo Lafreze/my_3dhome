@@ -94,6 +94,9 @@ export type RoomApi = {
   setLifePaused: (paused: boolean) => void;
   setLifeAudio: (context: AudioContext | null) => void;
   greetResident: () => void;
+  residentAction: (
+    action: import('./resident-actions').ResidentAction,
+  ) => boolean;
   lifeSnapshot: () => unknown;
   retryAssets: () => void;
   setVisitors: (visitors: import('./seat-data').Visitor[], me: string) => void;

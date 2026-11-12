@@ -2745,6 +2745,7 @@ export function createRoom(host: HTMLElement, options: Options): RoomApi {
       lifeAudio = context;
       life?.setAudio(context);
     },
+    residentAction: (action) => life?.hostAction(action) ?? false,
     greetResident() {
       life?.click('resident');
     },

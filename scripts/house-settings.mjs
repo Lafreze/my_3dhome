@@ -80,7 +80,14 @@ function image(value) {
   return value;
 }
 export function validateSettings(input) {
-  keys(input, ['profile', 'note', 'appearance', 'devices', 'wallArt']);
+  keys(input, [
+    'profile',
+    'note',
+    'appearance',
+    'devices',
+    'wallArt',
+    'externalGames',
+  ]);
   const p = input.profile;
   keys(p, ['name', 'subtitle', 'about', 'projects', 'photos']);
   if (
@@ -134,7 +141,30 @@ export function validateSettings(input) {
       .filter(([, v]) => v !== null && v !== '')
       .map(([k, v]) => [k, wallImage(v)]),
   );
+  const games = input.externalGames ?? defaults.externalGames;
+  if (!Array.isArray(games) || games.length > 30)
+    throw fail(400, '最多添加 30 个外链游戏。');
+  const seen = new Set();
+  const externalGames = games.map((g) => {
+    keys(g, ['id', 'title', 'url', 'description']);
+    if (
+      typeof g.id !== 'string' ||
+      !/^[a-z0-9-]{1,60}$/.test(g.id) ||
+      seen.has(g.id)
+    )
+      throw fail(400, '游戏编号无效或重复。');
+    seen.add(g.id);
+    const address = url(g.url);
+    if (!address) throw fail(400, '请填写游戏网址。');
+    return {
+      id: g.id,
+      title: text(g.title, 80, true),
+      description: text(g.description, 240),
+      url: address,
+    };
+  });
   return {
+    externalGames,
     profile,
     note: text(input.note, 5000),
     appearance,
@@ -500,6 +530,7 @@ export async function createHouseHandler({
         'appearance',
         'devices',
         'wallArt',
+        'externalGames',
       ]);
       const update = async () => {
         if (s.expires <= now() || !sessions.has(s.key))

@@ -1,3 +1,4 @@
+import type { ResidentAction } from './resident-actions';
 import { ResidentDialogue } from './resident-dialogue.ts';
 import { roomAt, type RoomId, type HouseView } from './house-data.ts';
 import type { Environment } from './environment-data';
@@ -393,7 +394,12 @@ export class LifeEngine {
         }
       }
   }
-  go(actor: LifeActor, target: NavigationNode, obvious = true) {
+  go(
+    actor: LifeActor,
+    target: NavigationNode,
+    obvious = true,
+    priority = false,
+  ) {
     if (this.reduced || !this.occupancy.available(target, actor.id))
       return false;
     const from = actor.seated
@@ -422,6 +428,7 @@ export class LifeEngine {
             5,
         ),
         8,
+        priority,
       )
     )
       return false;
@@ -499,7 +506,8 @@ export class LifeEngine {
     this.events.end(a.id);
     if (
       a.fsm.state === 'brewCoffee' &&
-      this.events.start('coffee', 'resident', this.clock, 12, 35)
+      !this.events.active &&
+      this.events.start('coffee', 'resident', this.clock, 12, 35, true)
     )
       this.hooks.coffee(n.id === 'cafe.pickup');
     else if (
@@ -697,6 +705,40 @@ export class LifeEngine {
       }
     }
   }
+  hostAction(action: ResidentAction) {
+    const a = this.actors.resident;
+    if (!a.active || a.path.length || a.seatTransition || this.events.active)
+      return false;
+    if (action === 'coffee' || action === 'tour') {
+      const destination = this.node(
+        action === 'coffee' ? 'cafe.barInside' : 'gallery.bench',
+      );
+      if (!this.go(a, destination, true, true)) return false;
+      this.hooks.bubble(
+        'resident',
+        action === 'coffee'
+          ? '我去吧台准备咖啡，慢慢来就好。'
+          : '一起去展厅吧，我想给你看看最近的收藏。',
+      );
+      return true;
+    }
+    if (!this.events.start('host.command', 'resident', this.clock, 12, 3, true))
+      return false;
+    a.fsm.set(
+      action === 'read' ? 'read' : action === 'stretch' ? 'stretch' : 'wave',
+    );
+    a.actionUntil = this.clock + (action === 'read' ? 12 : 5);
+    a.stayUntil = this.clock + 18;
+    this.hooks.bubble(
+      'resident',
+      action === 'read'
+        ? '这本画册记录着屋子的颜色和灵感。我们一起慢慢翻。'
+        : action === 'stretch'
+          ? '先把肩膀放松。今天也不必一直忙着。'
+          : '欢迎回来。书、咖啡和窗边的位置，都为你留着。',
+    );
+    return true;
+  }
   interact(id: ActorId, camera: Point) {
     const a = this.actors[id];
     if (
@@ -731,10 +773,11 @@ export class LifeEngine {
     a.path = [];
     a.target = null;
     if (!a.seated) this.occupancy.release(id);
-    a.rotation = Math.atan2(
-      -(camera[0] - a.position[0]),
-      -(camera[2] - a.position[2]),
-    );
+    if (!a.seated)
+      a.rotation = Math.atan2(
+        -(camera[0] - a.position[0]),
+        -(camera[2] - a.position[2]),
+      );
     a.stayUntil = this.clock + this.random.between(20, 60);
     a.actionUntil = this.clock + 3;
     if (id === 'resident') {

@@ -64,6 +64,97 @@ async function fixture(password = 'test-passphrase') {
     },
   };
 }
+void test('external games require admin, reject executable links, and persist add/edit/remove', async () => {
+  const f = await fixture();
+  try {
+    const initial = await f.request('/api/house');
+    assert.equal(initial.data.settings.externalGames.length, 6);
+    const games = [
+      {
+        id: 'test-game',
+        title: 'Test game',
+        url: 'https://example.com/play',
+        description: 'A shared game',
+      },
+    ];
+    assert.equal(
+      (
+        await f.request('/api/house', 'PATCH', {
+          revision: 0,
+          patch: { externalGames: games },
+        })
+      ).status,
+      401,
+    );
+    await f.login();
+    for (const url of [
+      'javascript:alert(1)',
+      'data:text/html,test',
+      'https://user:pass@example.com',
+      '',
+    ]) {
+      assert.equal(
+        (
+          await f.request('/api/house', 'PATCH', {
+            revision: 0,
+            patch: { externalGames: [{ ...games[0], url }] },
+          })
+        ).status,
+        400,
+      );
+    }
+    assert.equal(
+      (
+        await f.request('/api/house', 'PATCH', {
+          revision: 0,
+          patch: { externalGames: games },
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await f.request('/api/house', 'PATCH', {
+          revision: 0,
+          patch: { externalGames: [] },
+        })
+      ).status,
+      409,
+    );
+    await f.restart();
+    assert.deepEqual(
+      (await f.request('/api/house')).data.settings.externalGames,
+      games,
+    );
+    await f.login();
+    const edited = [{ ...games[0], title: 'Updated game' }];
+    assert.equal(
+      (
+        await f.request('/api/house', 'PATCH', {
+          revision: 1,
+          patch: { externalGames: edited },
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await f.request('/api/house', 'PATCH', {
+          revision: 2,
+          patch: { externalGames: [] },
+        })
+      ).status,
+      200,
+    );
+    await f.restart();
+    assert.deepEqual(
+      (await f.request('/api/house')).data.settings.externalGames,
+      [],
+    );
+  } finally {
+    await f.close();
+  }
+});
 void test('public read, server-side auth, CSRF and logout protect every write', async () => {
   const f = await fixture();
   try {

@@ -180,15 +180,16 @@ export function createHobbyProps() {
     pad,
     flowers,
     tea,
+    pencil,
     update(kind: number, amount: number, age: number) {
       book.visible = kind === 3 && amount > 0.01;
       pad.visible = kind === 4 && amount > 0.01;
       flowers.visible = kind === 5 && amount > 0.01;
       tea.visible = kind === 2 && amount > 0.01;
-      root.scale.setScalar(amount);
+      root.scale.setScalar(1);
       const cycle = age % 5.5,
         turn = cycle > 3.7 ? Math.min(1, (cycle - 3.7) / 1.25) : 0;
-      leafPage.visible = kind === 3 && turn > 0 && turn < 1;
+      leafPage.visible = false; // Both hands support the book; no unheld page-turn animation.
       leafPage.rotation.z = turn * Math.PI;
       pencil.position.set(
         0.028 + Math.sin(age * 2.5) * 0.031,

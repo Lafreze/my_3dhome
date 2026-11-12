@@ -1,3 +1,4 @@
+import { palmAnchor } from './hand-contact';
 import { poseArm } from './rig-arm';
 import { seatedHipHeight } from './seat-support.mjs';
 import * as T from 'three';
@@ -145,6 +146,13 @@ export async function acquireRiggedCharacter(id: RigId) {
       );
     }
   });
+  root.updateMatrixWorld(true);
+  const palms = new Map(
+    ['L', 'R'].flatMap((side) => {
+      const bone = bones.get(`hand${side}`);
+      return bone ? [[side, palmAnchor(meshes, bone)] as const] : [];
+    }),
+  );
   const rests = new Map([...bones].map(([n, b]) => [n, b.position.clone()]));
   let released = false;
   const animal = 'animal' in spec;
@@ -246,9 +254,46 @@ export async function acquireRiggedCharacter(id: RigId) {
         );
         target.z +=
           Math.sin((distance / 0.52) * Math.PI * 2) * sign * 0.06 * moving;
-        const holding = new T.Vector3(sign * 0.16, spec.hip + 0.24, 0.27).sub(
-          shoulder,
-        );
+        const kind = p.activity ?? 0;
+        const holding = new T.Vector3(sign * 0.16, spec.hip + 0.24, 0.27);
+        if (kind === 1) holding.set(sign * 0.045, spec.hip + 0.28, 0.25);
+        if (kind === 2 || kind === 5) {
+          if (side === 'L') holding.set(-0.14, spec.hip + 0.29, 0.25);
+          else holding.copy(target).add(shoulder);
+        }
+        if (kind === 4 && side === 'R')
+          holding.set(
+            0.055 + Math.sin(time * 1.8) * 0.018,
+            spec.hip + 0.3,
+            0.27 + Math.cos(time * 1.5) * 0.018,
+          );
+        // Social gestures have their own reachable targets and never rotate the upper arm axially.
+        if (kind === 6)
+          holding.copy(
+            side === 'R'
+              ? new T.Vector3(
+                  0.27 + Math.sin(time * 5) * 0.025,
+                  spec.shoulder + 0.1,
+                  0.14,
+                )
+              : target.clone().add(shoulder),
+          );
+        if (kind === 7)
+          holding.set(
+            sign * (0.005 + (1 + Math.sin(time * 7)) * 0.025),
+            spec.hip + 0.25,
+            0.26,
+          );
+        if (kind === 8) holding.copy(target).add(shoulder);
+        if (kind === 9) holding.set(sign * 0.23, spec.hip + 0.23, 0.22);
+        if (kind === 10) holding.set(sign * 0.28, spec.shoulder + 0.12, 0.05);
+        if (kind === 11)
+          holding.set(
+            sign * 0.12,
+            spec.hip + 0.22 + Math.sin(time * 4 + i * Math.PI) * 0.01,
+            0.29,
+          );
+        holding.sub(shoulder);
         target.lerp(holding, action);
         poseArm(
           upper,
@@ -285,11 +330,20 @@ export async function acquireRiggedCharacter(id: RigId) {
         );
       rotate(
         'head',
-        Math.sin(time * 1.2) * 0.012 * (1 - moving),
+        Math.sin(time * 1.2) * 0.012 * (1 - moving) +
+          (p.activity === 8
+            ? (1 + Math.sin(time * 3)) * 0.055 * (p.amount ?? 0)
+            : p.activity === 3 || p.activity === 4
+              ? 0.1 * (p.amount ?? 0)
+              : 0),
         Math.sin(time * 0.53) * 0.025 * (1 - moving),
       );
     }
-    avatar.updateMatrixWorld(true);
+    // Update the seat offset and all parent transforms before uploading bones.
+    // Updating only the avatar leaves its pivot one frame behind during rising/walking.
+    // SkinnedMesh.updateMatrixWorld also refreshes its attached bind inverse.
+    root.updateWorldMatrix(true, false);
+    root.updateMatrixWorld(true);
     meshes.forEach((m) => m.skeleton.update());
   }
   pose({ time: 0 });
@@ -297,6 +351,12 @@ export async function acquireRiggedCharacter(id: RigId) {
     root,
     meshes,
     bones,
+    palm(side: 'L' | 'R', target = new T.Vector3()) {
+      root.updateWorldMatrix(true, true);
+      return bones
+        .get(`hand${side}`)!
+        .localToWorld(target.copy(palms.get(side)!));
+    },
     pose,
     setAppearance(a: Appearance) {
       choices.forEach((k, i) => colors[i]?.value.set(a[k]));
