@@ -440,7 +440,7 @@ export class LifeEngine {
       actor.seatTransition = {
         entering: false,
         elapsed: 0,
-        duration: 0.85,
+        duration: 1.25,
         seatId: this.node(actor.node).seatId!,
       };
     }
@@ -479,7 +479,7 @@ export class LifeEngine {
       a.seatTransition = {
         entering: true,
         elapsed: 0,
-        duration: 0.9,
+        duration: 1.35,
         seatId: n.seatId,
       };
     }
@@ -634,7 +634,7 @@ export class LifeEngine {
       Math.sin(heading - a.rotation),
       Math.cos(heading - a.rotation),
     );
-    const turn = Math.sign(angle) * Math.min(Math.abs(angle), dt * 4.5);
+    const turn = Math.sign(angle) * Math.min(Math.abs(angle), dt * 1.9);
     a.rotation += turn;
     a.turnDistance += Math.abs(turn) * 0.1;
     const remaining = a.path.reduce(
@@ -644,10 +644,10 @@ export class LifeEngine {
     const facing = Math.max(0, Math.cos(angle - turn));
     const targetSpeed =
       actorSpecs.resident.speed *
-      facing *
+      (Math.abs(angle - turn) > 0.35 ? 0 : facing) *
       Math.min(1, Math.sqrt(remaining / 0.3));
     a.moveSpeed += (targetSpeed - a.moveSpeed) * (1 - Math.exp(-dt * 10));
-    let budget = Math.abs(angle - turn) > Math.PI / 2 ? 0 : a.moveSpeed * dt;
+    let budget = Math.abs(angle - turn) > 0.35 ? 0 : a.moveSpeed * dt;
     const before = [...a.position] as Point;
     let blocked = false;
     while (budget > 0.000001 && a.path.length) {
@@ -781,15 +781,12 @@ export class LifeEngine {
     a.stayUntil = this.clock + this.random.between(20, 60);
     a.actionUntil = this.clock + 3;
     if (id === 'resident') {
-      a.fsm.set(
-        this.random.choose<ActorState>(['wave', 'lookAround', 'drinkCoffee'])!,
-      );
+      a.fsm.set('wave');
       this.hooks.bubble(
         id,
         this.dialogue.next(this.environment, a.room, () => this.random.next()),
       );
       this.hooks.collect('resident.firstGreeting', id, a.room);
-      this.hooks.sound('cup', a.position);
     } else if (id === 'cat') {
       a.fsm.set('lookAround');
       this.hooks.bubble(id, '小黑猫朝你眨了眨眼。');

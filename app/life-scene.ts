@@ -333,9 +333,11 @@ export function createLifeScene(k: Options, session: LifeSession) {
         Math.sin(rotation - model.root.rotation.y),
         Math.cos(rotation - model.root.rotation.y),
       );
-      model.root.rotation.y += reduced
-        ? delta
-        : delta * (1 - Math.exp(-dt * 6));
+      model.root.rotation.y +=
+        reduced ||
+        (a.id === 'resident' && a.path.length > 0 && !a.seatTransition)
+          ? delta
+          : delta * (1 - Math.exp(-dt * 6));
       if (!a.visible) continue;
       if (a.id === 'bird') {
         const n = engine.node(a.node),

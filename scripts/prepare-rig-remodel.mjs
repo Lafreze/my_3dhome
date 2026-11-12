@@ -394,6 +394,18 @@ await writeFile(
   JSON.stringify(specs, null, 2) + '\n',
 );
 function humanWeights([x, y, z], s, b, rgb, region) {
+  // The resident's short leather apron ends at the hips. Binding its lower
+  // edge to separate thighs tears the continuous hem during steps and sitting.
+  // Keep this garment with the pelvis; trousers underneath retain their rig.
+  if (
+    s.id === 'resident' &&
+    y > 0.48 &&
+    y < 0.72 &&
+    Math.abs(x) < 0.16 &&
+    rgb[0] > rgb[1] * 1.5 &&
+    rgb[0] > rgb[2] * 1.8
+  )
+    return [[b.pelvis, 1]];
   if (region === 2) return [[b[x < 0 ? 'hairL' : 'hairR'] ?? b.head, 1]];
   if (s.id === 'fox' && z < -0.15 && y < 0.64) return [[b.tail, 1]];
 

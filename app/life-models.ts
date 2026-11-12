@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { attachRobotHardware } from './robot-details';
-import { humanHeight } from './character-scale.mjs';
+import { residentHeight } from './resident-motion';
 import { appearanceOptions } from './visitor-appearance';
 import type { ActorId, ActorState } from './life-data';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
@@ -282,7 +282,7 @@ export function createActorModel(id: Exclude<ActorId, 'cat'>): ActorModel {
   });
   if (id === 'resident') {
     const size = new T.Box3().setFromObject(body).getSize(new T.Vector3());
-    root.scale.setScalar(humanHeight / size.y);
+    root.scale.setScalar(residentHeight / size.y);
   }
   return {
     root,

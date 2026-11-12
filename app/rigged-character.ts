@@ -17,6 +17,11 @@ import {
   type Character,
 } from './visitor-appearance';
 import rigSpecs from '../config/character-rigs.json';
+import {
+  residentGesture,
+  residentLeg,
+  residentStride,
+} from './resident-motion';
 
 type RigId = Character | 'resident' | 'shiba' | 'capybara';
 type Source = Awaited<ReturnType<typeof loadAssetGltf>>;
@@ -33,6 +38,7 @@ export type RigPose = {
   reduced?: boolean;
   floorOffset?: number;
   seatBack?: number;
+  actionAge?: number;
 };
 export type RiggedCharacter = Awaited<
   ReturnType<typeof acquireRiggedCharacter>
@@ -206,6 +212,22 @@ export async function acquireRiggedCharacter(id: RigId) {
       if (pelvis)
         pelvis.position.y += Math.sin(time * 1.8) * 0.002 * (1 - walk);
     } else {
+      const resident = id === 'resident';
+      const gesture = residentGesture(
+        p.activity ?? 0,
+        p.actionAge ?? 0,
+        p.reduced,
+      );
+      const legAt = (side: number) =>
+        resident
+          ? residentLeg(distance, moving, side)
+          : sampleRigLeg(
+              distance,
+              moving,
+              side,
+              spec.hip - spec.knee,
+              spec.knee - spec.ankle,
+            );
       const seatHeight = seatedHipHeight[id as keyof typeof seatedHipHeight];
       const stand = p.stand ?? 1,
         rest = p.rest ?? 0,
@@ -218,26 +240,14 @@ export async function acquireRiggedCharacter(id: RigId) {
         -(spec.hip - seatHeight) * sit -
         floorOffset * stand * (1 - rest) +
         0.16 * rest -
-        sampleRigLeg(
-          distance,
-          moving,
-          0,
-          spec.hip - spec.knee,
-          spec.knee - spec.ankle,
-        ).drop;
+        legAt(0).drop;
       pivot.position.z = 0.58 * rest - (p.seatBack ?? 0) * sit;
       pivot.rotation.x = (-Math.PI / 2) * rest;
       for (const [i, side] of ['L', 'R'].entries()) {
-        const leg = sampleRigLeg(
-          distance,
-          moving,
-          i,
-          spec.hip - spec.knee,
-          spec.knee - spec.ankle,
-        );
-        rotate(`thigh${side}`, leg.hip - (Math.PI / 2) * sit);
-        rotate(`shin${side}`, leg.knee + 0.06 * sit);
-        rotate(`foot${side}`, leg.ankle + 0.15 * sit);
+        const leg = legAt(i);
+        rotate(`thigh${side}`, leg.hip - (resident ? 1.4 : Math.PI / 2) * sit);
+        rotate(`shin${side}`, leg.knee + (resident ? 1.35 : 0.06) * sit);
+        rotate(`foot${side}`, leg.ankle + (resident ? 0.05 : 0.15) * sit);
         const sign = i === 0 ? -1 : 1;
         const upper = bones.get(`upperArm${side}`)!,
           forearm = bones.get(`forearm${side}`)!,
@@ -253,7 +263,12 @@ export async function acquireRiggedCharacter(id: RigId) {
           0.035 + 0.05 * sit,
         );
         target.z +=
-          Math.sin((distance / 0.52) * Math.PI * 2) * sign * 0.06 * moving;
+          Math.sin(
+            (distance / (resident ? residentStride : 0.52)) * Math.PI * 2,
+          ) *
+          sign *
+          (resident ? 0.035 : 0.06) *
+          moving;
         const kind = p.activity ?? 0;
         const holding = new T.Vector3(sign * 0.16, spec.hip + 0.24, 0.27);
         if (kind === 1) holding.set(sign * 0.045, spec.hip + 0.28, 0.25);
@@ -293,6 +308,33 @@ export async function acquireRiggedCharacter(id: RigId) {
             spec.hip + 0.22 + Math.sin(time * 4 + i * Math.PI) * 0.01,
             0.29,
           );
+        if (resident) {
+          if (kind === 2 && side === 'L')
+            holding.lerp(
+              new T.Vector3(-0.09, spec.neck - 0.025, 0.16),
+              gesture.sip,
+            );
+          // Work at the counter with empty hands; cleaning supports the same cup
+          // with both hands. Neither action is the drinking pose.
+          if (kind === 12)
+            holding.set(
+              sign * 0.12,
+              0.85 + (side === 'R' ? gesture.work : 0),
+              0.3,
+            );
+          if (kind === 13)
+            holding.set(
+              side === 'L' ? -0.12 : -0.02,
+              0.83,
+              0.23 + (side === 'R' ? gesture.work : 0),
+            );
+          if (kind === 6 && side === 'R') {
+            holding.set(0.22 + gesture.waveOffset, spec.shoulder + 0.02, 0.16);
+            holding.lerp(target.clone().add(shoulder), 1 - gesture.wave);
+          }
+          if (kind === 9) holding.copy(target).add(shoulder);
+          if (kind === 10) holding.set(sign * 0.22, spec.shoulder - 0.08, 0.08);
+        }
         holding.sub(shoulder);
         target.lerp(holding, action);
         poseArm(
@@ -306,8 +348,16 @@ export async function acquireRiggedCharacter(id: RigId) {
       rotate(
         'spine',
         0,
-        Math.sin((distance / 0.52) * Math.PI * 2) * 0.025 * moving,
-        Math.sin((distance / 0.52) * Math.PI * 2) * 0.014 * moving,
+        Math.sin(
+          (distance / (resident ? residentStride : 0.52)) * Math.PI * 2,
+        ) *
+          0.025 *
+          moving,
+        Math.sin(
+          (distance / (resident ? residentStride : 0.52)) * Math.PI * 2,
+        ) *
+          (resident ? 0.006 : 0.014) *
+          moving,
       );
       const seatedTail = bones.get('tail');
       if (seatedTail) seatedTail.rotation.order = 'YXZ';
@@ -332,7 +382,8 @@ export async function acquireRiggedCharacter(id: RigId) {
         'head',
         Math.sin(time * 1.2) * 0.012 * (1 - moving) +
           (p.activity === 8
-            ? (1 + Math.sin(time * 3)) * 0.055 * (p.amount ?? 0)
+            ? (resident ? gesture.nod : (1 + Math.sin(time * 3)) * 0.055) *
+              (p.amount ?? 0)
             : p.activity === 3 || p.activity === 4
               ? 0.1 * (p.amount ?? 0)
               : 0),
