@@ -1635,11 +1635,11 @@
       ],
       "license": "Hi3D private generation; owner-authorized use in this project",
       "author": "SATORI / Hi3D",
-      "sourceUrl": "https://www.hi3d.ai/3d-model/2289f2dbbbb74aeb8379a205a1453016",
+      "sourceUrl": "https://www.hi3d.ai/3d-model/50d91940574846609ccfb9bf7a668532",
       "modifications": "Separated-limb remake, fitted skeleton with normalized anatomical skin weights, distance-driven gait, seated and rest poses; 1K PBR and Draco",
       "approval": "approved",
       "delivery": "origin",
-      "sourceSha256": "c8ad6efe25ca6462494ce5cc26431eac52720c72a61dc9e9f22f55febab87090"
+      "sourceSha256": "dc13604b225472251416290366bc0a383421346c8f4c3ada93fb89e611030ee1"
     },
     {
       "id": "character.rigged.bear",

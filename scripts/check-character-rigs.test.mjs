@@ -24,6 +24,7 @@ for (const [id, s] of Object.entries(specs))
       : ['idle', 'walk', 'sit', 'rest'])
       assert.ok(clips.some((c) => c.getName() === name));
     let vertices = 0;
+    const influenced = Array.from({ length: joints.length }, () => 0);
     for (const mesh of doc.getRoot().listMeshes())
       for (const p of mesh.listPrimitives()) {
         const a = p.getAttribute('POSITION'),
@@ -36,6 +37,9 @@ for (const [id, s] of Object.entries(specs))
         for (let i = 0; i < a.getCount(); i++) {
           const ws = w.getElement(i, []),
             js = j.getElement(i, []);
+          js.forEach((bone, k) => {
+            if (ws[k] > 0.2) influenced[bone]++;
+          });
           assert.ok(Math.abs(ws.reduce((a, b) => a + b, 0) - 1) < 1 / 4096);
           assert.ok(
             ws.every(Number.isFinite) &&
@@ -72,6 +76,12 @@ for (const [id, s] of Object.entries(specs))
         }
       }
     assert.ok(vertices > 1000);
+    if (id === 'resident')
+      for (const [i, joint] of joints.entries())
+        assert.ok(
+          influenced[i] > 20,
+          `${joint.getName()} must deform its mesh; low A-pose hands must not be classified as clothing`,
+        );
     for (const clip of clips)
       for (const sampler of clip.listSamplers()) {
         const t = sampler.getInput(),

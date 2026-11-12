@@ -20,6 +20,7 @@ import { Matrix4, Vector3, Quaternion, Euler } from 'three';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { sampleRigLeg, rigCycleDistance } from '../app/rig-gait.mjs';
+import { residentLeg, residentStride } from '../app/resident-motion.ts';
 await Promise.all([MeshoptSimplifier.ready, MeshoptDecoder.ready]);
 const io = new NodeIO()
   .registerExtensions(ALL_EXTENSIONS)
@@ -113,6 +114,28 @@ for (const id of ids) {
       new Matrix4().makeTranslation(-(lo[0] + hi[0]) / 2, -lo[1], -centerZ),
     );
   for (const m of doc.getRoot().listMeshes()) transformMesh(m, matrix.elements);
+  // Fit the generated host to the cast's roughly three-head silhouette before
+  // skinning. Shrink the head uniformly (not just its height) and lengthen the
+  // compact body, keeping both the soles and the 1.30 crown height unchanged.
+  if (spec.proportions) {
+    const { headBase, headScale } = spec.proportions;
+    const neck = height - (height - headBase) * headScale;
+    for (const p of primitives()) {
+      const a = p.getAttribute('POSITION');
+      for (let i = 0; i < a.getCount(); i++) {
+        const [x, y, z] = a.getElement(i, []);
+        const width =
+          1 + (headScale - 1) * smooth(headBase - 0.025, headBase + 0.025, y);
+        a.setElement(i, [
+          x * width,
+          y < headBase
+            ? (y * neck) / headBase
+            : neck + (y - headBase) * headScale,
+          z * width,
+        ]);
+      }
+    }
+  }
   if (spec.animal) fitAnimal(primitives(), spec);
   for (const p of primitives()) smoothNormals(p, doc);
   const scene = doc.getRoot().listScenes()[0],
@@ -212,8 +235,11 @@ for (const id of ids) {
   unifySkinSeams(primitives());
   root.setExtras({
     rig: spec,
-    cycleDistance: rigCycleDistance,
-    source: 'Hi3D approved remodel 2026-11-10',
+    cycleDistance: id === 'resident' ? residentStride : rigCycleDistance,
+    source:
+      id === 'resident'
+        ? 'Hi3D chibi host remodel 2026-11-12'
+        : 'Hi3D approved remodel 2026-11-10',
   });
   // Named animation clips also make the deliverable usable in a normal glTF viewer.
   const times = new Float32Array(Array.from({ length: 31 }, (_, i) => i / 30));
@@ -242,24 +268,32 @@ for (const id of ids) {
                   ? -(spec.hip - 0.045)
                   : mode === 'walk'
                     ? -(
-                        spec.animal
-                          ? sampleRigLeg(
-                              t * spec.cycle,
-                              1,
-                              0,
-                              spec.legTop - spec.knee,
-                              spec.knee - spec.ankle,
-                              spec.cycle,
-                              0.012,
-                              0.018,
-                            )
-                          : sampleRigLeg(
-                              t * rigCycleDistance,
+                        id === 'resident'
+                          ? residentLeg(
+                              t * residentStride,
                               1,
                               0,
                               spec.hip - spec.knee,
                               spec.knee - spec.ankle,
                             )
+                          : spec.animal
+                            ? sampleRigLeg(
+                                t * spec.cycle,
+                                1,
+                                0,
+                                spec.legTop - spec.knee,
+                                spec.knee - spec.ankle,
+                                spec.cycle,
+                                0.012,
+                                0.018,
+                              )
+                            : sampleRigLeg(
+                                t * rigCycleDistance,
+                                1,
+                                0,
+                                spec.hip - spec.knee,
+                                spec.knee - spec.ankle,
+                              )
                       ).drop
                     : 0,
               mode === 'rest' ? 0.58 : 0,
@@ -394,18 +428,6 @@ await writeFile(
   JSON.stringify(specs, null, 2) + '\n',
 );
 function humanWeights([x, y, z], s, b, rgb, region) {
-  // The resident's short leather apron ends at the hips. Binding its lower
-  // edge to separate thighs tears the continuous hem during steps and sitting.
-  // Keep this garment with the pelvis; trousers underneath retain their rig.
-  if (
-    s.id === 'resident' &&
-    y > 0.48 &&
-    y < 0.72 &&
-    Math.abs(x) < 0.16 &&
-    rgb[0] > rgb[1] * 1.5 &&
-    rgb[0] > rgb[2] * 1.8
-  )
-    return [[b.pelvis, 1]];
   if (region === 2) return [[b[x < 0 ? 'hairL' : 'hairR'] ?? b.head, 1]];
   if (s.id === 'fox' && z < -0.15 && y < 0.64) return [[b.tail, 1]];
 
@@ -545,13 +567,22 @@ function rotationFor(name, s, mode, t) {
     return [0, 0, 0];
   }
   const side = name.endsWith('L') ? -1 : 1,
-    leg = sampleRigLeg(
-      t * rigCycleDistance,
-      mode === 'walk' ? 1 : 0,
-      side < 0 ? 0 : 1,
-      s.hip - s.knee,
-      s.knee - s.ankle,
-    );
+    leg =
+      s.id === 'resident'
+        ? residentLeg(
+            t * residentStride,
+            mode === 'walk' ? 1 : 0,
+            side < 0 ? 0 : 1,
+            s.hip - s.knee,
+            s.knee - s.ankle,
+          )
+        : sampleRigLeg(
+            t * rigCycleDistance,
+            mode === 'walk' ? 1 : 0,
+            side < 0 ? 0 : 1,
+            s.hip - s.knee,
+            s.knee - s.ankle,
+          );
   if (name.startsWith('thigh'))
     return [mode === 'sit' ? -Math.PI / 2 : leg.hip, 0, 0];
   if (name.startsWith('shin'))
@@ -640,7 +671,8 @@ function classifyRegions(prim, s) {
         hand = Math.min(hand, Math.hypot(...h.map((x, k) => x - v[k])));
     }
     const type =
-      hand < 0.095 && minY > (s.skirt ? s.hem - 0.01 : s.hip - 0.02)
+      hand < 0.095 &&
+      minY > (s.handFloor ?? (s.skirt ? s.hem - 0.01 : s.hip - 0.02))
         ? 1
         : maxY > s.neck - 0.03 && minY > s.hip + 0.025
           ? 2

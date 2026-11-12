@@ -1,24 +1,24 @@
 {
-  "version": "17fb2d20a84281b4",
+  "version": "cb00fd156dd54f20",
   "roomSizes": {
     "study": {
-      "bytes": 16093940,
+      "bytes": 16076252,
       "files": 32
     },
     "living": {
-      "bytes": 14366274,
+      "bytes": 14348586,
       "files": 29
     },
     "bedroom": {
-      "bytes": 12610226,
+      "bytes": 12592538,
       "files": 26
     },
     "gallery": {
-      "bytes": 21199196,
+      "bytes": 21181508,
       "files": 34
     },
     "cafe": {
-      "bytes": 16282060,
+      "bytes": 16264372,
       "files": 37
     }
   },
@@ -436,7 +436,7 @@
     },
     {
       "path": "public/models/rigged/resident.glb",
-      "bytes": 414336,
+      "bytes": 396648,
       "classification": "catalogued-production"
     },
     {

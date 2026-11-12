@@ -72,8 +72,9 @@ export async function attachResident(model: ActorModel, alive: () => boolean) {
     distance += turning;
     const speed =
       dt > 0 && displacement < 0.4 ? (displacement + turning) / dt : 0;
-    const walkTarget = T.MathUtils.smoothstep(speed, 0, 0.42);
+    const walkTarget = T.MathUtils.smoothstep(speed, 0, 0.3);
     walk += (walkTarget - walk) * blend;
+    if (walk < 0.001 && speed < 0.001) distance = 0;
     const kind =
       (
         {

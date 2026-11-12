@@ -1,7 +1,6 @@
 import * as T from 'three';
 import { attachRobotHardware } from './robot-details';
 import { residentHeight } from './resident-motion';
-import { appearanceOptions } from './visitor-appearance';
 import type { ActorId, ActorState } from './life-data';
 import { loadAssetGltf, releaseAssetTexture } from './asset-loading';
 import { sampleRabbitHop } from './rabbit-motion';
@@ -174,16 +173,16 @@ export function createActorModel(id: Exclude<ActorId, 'cat'>): ActorModel {
     book = joint(body, 0, 0.7, -0.32);
   cup.visible = book.visible = false;
   if (id === 'resident') {
-    // Match the visitors' warm skin, dark hair and editable outfit palette; NPC never enters presence data.
-    const clothes = mat(appearanceOptions.characterColors.bear.topColor),
-      pants = mat('#4d5655'),
+    // The lightweight fallback retains the new host's black jacket and silver forelock.
+    const clothes = mat('#242529'),
+      pants = mat('#303038'),
       skin = mat('#e8c9ad'),
-      hair = mat('#37322d'),
-      apron = mat('#7c8c73');
+      hair = mat('#292a30'),
+      silver = mat('#d7d8d9');
     ball(body, 0, 0.76, 0, 0.27, 0.36, 0.2, clothes);
-    ball(body, 0, 0.68, -0.17, 0.23, 0.26, 0.035, apron);
     ball(head, 0, 0, 0, 0.3, 0.3, 0.27, skin);
     ball(head, 0, 0.105, 0.048, 0.307, 0.22, 0.254, hair);
+    ball(head, -0.08, 0.18, -0.2, 0.065, 0.14, 0.07, silver);
     for (const side of [-1, 1]) {
       ball(head, side * 0.105, -0.02, -0.245, 0.018, 0.027, 0.01, dark);
       ball(head, side * 0.16, -0.09, -0.23, 0.041, 0.018, 0.013, pink);

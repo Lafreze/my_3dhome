@@ -220,7 +220,13 @@ export async function acquireRiggedCharacter(id: RigId) {
       );
       const legAt = (side: number) =>
         resident
-          ? residentLeg(distance, moving, side)
+          ? residentLeg(
+              distance,
+              moving,
+              side,
+              spec.hip - spec.knee,
+              spec.knee - spec.ankle,
+            )
           : sampleRigLeg(
               distance,
               moving,
@@ -262,13 +268,10 @@ export async function acquireRiggedCharacter(id: RigId) {
           -reach * 0.94,
           0.035 + 0.05 * sit,
         );
-        target.z +=
-          Math.sin(
-            (distance / (resident ? residentStride : 0.52)) * Math.PI * 2,
-          ) *
-          sign *
-          (resident ? 0.035 : 0.06) *
-          moving;
+        // The host's hand swings opposite its foot, avoiding a same-side gait.
+        target.z += resident
+          ? -leg.z * 0.38
+          : Math.sin((distance / 0.52) * Math.PI * 2) * sign * 0.06 * moving;
         const kind = p.activity ?? 0;
         const holding = new T.Vector3(sign * 0.16, spec.hip + 0.24, 0.27);
         if (kind === 1) holding.set(sign * 0.045, spec.hip + 0.28, 0.25);
@@ -319,13 +322,13 @@ export async function acquireRiggedCharacter(id: RigId) {
           if (kind === 12)
             holding.set(
               sign * 0.12,
-              0.85 + (side === 'R' ? gesture.work : 0),
-              0.3,
+              spec.shoulder - 0.1 + (side === 'R' ? gesture.work : 0),
+              0.24,
             );
           if (kind === 13)
             holding.set(
               side === 'L' ? -0.12 : -0.02,
-              0.83,
+              spec.shoulder - 0.12,
               0.23 + (side === 'R' ? gesture.work : 0),
             );
           if (kind === 6 && side === 'R') {

@@ -1,7 +1,7 @@
 // Hip clearance measured on the deformed, straight-legged production meshes.
 // Seat anchors describe cushion tops, not the character's hip joint.
 export const seatedHipHeight = {
-  resident: 0.109,
+  resident: 0.089,
   bear: 0.151,
   cat: 0.156,
   fox: 0.167,

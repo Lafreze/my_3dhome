@@ -6,29 +6,44 @@ import {
   residentStride,
   residentGesture,
 } from '../app/resident-motion.ts';
+import specs from '../config/character-rigs.json' with { type: 'json' };
+import { humanHeight } from '../app/character-scale.mjs';
+const thigh = specs.resident.hip - specs.resident.knee;
+const shin = specs.resident.knee - specs.resident.ankle;
+const leg = (d, amount, side) => residentLeg(d, amount, side, thigh, shin);
+
 import { LifeEngine } from '../app/life-engine.ts';
 import { worldPoint, distance } from '../app/life-navigation.ts';
 
-void test('enlarged resident feet stay level and planted in world units through the stride', () => {
+void test('host matches cast height; feet stay planted while the support knee straightens', () => {
+  assert.equal(residentScale * 1.3, humanHeight);
+  const headShare =
+    (specs.resident.height - specs.resident.neck) / specs.resident.height;
+  assert.ok(
+    headShare > 0.3 && headShare < 0.38,
+    "host keeps the cast's large-head chibi silhouette",
+  );
+  assert.ok(leg(0, 1, 0).knee < 0.3, 'support knee straightens at mid-stance');
   for (let i = 0; i < 600; i++) {
     const d = (i / 600) * residentStride;
     for (const side of [0, 1]) {
-      const g = residentLeg(d, 1, side);
+      const g = leg(d, 1, side);
       const y =
-        (0.455 -
+        (thigh +
+          shin -
           g.drop -
-          0.245 * Math.cos(g.hip) -
-          0.21 * Math.cos(g.hip + g.knee)) *
+          thigh * Math.cos(g.hip) -
+          shin * Math.cos(g.hip + g.knee)) *
         residentScale;
       const z =
-        (-0.245 * Math.sin(g.hip) - 0.21 * Math.sin(g.hip + g.knee)) *
+        (-thigh * Math.sin(g.hip) - shin * Math.sin(g.hip + g.knee)) *
         residentScale;
       assert.ok(Math.abs(y - g.lift * residentScale) < 1e-5);
       assert.ok(Math.abs(z - g.z * residentScale) < 1e-5);
       assert.ok(Math.abs(g.hip + g.knee + g.ankle) < 1e-8);
       assert.ok(y >= -1e-5 && y < 0.04, 'no high marching steps');
       if (g.phase < 0.59) {
-        const next = residentLeg(d + 0.0001, 1, side);
+        const next = leg(d + 0.0001, 1, side);
         assert.ok(
           Math.abs((next.z - g.z) * residentScale + 0.0001) < 1e-8,
           'stance foot cancels actual world travel',

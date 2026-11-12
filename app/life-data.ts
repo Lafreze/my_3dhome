@@ -435,7 +435,7 @@ for (const n of navigationNodes)
 export const actorSpecs = {
   resident: {
     radius: 0.29,
-    speed: 0.62,
+    speed: 0.5,
     start: 'study.desk',
     name: '小屋主理人',
   },
